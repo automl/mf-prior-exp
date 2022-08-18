@@ -2,7 +2,11 @@
 
 ## Installation
 
+### Conda, Poetry, Package, Pre-Commit
+
 Clone the repository and follow [this documentation](https://automl.github.io/neps/contributing/installation/) using the environment name of your choice.
+
+### Just
 
 To install just you can check the [just documentation](https://github.com/casey/just#installation), or run the below command
 
