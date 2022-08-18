@@ -1,0 +1,25 @@
+# Python
+__pycache__
+
+# Log files
+*.out
+*.err
+*.log
+*.json
+
+# IDE related
+.vscode/
+.idea/
+
+# Jupyter
+notebooks/.ipynb_checkpoints/
+
+# Misc
+*.sh
+*.model
+*.pth
+*.png
+
+# Results
+results
+outputs

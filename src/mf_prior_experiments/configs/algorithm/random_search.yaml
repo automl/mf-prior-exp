@@ -1,0 +1,6 @@
+name: neps_random_search
+name_call: neps
+algo_params:
+  searcher:
+    _class_: neps.optimizers.random_search.optimizer.RandomSearch
+  initial_design_size: _drop_
