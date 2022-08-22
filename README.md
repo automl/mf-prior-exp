@@ -6,6 +6,8 @@
 
 Clone the repository and follow [this documentation](https://automl.github.io/neps/contributing/installation/) using the environment name of your choice.
 
+**NOTE**: NePS requires Python version <3.8 so consider creating an environment with `conda create -n mf-prior python=3.7.12`
+
 ### Just
 
 To install just you can check the [just documentation](https://github.com/casey/just#installation), or run the below command
