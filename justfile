@@ -1,7 +1,6 @@
 # List available receipes
 @list:
   just --list
-
 # Run local experiment:
 @run algorithm="random_search" benchmark="jahs_cifar10":
   python -m mf_prior_experiments.run \
@@ -19,3 +18,8 @@
     --partition {{partition}} \
     --memory {{memory}} \
     --arguments algorithm={{algorithms}} benchmark={{benchmarks}} seed="{{seeds}}" hydra/job_logging=only_file
+
+# List all avialable benchmarks from mfpbench
+@benchmarks:
+  python -m "mfpbench.__init__ --benchmarks"
+
