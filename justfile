@@ -21,5 +21,4 @@
 
 # List all avialable benchmarks from mfpbench
 @benchmarks:
-  python -m "mfpbench.__init__ --benchmarks"
-
+  python -m mfpbench.__init__ --benchmarks
