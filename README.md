@@ -2,15 +2,21 @@
 
 ## Installation
 
-### Conda, Poetry, Package, Pre-Commit
+### 1. Clone the repository
 
-Clone the repository and follow [this documentation](https://automl.github.io/neps/contributing/installation/) using the environment name of your choice.
+```bash
+git clone --recursive https://github.com/automl/mf-prior-exp.git
+```
+
+### 2. Conda, Poetry, Package, Pre-Commit
+
+To setup tooling, follow [this documentation](https://automl.github.io/neps/contributing/installation/) using the environment name of your choice.
 
 **NOTE**: NePS requires Python version \<3.8 so consider creating an environment with `conda create -n mf-prior python=3.7.12`
 
-### Just
+### 3. Just
 
-To install just you can check the [just documentation](https://github.com/casey/just#installation), or run the below command
+To install our command runner just you can check the [just documentation](https://github.com/casey/just#installation), or run the below command
 
 ```bash
 curl --proto '=https' --tlsv1.2 -sSf https://just.systems/install.sh | bash -s -- --to $HOME/.just
@@ -24,7 +30,7 @@ export PATH="$HOME/.just:$PATH"
 
 to your `.zshrc` / `.bashrc` or alternatively simply run the export manually.
 
-### Data
+### 4. Data
 
 ```bash
 python -m mfpbench.download --data-dir data`
@@ -66,7 +72,34 @@ just
 
 ### Analysing experiments
 
+
 ## Contributing
+
+### Working with git submodules
+
+See [the git-scm documentation](https://git-scm.com/book/en/v2/Git-Tools-Submodules). In short:
+
+To pull in changes for `mf-prior-exp` and all submodules (`neps` and `mf-prior-bench`) run
+
+```bash
+git pull --recurse-submodules
+```
+
+To pull in changes from one submodule, change to its directory and run
+
+```bash
+git fetch
+git merge origin/main
+```
+
+To code in the submodule first change to its directory, then checkout the branch you want to work on, e.g.,
+
+```bash
+git checkout master
+```
+
+then perform, commit, and push your changes as usual.
+
 
 ### Managing dependencies
 
