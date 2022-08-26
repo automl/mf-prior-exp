@@ -10,7 +10,7 @@ git clone --recursive https://github.com/automl/mf-prior-exp.git
 
 ### 2. Conda, Poetry, Package, Pre-Commit
 
-To setup tooling, follow [this documentation](https://automl.github.io/neps/contributing/installation/) using the environment name of your choice.
+To setup tooling and install the package, follow [this documentation](https://automl.github.io/neps/contributing/installation/) using the environment name of your choice.
 
 **NOTE**: NePS requires Python version \<3.8 so consider creating an environment with `conda create -n mf-prior python=3.7.12`
 
@@ -33,7 +33,7 @@ to your `.zshrc` / `.bashrc` or alternatively simply run the export manually.
 ### 4. Data
 
 ```bash
-python -m mfpbench.download --data-dir data`
+python -m mfpbench.download --data-dir data
 ```
 
 ## Usage
