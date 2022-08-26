@@ -95,10 +95,22 @@ git merge origin/main
 To code in the submodule first change to its directory, then checkout the branch you want to work on, e.g.,
 
 ```bash
+cd src/neps
 git checkout master
 ```
 
-then perform, commit, and push your changes as usual.
+also make sure to use pre-commit
+
+```bash
+pre-commit install
+```
+
+then perform and commit your changes to the submodule's repository. Next, you also need to commit the changed submodule, e.g.,
+
+```bash
+cd ../..
+
+```
 
 
 ### Managing dependencies
