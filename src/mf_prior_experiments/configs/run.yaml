@@ -1,6 +1,6 @@
 defaults:
-  - benchmark: random_search
-  - algorithm: jahs_cifar10
+  - benchmark: jahs_cifar10
+  - algorithm: random_search
   - override hydra/job_logging: full
   - _self_
 
