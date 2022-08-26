@@ -6,7 +6,7 @@
 
 Clone the repository and follow [this documentation](https://automl.github.io/neps/contributing/installation/) using the environment name of your choice.
 
-**NOTE**: NePS requires Python version <3.8 so consider creating an environment with `conda create -n mf-prior python=3.7.12`
+**NOTE**: NePS requires Python version \<3.8 so consider creating an environment with `conda create -n mf-prior python=3.7.12`
 
 ### Just
 
@@ -23,6 +23,12 @@ export PATH="$HOME/.just:$PATH"
 ```
 
 to your `.zshrc` / `.bashrc` or alternatively simply run the export manually.
+
+### Data
+
+```bash
+python -m mfpbench.download --data-dir data`
+```
 
 ## Usage
 
