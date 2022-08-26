@@ -23,16 +23,18 @@ def _set_seeds(seed):
 
 def run_neps(args):
     import neps
+    from mfpbench import Benchmark
 
-    benchmark = hydra.utils.instantiate(args.benchmark.api)
+    benchmark: Benchmark = hydra.utils.instantiate(args.benchmark.api)
 
     def run_pipeline(**config):
         config = benchmark.sample()  # TODO use the config provided by neps
         return benchmark.query(config).valid_score
 
+    lower, upper, _ = benchmark.fidelity_range
     pipeline_space = dict(
         search_space=benchmark.space,
-        epoch=neps.IntegerParameter(lower=1, upper=200, is_fidelity=True),
+        epoch=neps.IntegerParameter(lower=lower, upper=upper, is_fidelity=True),
     )
     logger.info(f"Using search space: \n {pipeline_space}")
 
