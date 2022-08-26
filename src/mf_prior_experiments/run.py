@@ -28,7 +28,7 @@ def run_neps(args):
 
     def run_pipeline(**config):
         config = benchmark.sample()  # TODO use the config provided by neps
-        return benchmark.query(config).valid_acc
+        return benchmark.query(config).valid_score
 
     pipeline_space = dict(
         search_space=benchmark.space,
