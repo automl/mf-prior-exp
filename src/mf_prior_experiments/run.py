@@ -21,6 +21,30 @@ def _set_seeds(seed):
     # tf.random.set_seed(seed)
 
 
+def run_neps(args):
+    import neps
+
+    benchmark = hydra.utils.instantiate(args.benchmark.api)
+
+    def run_pipeline(**config):
+        config = benchmark.sample()  # TODO use the config provided by neps
+        return benchmark.query(config).valid_acc
+
+    pipeline_space = dict(
+        search_space=benchmark.space,
+        epoch=neps.IntegerParameter(lower=1, upper=200, is_fidelity=True),
+    )
+    logger.info(f"Using search space: \n {pipeline_space}")
+
+    neps.run(
+        run_pipeline=run_pipeline,
+        pipeline_space=pipeline_space,
+        root_directory="neps_root_directory",
+        max_evaluations_total=10,  # TODO use budget defined by benchmark
+        searcher=hydra.utils.instantiate(args.algorithm.searcher, _partial_=True),
+    )
+
+
 @hydra.main(config_path="configs", config_name="run", version_base="1.2")
 def run(args):
     # Print arguments to stderr (useful on cluster)
@@ -40,7 +64,10 @@ def run(args):
     logger.info(f"Arguments:\n{OmegaConf.to_yaml(args)}")
 
     # Actually run
-    # Using hydra's utilities such as hydra.utils.call
+
+    print(args.benchmark.api.datadir)
+
+    hydra.utils.call(args.algorithm.run_function, args)
     logger.info("Run finished")
 
 

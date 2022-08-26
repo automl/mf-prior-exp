@@ -1,1 +1,6 @@
-name: "jahs_cifar10"
+name: jahs_cifar10
+api:
+  _target_: mfpbench.get
+  seed: ${seed}
+  name: jahs_cifar_10
+  datadir: ${hydra:runtime.cwd}/data/jahs-bench-data

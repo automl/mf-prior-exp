@@ -27,3 +27,7 @@ loggers:
   mf_prior_algorithms:
     level: INFO
     handlers: [console]
+
+  neps:
+    level: INFO
+    handlers: [console]
