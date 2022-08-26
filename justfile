@@ -3,7 +3,7 @@
   just --list
 # Run local experiment:
 @run algorithm="random_search" benchmark="jahs_cifar10":
-  python -m mf_prior_experiments.run \
+  HYDRA_FULL_ERROR=1 python -m mf_prior_experiments.run \
     algorithm={{algorithm}} \
     benchmark={{benchmark}}
 
