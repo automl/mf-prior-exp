@@ -28,8 +28,8 @@ def run_neps(args):
     benchmark: Benchmark = hydra.utils.instantiate(args.benchmark.api)
 
     def run_pipeline(**config):
-        config = benchmark.sample()  # TODO use the config provided by neps
-        return benchmark.query(config).valid_score
+        epoch = config.pop(benchmark.fidelity_name)
+        return benchmark.query(config, at=epoch).valid_score
 
     lower, upper, _ = benchmark.fidelity_range
     pipeline_space = dict(
