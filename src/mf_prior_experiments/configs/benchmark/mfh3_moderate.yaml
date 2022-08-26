@@ -1,0 +1,7 @@
+name: mfh3_moderate
+api:
+  _target_: mfpbench.get
+  name: mfh3_moderate
+  seed: ${seed}
+  bias: 1.0
+  noise: 0.2

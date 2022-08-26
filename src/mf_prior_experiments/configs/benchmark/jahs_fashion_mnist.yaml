@@ -1,6 +1,6 @@
-name: jahs_cifar10
+name: jahs_fashion_mnist
 api:
   _target_: mfpbench.get
-  name: jahs_cifar10
+  name: jahs_fashion_mnist
   seed: ${seed}
   datadir: ${hydra:runtime.cwd}/data/jahs-bench-data

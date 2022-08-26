@@ -3,6 +3,7 @@ import logging
 import random
 import sys
 from pathlib import Path
+from typing import Any
 
 import hydra
 from gitinfo import gitinfo
@@ -25,17 +26,25 @@ def run_neps(args):
     import neps
     from mfpbench import Benchmark
 
+    # Added the type here just for editors to be able to get a quick view
     benchmark: Benchmark = hydra.utils.instantiate(args.benchmark.api)
 
-    def run_pipeline(**config):
-        epoch = config.pop(benchmark.fidelity_name)
-        return benchmark.query(config, at=epoch).valid_score
+    def run_pipeline(**config: Any) -> float:
+        fidelity = config.pop(benchmark.fidelity_name)
+        return benchmark.query(config, at=fidelity).error
 
     lower, upper, _ = benchmark.fidelity_range
-    pipeline_space = dict(
-        search_space=benchmark.space,
-        epoch=neps.IntegerParameter(lower=lower, upper=upper, is_fidelity=True),
-    )
+    fidelity_name = benchmark.fidelity_name
+
+    if isinstance(lower, float):
+        fidelity_param = neps.FloatParameter(lower=lower, upper=upper, is_fidelity=True)
+    else:
+        fidelity_param = neps.IntegerParameter(lower=lower, upper=upper, is_fidelity=True)
+
+    pipeline_space = {
+        "search_space": benchmark.space,
+        fidelity_name: fidelity_param
+    }
     logger.info(f"Using search space: \n {pipeline_space}")
 
     neps.run(
@@ -66,9 +75,6 @@ def run(args):
     logger.info(f"Arguments:\n{OmegaConf.to_yaml(args)}")
 
     # Actually run
-
-    print(args.benchmark.api.datadir)
-
     hydra.utils.call(args.algorithm.run_function, args)
     logger.info("Run finished")
 

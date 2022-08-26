@@ -816,7 +816,7 @@ yahpo-gym = "1.0.1"
 type = "git"
 url = "https://github.com/automl/mf-prior-bench.git"
 reference = "stable-mf-exp"
-resolved_reference = "33593dc4b628b7a8a286f7757ed0d4225dbed564"
+resolved_reference = "b9177984ce7977c75e0500de7c382725aece2b33"
 
 [[package]]
 name = "mistune"
