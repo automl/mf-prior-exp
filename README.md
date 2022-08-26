@@ -72,7 +72,6 @@ just
 
 ### Analysing experiments
 
-
 ## Contributing
 
 ### Working with git submodules
@@ -99,19 +98,22 @@ cd src/neps
 git checkout master
 ```
 
-also make sure to use pre-commit
+then perform, commit, and push your changes to the submodule's repository
 
 ```bash
 pre-commit install
+git commit -m "awesome changes"
+git push
 ```
 
-then perform and commit your changes to the submodule's repository. Next, you also need to commit the changed submodule, e.g.,
+next, you also need to commit the changed submodule, e.g.,
 
 ```bash
 cd ../..
-
+git add src/neps
+git commit -m "update neps submodule"
+git push
 ```
-
 
 ### Managing dependencies
 
