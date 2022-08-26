@@ -250,7 +250,7 @@ graph = ["objgraph (>=1.7.2)"]
 
 [[package]]
 name = "distlib"
-version = "0.3.5"
+version = "0.3.6"
 description = "Distribution utilities"
 category = "dev"
 optional = false
@@ -805,7 +805,7 @@ description = ""
 category = "main"
 optional = false
 python-versions = ">=3.7.1,<=3.10"
-develop = false
+develop = true
 
 [package.dependencies]
 jahs-bench = {git = "https://github.com/automl/jahs_bench_201.git", rev = "3cd0057ec1f61e770a95124957c3d58eae35929b"}
@@ -813,10 +813,8 @@ numpy = "1.*"
 yahpo-gym = "1.0.1"
 
 [package.source]
-type = "git"
-url = "https://github.com/automl/mf-prior-bench.git"
-reference = "stable-mf-exp"
-resolved_reference = "b9177984ce7977c75e0500de7c382725aece2b33"
+type = "directory"
+url = "src/mf-prior-bench"
 
 [[package]]
 name = "mistune"
@@ -996,7 +994,7 @@ description = "Neural Pipeline Search helps deep learning experts find the best 
 category = "main"
 optional = false
 python-versions = ">=3.7.1,<3.8"
-develop = false
+develop = true
 
 [package.dependencies]
 ConfigSpace = "^0.4.19"
@@ -1015,10 +1013,8 @@ types-termcolor = "^1.1.2"
 typing-extensions = "^4.0.1"
 
 [package.source]
-type = "git"
-url = "https://github.com/automl/neps.git"
-reference = "v0.5.0"
-resolved_reference = "9529577c39e07beac4a885ed5bcbb0ddd61247cd"
+type = "directory"
+url = "src/neps"
 
 [[package]]
 name = "nltk"
@@ -1889,7 +1885,7 @@ testing = ["func-timeout", "jaraco.itertools", "pytest (>=6)", "pytest-black (>=
 [metadata]
 lock-version = "1.1"
 python-versions = ">=3.7.1,<3.8"
-content-hash = "cc306cc1700e1452c4a96dfb949df481e33c6dce3d3719bf397c251df44e9f94"
+content-hash = "37a7538eb3bbf5a71d79135a076379fd524050445d9a4eb7030d70885a8a8267"
 
 [metadata.files]
 antlr4-python3-runtime = [
@@ -2142,8 +2138,8 @@ dill = [
     {file = "dill-0.3.5.1.tar.gz", hash = "sha256:d75e41f3eff1eee599d738e76ba8f4ad98ea229db8b085318aa2b3333a208c86"},
 ]
 distlib = [
-    {file = "distlib-0.3.5-py2.py3-none-any.whl", hash = "sha256:b710088c59f06338ca514800ad795a132da19fda270e3ce4affc74abf955a26c"},
-    {file = "distlib-0.3.5.tar.gz", hash = "sha256:a7f75737c70be3b25e2bee06288cec4e4c221de18455b2dd037fe2a795cab2fe"},
+    {file = "distlib-0.3.6-py2.py3-none-any.whl", hash = "sha256:f35c4b692542ca110de7ef0bea44d73981caeb34ca0b9b6b2e6d7790dda8f80e"},
+    {file = "distlib-0.3.6.tar.gz", hash = "sha256:14bad2d9b04d3a36127ac97f30b12a19268f211063d8f8ee4f47108896e11b46"},
 ]
 entrypoints = [
     {file = "entrypoints-0.4-py3-none-any.whl", hash = "sha256:f174b5ff827504fd3cd97cc3f8649f3693f51538c7e4bdf3ef002c8429d42f9f"},
