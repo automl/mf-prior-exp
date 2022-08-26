@@ -5,7 +5,7 @@ defaults:
   - _self_
 
 experiment_group: test_${now:%Y-%m-%d-%H-%M-%S}
-experiment_name: algorithm=${algorithm.name}/benchmark=${benchmark.name}/seed=${seed}
+experiment_name: benchmark=${benchmark.name}/algorithm=${algorithm.name}/seed=${seed}
 seed: 2
 
 hydra:
