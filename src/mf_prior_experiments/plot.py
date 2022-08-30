@@ -22,7 +22,7 @@ from mf_prior_experiments.configs.plotting.utils import (
 
 def plot(args):
 
-    BASE_PATH = Path(".")
+    BASE_PATH = Path(".") if args.base_path is None else Path(args.base_path)
 
     set_general_plot_style()
 
@@ -47,7 +47,7 @@ def plot(args):
             costs = []
 
             for seed in sorted(os.listdir(_path)):
-                losses, infos = get_seed_info(_path, seed)
+                losses, infos = get_seed_info(_path, seed, dataset=benchmark)
                 losses = [-l for l in losses]  # TODO: confirm the return of benchmark
                 incumbent = np.minimum.accumulate(losses)
                 incumbents.append(incumbent)
@@ -96,9 +96,12 @@ def plot(args):
     )
     fig.tight_layout(pad=0, h_pad=.5)
 
+    filename = args.filename
+    if filename is None:
+        filename = f"{args.experiment_group}_{args.plot_id}"
     save_fig(
         fig,
-        filename=f"{args.experiment_group}_{args.plot_id}",
+        filename=filename,
         output_dir=BASE_PATH / "plots"
     )
 
@@ -106,6 +109,12 @@ def plot(args):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(
         description="mf-prior-exp plotting",
+    )
+    parser.add_argument(
+        "--base_path",
+        type=str,
+        default=None,
+        help="path where `results/` exists"
     )
     parser.add_argument(
         "--experiment_group",
@@ -126,6 +135,12 @@ if __name__ == "__main__":
         "--plot_id",
         type=str,
         default="1"
+    )
+    parser.add_argument(
+        "--filename",
+        type=str,
+        default=None,
+        help="name out pdf file generated"
     )
 
     args = parser.parse_args()

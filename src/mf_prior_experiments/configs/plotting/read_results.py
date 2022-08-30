@@ -12,8 +12,8 @@ FULL_FUNC_EVAL_COST = {
     "fashion_mnist": 193248
 }
 
+# default output format is assumed to be NePS
 OUTPUT_FORMAT = {
-    "neps": ["random_search", "grid_search", "v1"],
     "hpbandster": ["BOHB", "LCNet"]
 }
 
@@ -155,18 +155,12 @@ def _get_info_smac(path, seed, dataset):
     raise NotImplementedError("SMAC parsing not implemented!")
 
 
-def get_seed_info(path, seed, algorithm="random_search"):
-    dataset = list(filter(
-        None,
-        list(map(lambda _d: _d if _d in path else None, FULL_FUNC_EVAL_COST.keys()))
-    ))[0]
+def get_seed_info(path, seed, algorithm="random_search", dataset="jahs_cifar10"):
 
-    if algorithm in OUTPUT_FORMAT["neps"]:
-        data = _get_info_neps(path, seed, dataset)
-    elif algorithm in OUTPUT_FORMAT["hpbandster"]:
+    if algorithm in OUTPUT_FORMAT["hpbandster"]:
         data = _get_info_hpbandster(path, seed, dataset)
     else:
-        raise NotImplementedError("get_info only implemented for NePS/ HpBandSter")
+        data = _get_info_neps(path, seed, dataset)
 
     if algorithm in MULTI_FIDELITY_ALGORITHMS:
         data.reverse()

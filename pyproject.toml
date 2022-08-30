@@ -27,6 +27,7 @@ hydra-core = "^1.1.1"
 python-git-info = "^0.7.1"
 neural-pipeline-search = { path = "src/neps", develop = true }
 mf-prior-bench = { path = "src/mf-prior-bench", develop = true }
+attrdict = "^2.0.1"
 
 [tool.poetry.dev-dependencies]
 jupyter = "^1.0"

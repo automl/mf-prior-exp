@@ -2,11 +2,11 @@
 @list:
   just --list
 # Run local experiment:
-@run algorithm="random_search" benchmark="mfh3_bad":
+@run algorithm="random_search" benchmark="mfh3_bad" experiment_group="debug":
   HYDRA_FULL_ERROR=1 python -m mf_prior_experiments.run \
     algorithm={{algorithm}} \
-    benchmark={{benchmark}}
-
+    benchmark={{benchmark}} \
+    experiment_group={{experiment_group}}
 
 # Submit job
 @submit algorithms benchmarks seeds="range(1)" experiment_group="test" job_name="default" partition="mldlc_gpu-rtx2080" max_tasks="1000" time="0-23:59" memory="0":
