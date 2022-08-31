@@ -1,0 +1,7 @@
+name: iaml_rpart
+api:
+  _target_: mfpbench.get
+  name: iaml_rpart
+  seed: ${seed}
+  datadir: ${hydra:runtime.cwd}/data/yahpo-gym-data
+  task_id: '1067'
