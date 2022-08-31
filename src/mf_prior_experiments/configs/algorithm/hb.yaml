@@ -1,4 +1,4 @@
-name: hb
+name: hyperband
 run_function:
   _target_: mf_prior_experiments.run.run_neps
 searcher:
