@@ -1,27 +1,19 @@
-import os
 import json
-import yaml
-import numpy as np
-from attrdict import AttrDict
-from hpbandster.core.result import Result
-from hpbandster.core.base_iteration import Datum
+import os
 
-FULL_FUNC_EVAL_COST = {
-    "cifar10": 175571,
-    "colorectal_histology": 18336,
-    "fashion_mnist": 193248
-}
+import yaml
+from attrdict import AttrDict
+from hpbandster.core.base_iteration import Datum
+from hpbandster.core.result import Result
 
 # default output format is assumed to be NePS
-OUTPUT_FORMAT = {
-    "hpbandster": ["BOHB", "LCNet"]
-}
+OUTPUT_FORMAT = {"hpbandster": ["BOHB", "LCNet"]}
 
-MULTI_FIDELITY_ALGORITHMS = []
+SINGLE_FIDELITY_ALGORITHMS = ["random_search"]
 
 
 def load_yaml(filename):
-    with open(filename, "r") as f:
+    with open(filename, encoding="UTF-8") as f:
         # https://github.com/yaml/pyyaml/wiki/PyYAML-yaml.load(input)-Deprecation
         args = yaml.load(f, Loader=yaml.FullLoader)
     return AttrDict(args)
@@ -47,10 +39,10 @@ def logged_results_to_HBS_result(directory):
     hpbandster.core.result.Result: :object:
     """
     data = {}
-    time_ref = float('inf')
+    time_ref = float("inf")
     budget_set = set()
 
-    with open(os.path.join(directory, 'configs.json')) as fh:
+    with open(os.path.join(directory, "configs.json"), encoding="UTF-8") as fh:
         for line in fh:
 
             line = json.loads(line)
@@ -58,22 +50,25 @@ def logged_results_to_HBS_result(directory):
             if len(line) == 3:
                 config_id, config, config_info = line
             if len(line) == 2:
-                config_id, config, = line
-                config_info = 'N/A'
+                (
+                    config_id,
+                    config,
+                ) = line
+                config_info = "N/A"
 
             data[tuple(config_id)] = Datum(config=config, config_info=config_info)
 
-    with open(os.path.join(directory, 'results.json')) as fh:
+    with open(os.path.join(directory, "results.json"), encoding="UTF-8") as fh:
         for line in fh:
             config_id, budget, time_stamps, result, exception = json.loads(line)
-            id = tuple(config_id)
+            _id = tuple(config_id)
 
-            data[id].time_stamps[budget] = time_stamps
-            data[id].results[budget] = result
-            data[id].exceptions[budget] = exception
+            data[_id].time_stamps[budget] = time_stamps
+            data[_id].results[budget] = result
+            data[_id].exceptions[budget] = exception
 
             budget_set.add(budget)
-            time_ref = min(time_ref, time_stamps['submitted'])
+            time_ref = min(time_ref, time_stamps["submitted"])
 
     # infer the hyperband configuration from the data
     budget_list = sorted(list(budget_set))
@@ -82,18 +77,20 @@ def logged_results_to_HBS_result(directory):
         # 'eta'        : None if len(budget_list) < 2 else budget_list[1]/budget_list[0],
         # 'min_budget' : min(budget_set),
         # 'max_budget' : max(budget_set),
-        'budgets': budget_list,
-        'max_SH_iter': len(budget_set),
-        'time_ref': time_ref
+        "budgets": budget_list,
+        "max_SH_iter": len(budget_set),
+        "time_ref": time_ref,
     }
-    return (Result([data], HB_config))
+    return Result([data], HB_config)
 
 
-def _get_info_neps(path, seed, dataset):
+def _get_info_neps(path, seed):
     with open(
         os.path.join(
-            path, str(seed), "neps_root_directory", "all_losses_and_configs.txt"),
-        "r") as f:
+            path, str(seed), "neps_root_directory", "all_losses_and_configs.txt"
+        ),
+        encoding="UTF-8",
+    ) as f:
         data = f.readlines()
     losses = [
         float(entry.strip().split("Loss: ")[1]) for entry in data if "Loss: " in entry
@@ -109,8 +106,9 @@ def _get_info_neps(path, seed, dataset):
     for config_id in config_ids:
         info.append(
             dict(
-                cost=1 #load_yaml(os.path.join(result_path, config_id, "result.yaml")).cost / FULL_FUNC_EVAL_COST[dataset]
-                     #+ np.random.uniform()  # TODO:  save cost in results.yaml
+                cost=load_yaml(
+                    os.path.join(result_path, config_id, "result.yaml")
+                ).info_dict.cost
             )
         )
 
@@ -119,7 +117,7 @@ def _get_info_neps(path, seed, dataset):
     return data
 
 
-def _get_info_hpbandster(path, seed, dataset):
+def _get_info_hpbandster(path, seed):
     get_loss_from_run_fn = lambda r: r.loss
     # load runs from log file
     result = logged_results_to_HBS_result(os.path.join(path, str(seed)))
@@ -135,37 +133,31 @@ def _get_info_hpbandster(path, seed, dataset):
         _id = r.config_id
         loss = get_loss_from_run_fn(r)
 
-        info = dict()
-        for k, v in r.info.items():
-            if k == "cost":
-                v /= FULL_FUNC_EVAL_COST[dataset]
-            info[k] = v
-
-        data.append((_id, loss, info))
+        data.append((_id, loss, r.info))
 
         for time, time_list in runtime.items():
             time_list.append(r.time_stamps[time])
 
-    total_runtime = runtime["finished"][-1] - runtime["started"][0]
+    # total_runtime = runtime["finished"][-1] - runtime["started"][0]
 
     return data
 
 
-def _get_info_smac(path, seed, dataset):
+def _get_info_smac(path, seed):
     raise NotImplementedError("SMAC parsing not implemented!")
 
 
-def get_seed_info(path, seed, algorithm="random_search", dataset="jahs_cifar10"):
+def get_seed_info(path, seed, algorithm="random_search"):
 
     if algorithm in OUTPUT_FORMAT["hpbandster"]:
-        data = _get_info_hpbandster(path, seed, dataset)
+        data = _get_info_hpbandster(path, seed)
     else:
-        data = _get_info_neps(path, seed, dataset)
+        data = _get_info_neps(path, seed)
 
-    if algorithm in MULTI_FIDELITY_ALGORITHMS:
+    if algorithm not in SINGLE_FIDELITY_ALGORITHMS:
         data.reverse()
         for idx, (_id, loss, info) in enumerate(data):
-            for _i, _, _info in data[data.index((_id, loss, info)) + 1:]:
+            for _i, _, _info in data[data.index((_id, loss, info)) + 1 :]:
                 if _i != _id:
                     continue
                 info["cost"] -= _info["cost"]

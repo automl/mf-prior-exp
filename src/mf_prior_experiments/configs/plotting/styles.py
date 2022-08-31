@@ -1,5 +1,5 @@
-X_LABEL = "Approx. Full Evaluations"
-Y_LABEL = "Validation Error [%]"
+X_LABEL = "Runtime [s]"
+Y_LABEL = "Error"
 
 ALGORITHMS = {
     "random_search": "Random Search",
@@ -10,7 +10,7 @@ ALGORITHMS = {
     "hb": "HB",
     "hb_prior": "HB+Prior",
     "asha": "ASHA",
-    "asha_prior": "ASHA+Prior"
+    "asha_prior": "ASHA+Prior",
 }
 
 DATASETS = {
@@ -18,7 +18,7 @@ DATASETS = {
     "jahs_colorectal_histology": "Colorectal-Histology",
     "jahs_fashion_mnist": "Fashion-MNIST",
     "mfh3_good": "Hartmann 3 (good)",
-    "mfh6_good": "Hartmann 6 (good)"
+    "mfh6_good": "Hartmann 6 (good)",
 }
 
 COLOR_MARKER_DICT = {
@@ -30,7 +30,7 @@ COLOR_MARKER_DICT = {
     "asha": "magenta",
     "sh_prior": "orange",
     "hb_prior": "lightgreen",
-    "asha_prior": "pink"
+    "asha_prior": "pink",
 }
 
 Y_MAP = {
