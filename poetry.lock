@@ -880,7 +880,7 @@ develop = ["wheel", "codecov", "pytest-cov", "pycodestyle", "pytest (>=4.6)"]
 
 [[package]]
 name = "mypy"
-version = "0.930"
+version = "0.971"
 description = "Optional static typing for Python"
 category = "dev"
 optional = false
