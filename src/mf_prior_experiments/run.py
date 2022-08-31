@@ -36,7 +36,7 @@ def run_neps(args):
         return {
             "loss": result.error,
             "info_dict": {
-                "cost": result.train_time,
+                "train_time": result.train_time,
                 "val_score": result.val_score,
                 "test_score": result.test_score,
                 "fidelity": result.fidelity,
