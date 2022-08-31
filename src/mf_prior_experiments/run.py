@@ -23,15 +23,25 @@ def _set_seeds(seed):
 
 
 def run_neps(args):
-    import neps
     from mfpbench import Benchmark
+
+    import neps
 
     # Added the type here just for editors to be able to get a quick view
     benchmark: Benchmark = hydra.utils.instantiate(args.benchmark.api)
 
-    def run_pipeline(**config: Any) -> float:
+    def run_pipeline(**config: Any) -> dict:
         fidelity = config.pop(benchmark.fidelity_name)
-        return benchmark.query(config, at=fidelity).error
+        result = benchmark.query(config, at=fidelity)
+        return {
+            "loss": result.error,
+            "info_dict": {
+                "cost": result.train_time,
+                "val_score": result.val_score,
+                "test_score": result.test_score,
+                "fidelity": result.fidelity,
+            },
+        }
 
     lower, upper, _ = benchmark.fidelity_range
     fidelity_name = benchmark.fidelity_name
@@ -41,10 +51,7 @@ def run_neps(args):
     else:
         fidelity_param = neps.IntegerParameter(lower=lower, upper=upper, is_fidelity=True)
 
-    pipeline_space = {
-        "search_space": benchmark.space,
-        fidelity_name: fidelity_param
-    }
+    pipeline_space = {"search_space": benchmark.space, fidelity_name: fidelity_param}
     logger.info(f"Using search space: \n {pipeline_space}")
 
     neps.run(
