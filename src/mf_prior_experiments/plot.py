@@ -47,7 +47,6 @@ def plot(args):
 
             for seed in sorted(os.listdir(_path)):
                 losses, infos = get_seed_info(_path, seed)
-                losses = [-l for l in losses]  # TODO: confirm the return of benchmark
                 incumbent = np.minimum.accumulate(losses)
                 incumbents.append(incumbent)
                 cost = [i["cost"] for i in infos]
