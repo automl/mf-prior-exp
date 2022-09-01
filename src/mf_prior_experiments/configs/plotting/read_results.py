@@ -106,9 +106,9 @@ def _get_info_neps(path, seed):
     for config_id in config_ids:
         info.append(
             dict(
-                train_time=load_yaml(
+                cost=load_yaml(
                     os.path.join(result_path, config_id, "result.yaml")
-                ).info_dict.train_time
+                ).info_dict.cost
             )
         )
 
@@ -160,7 +160,7 @@ def get_seed_info(path, seed, algorithm="random_search"):
             for _i, _, _info in data[data.index((_id, loss, info)) + 1 :]:
                 if _i != _id:
                     continue
-                info["train_time"] -= _info["train_time"]
+                info["cost"] -= _info["cost"]
                 data[idx] = (_id, loss, info)
                 break
         data.reverse()

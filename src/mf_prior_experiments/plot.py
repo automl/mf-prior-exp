@@ -43,18 +43,18 @@ def plot(args):
                 raise FileNotFoundError(errno.ENOENT, os.strerror(errno.ENOENT), _path)
 
             incumbents = []
-            train_times = []
+            costs = []
 
             for seed in sorted(os.listdir(_path)):
                 losses, infos = get_seed_info(_path, seed)
                 incumbent = np.minimum.accumulate(losses)
                 incumbents.append(incumbent)
-                train_time = [i["train_time"] for i in infos]
-                train_times.append(train_time)
+                cost = [i["cost"] for i in infos]
+                costs.append(cost)
 
             plot_incumbent(
                 ax=axs[benchmark_idx] if len(args.benchmarks) > 1 else axs,
-                x=train_times,
+                x=costs,
                 y=incumbents,
                 title=benchmark,
                 xlabel=X_LABEL,
