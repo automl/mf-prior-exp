@@ -68,6 +68,8 @@ def plot_incumbent(
     ylabel=None,
     title=None,
     algorithm=None,
+    log_x=False,
+    log_y=False,
     **plot_kwargs,
 ):
     if isinstance(x, list):
@@ -104,4 +106,8 @@ def plot_incumbent(
         ax.set_xlabel(xlabel)
     if ylabel is not None:
         ax.set_ylabel(ylabel)
+    if log_x:
+        ax.set_xscale("log")
+    if log_y:
+        ax.set_yscale("log")
     ax.grid(True, which="both", ls="-", alpha=0.8)

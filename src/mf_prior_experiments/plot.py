@@ -60,6 +60,8 @@ def plot(args):
                 xlabel=X_LABEL,
                 ylabel=Y_LABEL if benchmark_idx == 0 else None,
                 algorithm=algorithm,
+                log_x=args.log_x,
+                log_y=args.log_y
             )
 
     sns.despine(fig)
@@ -69,12 +71,13 @@ def plot(args):
     else:
         handles, labels = axs.get_legend_handles_labels()
 
+    ncol = len(args.algorithms) % 4
     fig.legend(
         handles,
         labels,
         loc="lower center",
         bbox_to_anchor=(0.5, -0.15),
-        ncol=len(args.algorithms) % 4,
+        ncol=len(args.algorithms) if not ncol else ncol,
         frameon=False,
     )
     fig.tight_layout(pad=0, h_pad=0.5)
@@ -96,6 +99,8 @@ if __name__ == "__main__":
     parser.add_argument("--benchmarks", nargs="+", default=["jahs_cifar10"])
     parser.add_argument("--algorithms", nargs="+", default=["random_search"])
     parser.add_argument("--plot_id", type=str, default="1")
+    parser.add_argument('--log_x', action='store_true')
+    parser.add_argument('--log_y', action='store_true')
     parser.add_argument(
         "--filename", type=str, default=None, help="name out pdf file generated"
     )
