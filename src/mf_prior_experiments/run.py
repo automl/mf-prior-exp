@@ -66,8 +66,10 @@ def run_neps(args):
         run_pipeline=run_pipeline,
         pipeline_space=pipeline_space,
         root_directory="neps_root_directory",
-        **budget_args,
-        # max_evaluations_total=50,
+        # TODO: figure out how to pass runtime budget and if metahyper internally
+        #  calculates continuation costs to subtract from optimization budget
+        # **budget_args,
+        max_evaluations_total=50,
         searcher=hydra.utils.instantiate(args.algorithm.searcher, _partial_=True),
     )
 

@@ -9,9 +9,13 @@ import seaborn as sns
 import yaml  # type: ignore
 from attrdict import AttrDict
 
-from .configs.plotting.read_results import get_seed_info
-from .configs.plotting.styles import X_LABEL, Y_LABEL
-from .configs.plotting.utils import plot_incumbent, save_fig, set_general_plot_style
+from mf_prior_experiments.configs.plotting.read_results import get_seed_info
+from mf_prior_experiments.configs.plotting.styles import X_LABEL, Y_LABEL
+from mf_prior_experiments.configs.plotting.utils import (
+    plot_incumbent,
+    save_fig,
+    set_general_plot_style
+)
 
 benchmark_configs_path = os.path.join(os.path.dirname(__file__), "configs/benchmark/")
 
