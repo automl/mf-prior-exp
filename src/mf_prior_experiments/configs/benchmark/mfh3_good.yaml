@@ -1,4 +1,5 @@
 name: mfh3_good
+budget: 250  # max_fidelity(=5) x 50 function evaluations
 api:
   _target_: mfpbench.get
   name: mfh3_good

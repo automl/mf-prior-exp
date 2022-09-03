@@ -35,6 +35,7 @@ def run_neps(args):
         result = benchmark.query(config, at=fidelity)
         return {
             "loss": result.error,
+            "cost": result.cost,
             "info_dict": {
                 "cost": result.cost,
                 "val_score": result.val_score,
@@ -56,11 +57,17 @@ def run_neps(args):
     pipeline_space = {"search_space": benchmark.space, fidelity_name: fidelity_param}
     logger.info(f"Using search space: \n {pipeline_space}")
 
+    if "budget" in args.benchmark:
+        budget_args = {"budget": args.benchmark.budget}
+    else:
+        budget_args = {"max_evaluations_total": 50}
+
     neps.run(
         run_pipeline=run_pipeline,
         pipeline_space=pipeline_space,
         root_directory="neps_root_directory",
-        max_evaluations_total=50,  # TODO use budget defined by benchmark
+        **budget_args,
+        # max_evaluations_total=50,
         searcher=hydra.utils.instantiate(args.algorithm.searcher, _partial_=True),
     )
 

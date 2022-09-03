@@ -1,9 +1,9 @@
+import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import seaborn as sns
 from path import Path
 from scipy import stats
-import matplotlib.pyplot as plt
 
 from .styles import ALGORITHMS, COLOR_MARKER_DICT, DATASETS
 
@@ -48,7 +48,7 @@ def save_fig(fig, filename, output_dir, dpi: int = 100):
     print(f'Saved to "{output_dir}/{filename}.pdf"')
 
 
-def interpolate_time(incumbents, costs):
+def interpolate_time(incumbents, costs, budget=None):
     df_dict = {}
 
     for i, _ in enumerate(incumbents):
@@ -56,7 +56,18 @@ def interpolate_time(incumbents, costs):
         df_dict[f"seed{i}"] = _seed_info
     df = pd.DataFrame.from_dict(df_dict)
 
+    if budget is not None:
+        new_entry = {c: np.nan for c in df.columns}
+        _df = pd.DataFrame.from_dict(new_entry, orient="index", columns=df.columns)
+        _df.index = [budget]
+        df = pd.concat((df, _df)).sort_index()
+
     df = df.fillna(method="backfill", axis=0).fillna(method="ffill", axis=0)
+
+    if budget is not None:
+        cutoff_idx = np.where(df.index > budget)[0]
+        cutoff_idx = cutoff_idx[0] if len(cutoff_idx) else len(df) - 1
+        df = df.iloc[:cutoff_idx]
     return df
 
 
@@ -77,10 +88,14 @@ def plot_incumbent(
     if isinstance(y, list):
         y = np.array(y)
 
-    df = interpolate_time(incumbents=y, costs=x)
-    # df = df.iloc[np.linspace(0, len(df) - 1, 1001)]
+    budget = None
+    if "budget" in plot_kwargs:
+        budget = plot_kwargs["budget"]
+        plot_kwargs.pop("budget")
+
+    df = interpolate_time(incumbents=y, costs=x, budget=budget)
     x = df.index
-    y_mean = df.mean(axis=1)
+    y_mean = df.mean(axis=1).values
     std_error = stats.sem(df.values, axis=1)
 
     ax.plot(
@@ -89,7 +104,7 @@ def plot_incumbent(
         label=ALGORITHMS[algorithm],
         **plot_kwargs,
         color=COLOR_MARKER_DICT[algorithm],
-        linewidth=0.7
+        linewidth=0.7,
     )
 
     ax.fill_between(
@@ -99,6 +114,9 @@ def plot_incumbent(
         color=COLOR_MARKER_DICT[algorithm],
         alpha=0.2,
     )
+
+    ax.set_xlim(auto=True)
+    ax.set_ylim(auto=True)
 
     if title is not None:
         ax.set_title(DATASETS[title])

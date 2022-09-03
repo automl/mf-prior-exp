@@ -6,18 +6,14 @@ from pathlib import Path
 import matplotlib.pyplot as plt
 import numpy as np
 import seaborn as sns
+import yaml  # type: ignore
+from attrdict import AttrDict
 
-from mf_prior_experiments.configs.plotting.read_results import (
-    get_seed_info,
-)
-from mf_prior_experiments.configs.plotting.styles import (
-    X_LABEL, Y_LABEL,
-)
-from mf_prior_experiments.configs.plotting.utils import (
-    set_general_plot_style,
-    plot_incumbent,
-    save_fig
-)
+from .configs.plotting.read_results import get_seed_info
+from .configs.plotting.styles import X_LABEL, Y_LABEL
+from .configs.plotting.utils import plot_incumbent, save_fig, set_general_plot_style
+
+benchmark_configs_path = os.path.join(os.path.dirname(__file__), "configs/benchmark/")
 
 
 def plot(args):
@@ -62,7 +58,8 @@ def plot(args):
                 ylabel=Y_LABEL if benchmark_idx == 0 else None,
                 algorithm=algorithm,
                 log_x=args.log_x,
-                log_y=args.log_y
+                log_y=args.log_y,
+                budget=args.budget,
             )
 
     sns.despine(fig)
@@ -100,11 +97,23 @@ if __name__ == "__main__":
     parser.add_argument("--benchmarks", nargs="+", default=["jahs_cifar10"])
     parser.add_argument("--algorithms", nargs="+", default=["random_search"])
     parser.add_argument("--plot_id", type=str, default="1")
-    parser.add_argument('--log_x', action='store_true')
-    parser.add_argument('--log_y', action='store_true')
+    parser.add_argument("--log_x", action="store_true")
+    parser.add_argument("--log_y", action="store_true")
     parser.add_argument(
         "--filename", type=str, default=None, help="name out pdf file generated"
     )
 
-    args = parser.parse_args()
+    args = AttrDict(parser.parse_args().__dict__)
+    budget = None
+    # reading benchmark budget if only one benchmark is being plotted
+    if len(args.benchmarks) == 1:
+        with open(
+            os.path.join(benchmark_configs_path, f"{args.benchmarks[0]}.yaml"),
+            encoding="utf-8",
+        ) as f:
+            _args = AttrDict(yaml.load(f, yaml.Loader))
+            if "budget" in _args:
+                budget = _args.budget
+    # TODO: make log scaling of plots also a feature of the benchmark
+    args.update({"budget": budget})
     plot(args)  # pylint: disable=no-value-for-parameter
