@@ -60,7 +60,7 @@ def run_neps(args):
         run_pipeline=run_pipeline,
         pipeline_space=pipeline_space,
         root_directory="neps_root_directory",
-        max_evaluations_total=10,  # TODO use budget defined by benchmark
+        max_evaluations_total=50,  # TODO use budget defined by benchmark
         searcher=hydra.utils.instantiate(args.algorithm.searcher, _partial_=True),
     )
 

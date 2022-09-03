@@ -46,7 +46,8 @@ def plot(args):
             costs = []
 
             for seed in sorted(os.listdir(_path)):
-                losses, infos = get_seed_info(_path, seed)
+                # `algorithm` is passed to calculate continuation costs
+                losses, infos = get_seed_info(_path, seed, algorithm=algorithm)
                 incumbent = np.minimum.accumulate(losses)
                 incumbents.append(incumbent)
                 cost = [i["cost"] for i in infos]
@@ -71,14 +72,14 @@ def plot(args):
     else:
         handles, labels = axs.get_legend_handles_labels()
 
-    ncol = len(args.algorithms) % 4
+    ncol = int(np.ceil(len(args.algorithms) / 2))
     fig.legend(
         handles,
         labels,
         loc="lower center",
         bbox_to_anchor=(0.5, -0.15),
         ncol=len(args.algorithms) if not ncol else ncol,
-        frameon=False,
+        frameon=True,
     )
     fig.tight_layout(pad=0, h_pad=0.5)
 

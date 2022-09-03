@@ -1,15 +1,20 @@
-import json
 import os
-
+import json
 import yaml
+
 from attrdict import AttrDict
 from hpbandster.core.base_iteration import Datum
 from hpbandster.core.result import Result
+from typing import List
 
 # default output format is assumed to be NePS
-OUTPUT_FORMAT = {"hpbandster": ["BOHB", "LCNet"]}
+OUTPUT_FORMAT = {
+    "hpbandster": ["BOHB", "LCNet"]
+}
 
-SINGLE_FIDELITY_ALGORITHMS = ["random_search"]
+SINGLE_FIDELITY_ALGORITHMS = [
+    "random_search", "random_search_prior", "bayesian_optimization"
+]
 
 
 def load_yaml(filename):
@@ -84,7 +89,7 @@ def logged_results_to_HBS_result(directory):
     return Result([data], HB_config)
 
 
-def _get_info_neps(path, seed):
+def _get_info_neps(path, seed) -> List:
     with open(
         os.path.join(
             path, str(seed), "neps_root_directory", "all_losses_and_configs.txt"
@@ -112,7 +117,7 @@ def _get_info_neps(path, seed):
             )
         )
 
-    data = zip(config_ids, losses, info)
+    data = list(zip(config_ids, losses, info))
 
     return data
 
@@ -148,6 +153,10 @@ def _get_info_smac(path, seed):
 
 
 def get_seed_info(path, seed, algorithm="random_search"):
+    """ Reads and processes data per seed.
+
+    An `algorithm` needs to be passed to calculate continuation costs.
+    """
 
     if algorithm in OUTPUT_FORMAT["hpbandster"]:
         data = _get_info_hpbandster(path, seed)
@@ -155,13 +164,27 @@ def get_seed_info(path, seed, algorithm="random_search"):
         data = _get_info_neps(path, seed)
 
     if algorithm not in SINGLE_FIDELITY_ALGORITHMS:
+        # calculates continuation costs for MF algorithms
+        # NOTE: assumes that all recorded evaluations are black-box evaluations where
+        #   continuations or freeze-thaw was not accounted for during optimization
         data.reverse()
-        for idx, (_id, loss, info) in enumerate(data):
-            for _i, _, _info in data[data.index((_id, loss, info)) + 1 :]:
-                if _i != _id:
+        for idx, (id, loss, info) in enumerate(data):
+            for _id, _, _info in data[data.index((id, loss, info)) + 1:]:
+                # if `_` is not found in the string, `split()` returns the original
+                # string and the 0-th element is the string itself, which fits the
+                # config ID format for non-NePS optimizers
+                # MF algos in NePS contain a 2-part ID separated by `_` with the first
+                # element denoting config ID and the second element denoting the rung
+                _subset_idx = 1 if "config" in id else 0
+                id_config_id = id.split("_")[_subset_idx]
+                _id_config_id = _id.split("_")[_subset_idx]
+                # checking if the base config ID is the same
+                if id_config_id != _id_config_id:
                     continue
+                # subtracting the immediate lower fidelity cost available from the
+                # current higher fidelity --> continuation cost
                 info["cost"] -= _info["cost"]
-                data[idx] = (_id, loss, info)
+                data[idx] = (id, loss, info)
                 break
         data.reverse()
 

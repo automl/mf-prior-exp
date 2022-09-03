@@ -2,15 +2,18 @@ X_LABEL = "Runtime [s]"
 Y_LABEL = "Error"
 
 ALGORITHMS = {
-    "random_search": "Random Search",
+    "random_search": "RS",
+    "random_search_prior": "RS+Prior",
     "grid_search": "Grid Search",
     "BOHB": "BOHB",
-    "sh": "SH",
-    "sh_prior": "SH+Prior",
-    "hb": "HB",
-    "hb_prior": "HB+Prior",
+    "successive_halving": "SH",
+    "successive_halving_prior": "SH+Prior",
+    "hyperband": "HB",
+    "hyperband_prior": "HB+Prior",
     "asha": "ASHA",
     "asha_prior": "ASHA+Prior",
+    "asha_hyperband": "ASHA-HB",
+    "asha_hyperband_prior": "ASHA-HB+Prior",
 }
 
 DATASETS = {
@@ -25,14 +28,17 @@ DATASETS = {
 
 COLOR_MARKER_DICT = {
     "random_search": "black",
+    "random_search_prior": "gray",
     "grid_search": "mediumpurple",
     "BOHB": "lightgreen",
-    "sh": "red",
-    "hb": "green",
+    "successive_halving": "red",
+    "hyperband": "green",
     "asha": "magenta",
-    "sh_prior": "orange",
-    "hb_prior": "lightgreen",
+    "successive_halving_prior": "orange",
+    "hyperband_prior": "lightgreen",
     "asha_prior": "pink",
+    "asha_hyperband": "yellow",
+    "asha_hyperband_prior": "cyan",
 }
 
 Y_MAP = {
