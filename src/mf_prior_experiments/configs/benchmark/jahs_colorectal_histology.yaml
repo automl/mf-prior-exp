@@ -1,4 +1,5 @@
 name: jahs_colorectal_histology
+budget: 345600  # 4 days
 api:
   _target_: mfpbench.get
   name: jahs_colorectal_histology

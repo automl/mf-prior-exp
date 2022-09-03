@@ -27,7 +27,7 @@
     --algorithm {{algorithm}} \
     --base_path {{base_path}} \
 
-# List all avialable benchmarks
+# List all available benchmarks
 @benchmarks:
     ls -1 ./src/mf_prior_experiments/configs/benchmark | grep ".yaml" | sed -e "s/\.yaml$//"
 
