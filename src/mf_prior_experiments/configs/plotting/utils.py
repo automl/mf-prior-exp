@@ -9,19 +9,21 @@ from .styles import ALGORITHMS, COLOR_MARKER_DICT, DATASETS
 
 
 def set_general_plot_style():
+    """
     sns.set_style("ticks")
     sns.set_context("paper")
     sns.set_palette("deep")
-    plt.switch_backend("pgf")
+    """
+    # plt.switch_backend("pgf")
     plt.rcParams.update(
         {
-            "text.usetex": True,
-            "pgf.texsystem": "pdflatex",
-            "pgf.rcfonts": False,
-            "font.family": "serif",
-            "font.serif": [],
-            "font.sans-serif": [],
-            "font.monospace": [],
+            "text.usetex": False,  # True,
+            # "pgf.texsystem": "pdflatex",
+            # "pgf.rcfonts": False,
+            # "font.family": "serif",
+            # "font.serif": [],
+            # "font.sans-serif": [],
+            # "font.monospace": [],
             "font.size": "10.90",
             "legend.fontsize": "9.90",
             "xtick.labelsize": "small",
@@ -32,11 +34,11 @@ def set_general_plot_style():
             # "leftlabel.weight": "normal",
             # "tick.labelweight": "normal",
             # "title.weight": "normal",
-            "pgf.preamble": r"""
-                \usepackage[T1]{fontenc}
-                \usepackage[utf8x]{inputenc}
-                \usepackage{microtype}
-            """,
+            # "pgf.preamble": r"""
+            #    \usepackage[T1]{fontenc}
+            #    \usepackage[utf8x]{inputenc}
+            #    \usepackage{microtype}
+            # """,
         }
     )
 
