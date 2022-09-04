@@ -57,10 +57,16 @@ def run_neps(args):
     pipeline_space = {"search_space": benchmark.space, fidelity_name: fidelity_param}
     logger.info(f"Using search space: \n {pipeline_space}")
 
-    if "budget" in args.benchmark:
-        budget_args = {"budget": args.benchmark.budget}
+    # TODO: could we pass budget per benchmark
+    # if "budget" in args.benchmark:
+    #     budget_args = {"budget": args.benchmark.budget}
+    # else:
+    #     budget_args = {"max_evaluations_total": 50}
+
+    if "mf" in args.algorithm and args.algorithm.mf:
+        max_evaluations_total = 500
     else:
-        budget_args = {"max_evaluations_total": 50}
+        max_evaluations_total = 100
 
     neps.run(
         run_pipeline=run_pipeline,
@@ -69,7 +75,7 @@ def run_neps(args):
         # TODO: figure out how to pass runtime budget and if metahyper internally
         #  calculates continuation costs to subtract from optimization budget
         # **budget_args,
-        max_evaluations_total=50,
+        max_evaluations_total=max_evaluations_total,
         searcher=hydra.utils.instantiate(args.algorithm.searcher, _partial_=True),
     )
 
