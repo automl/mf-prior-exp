@@ -61,10 +61,12 @@ python -m mf_prior_experiments.run algorithm=random_search benchmark=jahs_cifar1
 To run 10 seeds for two algorithms and benchmarks, e.g.,
 
 ```
-just submit alg_a,alg_b bench_a,bench_b "range(0,10)" 22-08-18_updated-priors
+just submit alg_a,alg_b bench_a,bench_b "range(0, 10)" 22-08-18_updated-priors
 ```
 
-for more options see
+note the whitespace in `"range(0, 10)"`.
+
+For more options see
 
 ```
 just
