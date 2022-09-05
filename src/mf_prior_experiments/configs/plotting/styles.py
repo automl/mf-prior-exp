@@ -18,6 +18,8 @@ ALGORITHMS = {
 
 DATASETS = {
     "jahs_cifar10": "CIFAR-10",
+    "jahs_cifar10_good": "CIFAR-10 (Good)",
+    "jahs_cifar10_bad": "CIFAR-10 (Bad)",
     "jahs_colorectal_histology": "Colorectal-Histology",
     "jahs_fashion_mnist": "Fashion-MNIST",
     "mfh3_good": "Hartmann 3 (good)",

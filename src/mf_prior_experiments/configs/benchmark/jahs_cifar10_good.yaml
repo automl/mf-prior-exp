@@ -1,8 +1,8 @@
-name: jahs_cifar10
+name: jahs_cifar10_good
 budget: 345600  # 4 days
 api:
   _target_: mfpbench.get
   name: jahs_cifar10
   seed: ${seed}
   datadir: ${hydra:runtime.cwd}/data/jahs-bench-data
-  prior: null
+  prior: good

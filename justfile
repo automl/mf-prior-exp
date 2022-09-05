@@ -21,11 +21,11 @@
     --arguments algorithm={{algorithms}} benchmark={{benchmarks}} seed="{{seeds}}" hydra/job_logging=only_file
 
 # Plot job
-@plot experiment_group benchmark algorithm filename base_path=justfile_directory():
+@plot experiment_group benchmarks algorithms filename base_path=justfile_directory():
   python -m mf_prior_experiments.plot \
     --experiment_group {{experiment_group}} \
-    --benchmark {{benchmark}} \
-    --algorithm {{algorithm}} \
+    --benchmark {{benchmarks}} \
+    --algorithm {{algorithms}} \
     --filename {{filename}} \
     --base_path {{base_path}}
 
