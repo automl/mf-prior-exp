@@ -10,7 +10,7 @@ git clone --recursive https://github.com/automl/mf-prior-exp.git
 
 ### 2. Conda, Poetry, Package, Pre-Commit
 
-To setup tooling and install the package, follow [this documentation](https://automl.github.io/neps/contributing/installation/) using the environment name of your choice.
+To setup tooling and install the package, follow [this documentation](https://automl.github.io/neps/0.5.1/contributing/installation/) using the environment name of your choice.
 
 **NOTE**: NePS requires Python version \<3.8 so consider creating an environment with `conda create -n mf-prior python=3.7.12`
 
@@ -119,8 +119,8 @@ git push
 
 ### Managing dependencies
 
-For how to manage dependencies see [the overview on poetry](https://automl.github.io/neps/contributing/dependencies/).
+For how to manage dependencies see [the overview on poetry](https://automl.github.io/neps/0.5.1/contributing/dependencies/).
 
 ### Tooling
 
-There is also some [documentation for the tools](https://automl.github.io/neps/contributing/faq/) in this repo.
+There is also some [documentation for the tools](https://automl.github.io/neps/0.5.1/contributing/tests/#disabling-and-skipping-checks-etc) in this repo.
