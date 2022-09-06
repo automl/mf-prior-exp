@@ -1,0 +1,7 @@
+name: ours_v1
+mf: true
+run_function:
+  _target_: mf_prior_experiments.run.run_neps
+searcher:
+  _partial_: true  # To not instantiate the class directly as required by neps
+  _target_: mf_prior_algorithms.our_algorithm_v1.OurOptimizerV1
