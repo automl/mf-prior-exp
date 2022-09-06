@@ -56,6 +56,7 @@ def run_neps(args):
 
     pipeline_space = {"search_space": benchmark.space, fidelity_name: fidelity_param}
     logger.info(f"Using search space: \n {pipeline_space}")
+    logger.info(f"Using fidelity space: \n {fidelity_param}")
 
     # TODO: could we pass budget per benchmark
     # if "budget" in args.benchmark:
@@ -64,9 +65,9 @@ def run_neps(args):
     #     budget_args = {"max_evaluations_total": 50}
 
     if "mf" in args.algorithm and args.algorithm.mf:
-        max_evaluations_total = 125
+        max_evaluations_total = 100
     else:
-        max_evaluations_total = 50
+        max_evaluations_total = 30
 
     neps.run(
         run_pipeline=run_pipeline,
