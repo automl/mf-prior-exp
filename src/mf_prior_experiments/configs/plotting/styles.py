@@ -23,13 +23,21 @@ DATASETS = {
     "jahs_colorectal_histology": "Colorectal-Histology",
     "jahs_fashion_mnist": "Fashion-MNIST",
     "mfh3_good": "Hartmann 3 (good)",
+    "mfh3_good_good": "H3d (good corr-good prior)",
+    "mfh3_good_bad": "H3d (good corr-bad prior)",
     "mfh3_moderate": "Hartmann 3 (moderate)",
     "mfh3_bad": "Hartmann 3 (bad)",
     "mfh3_terrible": "Hartmann 3 (terrible)",
+    "mfh3_terrible_good": "H3d (terrible corr-good prior)",
+    "mfh3_terrible_bad": "H3d (terrible corr-bad prior)",
     "mfh6_good": "Hartmann 6 (good)",
+    "mfh6_good_good": "H6d (good corr-good prior)",
+    "mfh6_good_bad": "H6d (good corr-bad prior)",
     "mfh6_moderate": "Hartmann 6 (moderate)",
     "mfh6_bad": "Hartmann 6 (bad)",
     "mfh6_terrible": "Hartmann 6 (terrible)",
+    "mfh6_terrible_good": "H6d (terrible corr-good prior)",
+    "mfh6_terrible_bad": "H6d (terrible corr-bad prior)",
 }
 
 COLOR_MARKER_DICT = {

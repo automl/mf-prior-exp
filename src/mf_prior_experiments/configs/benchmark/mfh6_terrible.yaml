@@ -5,3 +5,4 @@ api:
   seed: ${seed}
   bias: 4.0
   noise: 0.8
+  prior: null

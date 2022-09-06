@@ -1,8 +1,8 @@
-name: mfh3_terrible
+name: mfh3_terrible_good
 api:
   _target_: mfpbench.get
-  name: mfh3_terrible
+  name: mfh3_terrible_good
   seed: ${seed}
   bias: 4.0
   noise: 0.8
-  prior: null
+  prior: good

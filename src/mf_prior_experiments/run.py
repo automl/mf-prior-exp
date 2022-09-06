@@ -65,7 +65,7 @@ def run_neps(args):
     #     budget_args = {"max_evaluations_total": 50}
 
     if "mf" in args.algorithm and args.algorithm.mf:
-        max_evaluations_total = 100
+        max_evaluations_total = 125
     else:
         max_evaluations_total = 25
 
