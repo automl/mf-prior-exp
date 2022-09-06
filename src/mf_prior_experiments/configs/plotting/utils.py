@@ -53,6 +53,10 @@ def save_fig(fig, filename, output_dir, dpi: int = 100):
 def interpolate_time(incumbents, costs, budget=None):
     df_dict = {}
 
+    # TODO: NEEDS FIXING!!!
+    # TODO: hardcoding as it fails with multiple seeds
+    budget = None
+
     for i, _ in enumerate(incumbents):
         _seed_info = pd.Series(incumbents[i], index=np.cumsum(costs[i]))
         df_dict[f"seed{i}"] = _seed_info
