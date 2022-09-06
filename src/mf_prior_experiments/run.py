@@ -67,7 +67,7 @@ def run_neps(args):
     if "mf" in args.algorithm and args.algorithm.mf:
         max_evaluations_total = 100
     else:
-        max_evaluations_total = 30
+        max_evaluations_total = 25
 
     neps.run(
         run_pipeline=run_pipeline,
