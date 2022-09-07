@@ -14,6 +14,9 @@ ALGORITHMS = {
     "asha_prior": "ASHA+Prior",
     "asha_hyperband": "ASHA-HB",
     "asha_hyperband_prior": "ASHA-HB+Prior",
+    "ours_v1": "V1",
+    "ours_v1_2": "V1_2",
+    "ours_v1_3": "V1_3",
 }
 
 DATASETS = {
@@ -41,18 +44,21 @@ DATASETS = {
 }
 
 COLOR_MARKER_DICT = {
-    "random_search": "black",
-    "random_search_prior": "gray",
-    "grid_search": "mediumpurple",
-    "BOHB": "lightgreen",
-    "successive_halving": "red",
-    "hyperband": "green",
-    "asha": "magenta",
+    "random_search": "gray",
+    "random_search_prior": "black",
+    # "grid_search": "mediumpurple",
+    # "BOHB": "lightgreen",
+    "successive_halving": "crimson",
     "successive_halving_prior": "orange",
-    "hyperband_prior": "lightgreen",
-    "asha_prior": "pink",
-    "asha_hyperband": "yellow",
-    "asha_hyperband_prior": "cyan",
+    "hyperband": "lightgreen",
+    "hyperband_prior": "darkgreen",
+    "asha": "pink",
+    "asha_prior": "magenta",
+    "asha_hyperband": "lightyellow",
+    "asha_hyperband_prior": "yellow",
+    "ours_v1": "blue",
+    "ours_v1_2": "turquoise",
+    "ours_v1_3": "teal",
 }
 
 Y_MAP = {
