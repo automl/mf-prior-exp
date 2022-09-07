@@ -3,6 +3,7 @@ from __future__ import annotations
 from metahyper.api import ConfigResult
 
 from neps.optimizers.base_optimizer import BaseOptimizer
+from neps.search_spaces import CategoricalParameter, FloatParameter, IntegerParameter
 from neps.search_spaces.search_space import SearchSpace
 
 
@@ -34,3 +35,23 @@ class RandomSearch(BaseOptimizer):
 
 class RandomSearchWithPriors(RandomSearch):
     use_priors = True
+
+    def __init__(self, **optimizer_kwargs):
+        super().__init__(**optimizer_kwargs)
+        # for Prior based optimizers, assume confident priors
+        self.confidence_scores = {
+            "categorical": 2.5,
+            "numeric": 0.125,
+        }
+        self._enhance_priors()
+
+    def _enhance_priors(self):
+        for k in self.pipeline_space.keys():
+            if self.pipeline_space[k].is_fidelity:
+                continue
+            if isinstance(self.pipeline_space[k], (FloatParameter, IntegerParameter)):
+                confidence = self.confidence_scores["numeric"]
+                self.pipeline_space[k].default_confidence_score = confidence
+            elif isinstance(self.pipeline_space[k], CategoricalParameter):
+                confidence = self.confidence_scores["categorical"]
+                self.pipeline_space[k].default_confidence_score = confidence
