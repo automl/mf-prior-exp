@@ -6,4 +6,4 @@ api:
   seed: ${seed}
   bias: 0.5
   noise: 0.1
-  prior: good
+  prior: bad
