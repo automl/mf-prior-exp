@@ -6,6 +6,7 @@ from pathlib import Path
 from typing import Any
 
 import hydra
+import numpy as np
 from gitinfo import gitinfo
 from omegaconf import OmegaConf
 
@@ -14,7 +15,7 @@ logger = logging.getLogger("mf_prior_experiments.run")
 
 def _set_seeds(seed):
     random.seed(seed)
-    # np.random.seed(seed)
+    np.random.seed(seed)
     # torch.manual_seed(seed)
     # torch.backends.cudnn.benchmark = False
     # torch.backends.cudnn.deterministic = True
