@@ -40,8 +40,8 @@ class RandomSearchWithPriors(RandomSearch):
         super().__init__(**optimizer_kwargs)
         # for Prior based optimizers, assume confident priors
         self.confidence_scores = {
-            "categorical": 2.5,
-            "numeric": 0.125,
+            "categorical": 4,  # 2.5,
+            "numeric": 0.05,  # 0.125,
         }
         self._enhance_priors()
 
