@@ -17,6 +17,7 @@ ALGORITHMS = {
     "ours_v1": "V1",
     "ours_v1_2": "V1_2",
     "ours_v1_3": "V1_3",
+    "mfp_tpe": "MFP-TPE",
 }
 
 DATASETS = {
@@ -59,6 +60,7 @@ COLOR_MARKER_DICT = {
     "ours_v1": "blue",
     "ours_v1_2": "turquoise",
     "ours_v1_3": "teal",
+    "mfp_tpe": "cyan",
 }
 
 Y_MAP = {

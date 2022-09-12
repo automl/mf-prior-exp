@@ -9,13 +9,9 @@ import seaborn as sns
 import yaml  # type: ignore
 from attrdict import AttrDict
 
-from mf_prior_experiments.configs.plotting.read_results import get_seed_info
-from mf_prior_experiments.configs.plotting.styles import X_LABEL, Y_LABEL
-from mf_prior_experiments.configs.plotting.utils import (
-    plot_incumbent,
-    save_fig,
-    set_general_plot_style
-)
+from .configs.plotting.read_results import get_seed_info
+from .configs.plotting.styles import X_LABEL, Y_LABEL
+from .configs.plotting.utils import plot_incumbent, save_fig, set_general_plot_style
 
 benchmark_configs_path = os.path.join(os.path.dirname(__file__), "configs/benchmark/")
 
@@ -87,7 +83,13 @@ def plot(args):
     filename = args.filename
     if filename is None:
         filename = f"{args.experiment_group}_{args.plot_id}"
-    save_fig(fig, filename=filename, output_dir=BASE_PATH / "plots")
+    save_fig(
+        fig,
+        filename=filename,
+        output_dir=BASE_PATH / "plots",
+        extension=args.ext,
+        dpi=args.dpi,
+    )
 
 
 if __name__ == "__main__":
@@ -105,6 +107,14 @@ if __name__ == "__main__":
     parser.add_argument("--log_y", action="store_true")
     parser.add_argument(
         "--filename", type=str, default=None, help="name out pdf file generated"
+    )
+    parser.add_argument("--dpi", type=int, default=200)
+    parser.add_argument(
+        "--ext",
+        type=str,
+        choices=["pdf", "png"],
+        default="pdf",
+        help="the file extension or the plot file type",
     )
 
     args = AttrDict(parser.parse_args().__dict__)
