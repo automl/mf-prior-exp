@@ -29,6 +29,7 @@ def plot(args):
     )
 
     base_path = BASE_PATH / "results" / args.experiment_group
+    output_dir = BASE_PATH / "plots" / args.experiment_group
     for benchmark_idx, benchmark in enumerate(args.benchmarks):
         _base_path = os.path.join(base_path, f"benchmark={benchmark}")
         if not os.path.isdir(_base_path):
@@ -86,7 +87,7 @@ def plot(args):
     save_fig(
         fig,
         filename=filename,
-        output_dir=BASE_PATH / "plots",
+        output_dir=output_dir,
         extension=args.ext,
         dpi=args.dpi,
     )
