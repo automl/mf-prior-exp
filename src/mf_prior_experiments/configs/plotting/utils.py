@@ -43,11 +43,11 @@ def set_general_plot_style():
     )
 
 
-def save_fig(fig, filename, output_dir, dpi: int = 100):
+def save_fig(fig, filename, output_dir, extension="pdf", dpi: int = 100):
     output_dir = Path(output_dir)
     output_dir.makedirs_p()
-    fig.savefig(output_dir / f"{filename}.pdf", bbox_inches="tight", dpi=dpi)
-    print(f'Saved to "{output_dir}/{filename}.pdf"')
+    fig.savefig(output_dir / f"{filename}.{extension}", bbox_inches="tight", dpi=dpi)
+    print(f'Saved to "{output_dir}/{filename}.{extension}"')
 
 
 def interpolate_time(incumbents, costs, budget=None):
