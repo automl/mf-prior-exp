@@ -18,6 +18,9 @@ ALGORITHMS = {
     "ours_v1_2": "V1_2",
     "ours_v1_3": "V1_3",
     "mfp_tpe": "MFP-TPE",
+    "ours_v2": "V2",
+    "ours_v2_2": "V2_2",
+    "ours_v2_3": "V2_3",
 }
 
 DATASETS = {
@@ -67,6 +70,7 @@ DATASETS = {
     "mfh6_terrible_prior-bad": "H6d (terrible corr-bad prior)",
 }
 
+# https://matplotlib.org/stable/gallery/color/named_colors.html
 COLOR_MARKER_DICT = {
     "random_search": "gray",
     "random_search_prior": "black",
@@ -82,7 +86,11 @@ COLOR_MARKER_DICT = {
     "asha_hyperband_prior": "yellow",
     "ours_v1": "blue",
     "ours_v1_2": "turquoise",
+    "ours_v1_3": "cyan",
     "mfp_tpe": "indigo",
+    "ours_v2": "olivedrab",
+    "ours_v2_2": "lime",
+    "ours_v2_3": "darkseagreen",
 }
 
 Y_MAP = {

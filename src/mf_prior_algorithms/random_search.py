@@ -4,6 +4,8 @@ from metahyper.api import ConfigResult
 
 from neps.optimizers.base_optimizer import BaseOptimizer
 from neps.search_spaces import CategoricalParameter, FloatParameter, IntegerParameter
+from neps.search_spaces.hyperparameters.categorical import CATEGORICAL_CONFIDENCE_SCORES
+from neps.search_spaces.hyperparameters.float import FLOAT_CONFIDENCE_SCORES
 from neps.search_spaces.search_space import SearchSpace
 
 
@@ -36,13 +38,9 @@ class RandomSearch(BaseOptimizer):
 class RandomSearchWithPriors(RandomSearch):
     use_priors = True
 
-    def __init__(self, **optimizer_kwargs):
+    def __init__(self, prior_confidence: str = "medium", **optimizer_kwargs):
         super().__init__(**optimizer_kwargs)
-        # for Prior based optimizers, assume confident priors
-        self.confidence_scores = {
-            "categorical": 4,  # 2.5,
-            "numeric": 0.05,  # 0.125,
-        }
+        self.prior_confidence = prior_confidence
         self._enhance_priors()
 
     def _enhance_priors(self):
@@ -50,8 +48,8 @@ class RandomSearchWithPriors(RandomSearch):
             if self.pipeline_space[k].is_fidelity:
                 continue
             if isinstance(self.pipeline_space[k], (FloatParameter, IntegerParameter)):
-                confidence = self.confidence_scores["numeric"]
+                confidence = FLOAT_CONFIDENCE_SCORES[self.prior_confidence]
                 self.pipeline_space[k].default_confidence_score = confidence
             elif isinstance(self.pipeline_space[k], CategoricalParameter):
-                confidence = self.confidence_scores["categorical"]
+                confidence = CATEGORICAL_CONFIDENCE_SCORES[self.prior_confidence]
                 self.pipeline_space[k].default_confidence_score = confidence
