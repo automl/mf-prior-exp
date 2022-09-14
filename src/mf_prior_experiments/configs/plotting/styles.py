@@ -51,9 +51,9 @@ DATASETS = {
     "mfh3_bad_rate_prior-good": "H3d (bad corr-good prior)",
     "mfh3_bad_rate_prior-bad": "H3d (bad corr-bad prior)",
     # mfh3 terrible
-    "mfh3_terrible_rate_prior-default": "Hartmann 3 (terrible)",
-    "mfh3_terrible_rate_prior-good": "H3d (terrible corr-good prior)",
-    "mfh3_terrible_rate_prior-terrible": "H3d (terrible corr-bad prior)",
+    "mfh3_terrible_prior-default": "Hartmann 3 (terrible)",
+    "mfh3_terrible_prior-good": "H3d (terrible corr-good prior)",
+    "mfh3_terrible_prior-bad": "H3d (terrible corr-bad prior)",
     # mfh6 good
     "mfh6_good_prior-default": "Hartmann 6 (good)",
     "mfh6_good_prior-good": "H6d (good corr-good prior)",
