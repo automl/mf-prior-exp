@@ -1,7 +1,0 @@
-name: jahs_fashion_mnist
-budget: 345600  # 4 days
-api:
-  _target_: mfpbench.get
-  name: jahs_fashion_mnist
-  seed: ${seed}
-  datadir: ${hydra:runtime.cwd}/data/jahs-bench-data

@@ -1,0 +1,8 @@
+name: rbv2_aknn_task_id-15
+api:
+  _target_: mfpbench.get
+  name: rbv2_aknn
+  seed: ${seed}
+  preload: true
+  datadir: ${hydra:runtime.cwd}/data/yahpo-gym-data
+  task_id: '15'
