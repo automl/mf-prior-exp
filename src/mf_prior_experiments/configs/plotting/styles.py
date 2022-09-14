@@ -21,6 +21,8 @@ ALGORITHMS = {
     "ours_v2": "V2",
     "ours_v2_2": "V2_2",
     "ours_v2_3": "V2_3",
+    "ours_v3": "V3",
+    "ours_v3_2": "V3_2",
 }
 
 DATASETS = {
@@ -68,6 +70,8 @@ COLOR_MARKER_DICT = {
     "ours_v2": "olivedrab",
     "ours_v2_2": "lime",
     "ours_v2_3": "darkseagreen",
+    "ours_v3": "darkslateblue",
+    "ours_v3_2": "slateblue",
 }
 
 Y_MAP = {
