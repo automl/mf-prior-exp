@@ -3,6 +3,7 @@ api:
   _target_: mfpbench.get
   name: mfh6_bad
   seed: ${seed}
+  preload: true
   prior: default
   bias: 2.0
   noise: 0.4

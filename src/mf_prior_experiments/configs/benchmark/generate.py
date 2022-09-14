@@ -50,8 +50,6 @@ def configs() -> Iterator[tuple[Path, dict[str, Any]]]:
 
     for name, cls, prior, extra in mfpbench.available():
 
-        if "jahs" in name:
-            print(name, prior, extra)
         filename_items = None
         if extra is not None:
             filename_items = {k: v for k, v in extra.items() if k not in filename_ignores}
@@ -74,7 +72,12 @@ def configs() -> Iterator[tuple[Path, dict[str, Any]]]:
             continue
 
         path = HERE / f"{filename}.yaml"
-        api = {"_target_": "mfpbench.get", "name": name, "seed": "${seed}"}
+        api = {
+            "_target_": "mfpbench.get",
+            "name": name,
+            "seed": "${seed}",
+            "preload": True,
+        }
 
         # Add the path to where the experimental data is held if required
         datapath = datadir(cls)
