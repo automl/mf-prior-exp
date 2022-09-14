@@ -1,0 +1,7 @@
+name: rbv2_glmnet_task_id-1111
+api:
+  _target_: mfpbench.get
+  name: rbv2_glmnet
+  seed: ${seed}
+  datadir: ${hydra:runtime.cwd}/data/yahpo-gym-data
+  task_id: '1111'

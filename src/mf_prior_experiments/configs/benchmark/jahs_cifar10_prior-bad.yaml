@@ -1,0 +1,7 @@
+name: jahs_cifar10_prior-bad
+api:
+  _target_: mfpbench.get
+  name: jahs_cifar10
+  seed: ${seed}
+  datadir: ${hydra:runtime.cwd}/data/jahs-bench-data
+  prior: bad

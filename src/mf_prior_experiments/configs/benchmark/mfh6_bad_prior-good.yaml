@@ -1,0 +1,8 @@
+name: mfh6_bad_prior-good
+api:
+  _target_: mfpbench.get
+  name: mfh6_bad
+  seed: ${seed}
+  prior: good
+  bias: 2.0
+  noise: 0.4

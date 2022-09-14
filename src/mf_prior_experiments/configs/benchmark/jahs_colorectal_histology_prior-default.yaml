@@ -1,0 +1,7 @@
+name: jahs_colorectal_histology_prior-default
+api:
+  _target_: mfpbench.get
+  name: jahs_colorectal_histology
+  seed: ${seed}
+  datadir: ${hydra:runtime.cwd}/data/jahs-bench-data
+  prior: default
