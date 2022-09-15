@@ -10,14 +10,12 @@ import numpy as np
 from gitinfo import gitinfo
 from omegaconf import OmegaConf
 
-from neps.search_spaces.search_space import SearchSpace
-
 logger = logging.getLogger("mf_prior_experiments.run")
 
 
 def _set_seeds(seed):
     random.seed(seed)
-    # np.random.seed(seed)
+    np.random.seed(seed)
     # torch.manual_seed(seed)
     # torch.backends.cudnn.benchmark = False
     # torch.backends.cudnn.deterministic = True
@@ -27,8 +25,6 @@ def _set_seeds(seed):
 
 def run_for_priors(args):
     from mfpbench import Benchmark
-
-    import neps
 
     # Added the type here just for editors to be able to get a quick view
     benchmark: Benchmark = hydra.utils.instantiate(args.benchmark.api)
