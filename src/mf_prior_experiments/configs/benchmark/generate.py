@@ -1,99 +1,125 @@
 """Generates all possible benchmark configs from mfpbench."""
 from __future__ import annotations
 
+from itertools import product
 from pathlib import Path
 from typing import Any, Iterator
 
 import mfpbench
 import yaml
-from mfpbench import (
-    Benchmark,
-    JAHSBenchmark,
-    MFHartmann3Benchmark,
-    MFHartmann6Benchmark,
-    YAHPOBenchmark,
-)
+from mfpbench import JAHSBenchmark, MFHartmannBenchmark, YAHPOBenchmark
 
 HERE = Path(__file__).parent.resolve()
 
-dir_lookup = {JAHSBenchmark: "jahs-bench-data", YAHPOBenchmark: "yahpo-gym-data"}
+
+# Don't generate benchmark yamls for these
+DONT_GENERATE_CLASSES = (YAHPOBenchmark,)
+
+# Whether to generate configs for condtional spaces
+CONDITONAL_HP_SPACES = False
+
+# @carl, change them here as you need
+HARTMANN_NOISY_PRIOR_VALUES = [0.125]
 
 
-def datadir(cls: type[Benchmark]) -> str | None:
-    """Get the datadir arg for a benchmark.
+def hartmann_configs() -> Iterator[tuple[Path, dict[str, Any]]]:
+    names = [
+        f"mfh{i}_{corr}"
+        for i, corr in product([3, 6], ["terrible", "bad", "moderate", "good"])
+    ]
 
-    Parameters
-    ----------
-    cls : type[Benchmark]
-        The type of the benchhmark
+    for name in names:
+        bench = mfpbench._mapping[name]
+        assert issubclass(bench, MFHartmannBenchmark)
 
-    Returns
-    -------
-    str | None
-        Returns the ``datadir`` arg if applicable, else None
-    """
-    folder = next((v for k, v in dir_lookup.items() if issubclass(cls, k)), None)
-    if folder is None:
-        return None
-    else:
-        return "${hydra:runtime.cwd}/data/" + folder
+        for prior in bench.available_priors:
+            config_name = f"{name}_prior-{prior}"
+            api = {"name": name, "prior": prior}
+
+            yield config_name, api
+
+            # We also give a noisy prior version for each
+            for noise_scale in HARTMANN_NOISY_PRIOR_VALUES:
+                yield config_name, {
+                    **api,
+                    "noisy_prior": True,
+                    "prior_noise_scale": noise_scale,
+                }
+
+
+def yahpo_configs() -> Iterator[tuple[Path, dict[str, Any]]]:
+    datadir = "yahpo-gym-data"
+
+    rbv2_names = [
+        f"rbv2_{x}"
+        for x in ("super", "aknn", "glmnet", "ranger", "rpart", "svm", "xgboost")
+    ]
+    iaml_names = [f"rbv2_{x}" for x in ("super", "glmnet", "ranger", "rpart", "xgboost")]
+    names = ["lcbench", "nb301"] + rbv2_names + iaml_names
+
+    for name in names:
+        bench = mfpbench._mapping[name]
+        assert issubclass(bench, YAHPOBenchmark)
+
+        # Skip conditional spaces if we must
+        if bench.has_conditionals and not CONDITONAL_HP_SPACES:
+            continue
+
+        config_name = f"{name}"
+        api = {
+            "name": name,
+            "datadir": "${hydra:runtime.cwd}/data/" + datadir,
+        }
+        if bench.instances is None:
+            yield config_name, api
+        else:
+            for task_id in bench.instances:
+                yield config_name, {**api, "task_id": task_id}
+
+
+def jahs_configs() -> Iterator[tuple[str, dict[str, Any]]]:
+    datadir = "jahs-bench-data"
+
+    names = ["jahs_cifar10", "jahs_colorectal_histology", "jahs_fashion_mnist"]
+
+    for name in names:
+        bench = mfpbench._mapping[name]
+        assert issubclass(bench, JAHSBenchmark)
+
+        for prior in bench.available_priors:
+            config_name = f"{name}_prior-{prior}"
+            api = {
+                "name": name,
+                "datadir": "${hydra:runtime.cwd}/data/" + datadir,
+                "prior": prior,
+            }
+            yield config_name, api
 
 
 def configs() -> Iterator[tuple[Path, dict[str, Any]]]:
-
-    # Things to exclude from filenames from `extra`
-    filename_ignores = [
-        # Part of the Hartmann benchmarks, not needed, too noisy to see
-        "bias",
-        "noise",
+    """Generate all configs we might care about for the benchmark."""
+    mapping = {
+        YAHPOBenchmark: yahpo_configs,
+        JAHSBenchmark: jahs_configs,
+        MFHartmannBenchmark: hartmann_configs,
+    }
+    generators = [
+        generator
+        for cls, generator in mapping.items()
+        if not issubclass(cls, DONT_GENERATE_CLASSES)
     ]
 
-    for name, cls, prior, extra in mfpbench.available():
+    for generator in generators:
+        for config_name, api in generator():
+            # Put in defaults for each config
+            api.update({"_target_": "mfpbench.get", "seed": "${seed}", "preload": True})
 
-        filename_items = None
-        if extra is not None:
-            filename_items = {k: v for k, v in extra.items() if k not in filename_ignores}
-            if len(filename_items) == 0:
-                filename_items = None
+            # Create the config and filename
+            config = {"name": config_name, "api": api}
+            filename = f"{config_name}.yaml"
+            path = HERE / filename
 
-        if filename_items:
-            item_str = "_".join([f"{k}-{v}" for k, v in filename_items.items()])
-            filename = f"{name}_{item_str}"
-        else:
-            filename = name
-
-        if prior is not None:
-            filename = f"{filename}_prior-{prior}"
-
-        benchmark_name = filename
-
-        # These two aren't a preset, we'll just skip
-        if cls in [MFHartmann3Benchmark, MFHartmann6Benchmark]:
-            continue
-
-        path = HERE / f"{filename}.yaml"
-        api = {
-            "_target_": "mfpbench.get",
-            "name": name,
-            "seed": "${seed}",
-            "preload": True,
-        }
-
-        # Add the path to where the experimental data is held if required
-        datapath = datadir(cls)
-        if datapath is not None:
-            api["datadir"] = datapath
-
-        # Add the prior if it's there
-        if prior is not None:
-            api["prior"] = prior
-
-        # Add any extras
-        if extra is not None:
-            api.update(extra)
-
-        config = {"name": benchmark_name, "api": api}
-        yield path, config
+            yield path, config
 
 
 if __name__ == "__main__":

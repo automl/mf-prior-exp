@@ -1,7 +1,7 @@
-name: mfh6_bad_prior-bad
+name: mfh6_terrible_prior-perfect
 api:
-  name: mfh6_bad
-  prior: bad
+  name: mfh6_terrible
+  prior: perfect
   _target_: mfpbench.get
   seed: ${seed}
   preload: true
