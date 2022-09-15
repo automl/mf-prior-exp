@@ -22,7 +22,7 @@ CONDITONAL_HP_SPACES = False
 HARTMANN_NOISY_PRIOR_VALUES = [0.125]
 
 
-def hartmann_configs() -> Iterator[tuple[Path, dict[str, Any]]]:
+def hartmann_configs() -> Iterator[tuple[str, dict[str, Any]]]:
     names = [
         f"mfh{i}_{corr}"
         for i, corr in product([3, 6], ["terrible", "bad", "moderate", "good"])
@@ -40,6 +40,7 @@ def hartmann_configs() -> Iterator[tuple[Path, dict[str, Any]]]:
 
             # We also give a noisy prior version for each
             for noise_scale in HARTMANN_NOISY_PRIOR_VALUES:
+                config_name = f"{config_name}-noisy{str(noise_scale)}"
                 yield config_name, {
                     **api,
                     "noisy_prior": True,
@@ -47,7 +48,7 @@ def hartmann_configs() -> Iterator[tuple[Path, dict[str, Any]]]:
                 }
 
 
-def yahpo_configs() -> Iterator[tuple[Path, dict[str, Any]]]:
+def yahpo_configs() -> Iterator[tuple[str, dict[str, Any]]]:
     datadir = "yahpo-gym-data"
 
     rbv2_names = [

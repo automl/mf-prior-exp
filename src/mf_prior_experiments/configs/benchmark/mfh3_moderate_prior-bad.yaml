@@ -5,5 +5,3 @@ api:
   _target_: mfpbench.get
   seed: ${seed}
   preload: true
-  noisy_prior: true
-  prior_noise_scale: 0.125

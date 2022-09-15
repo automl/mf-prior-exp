@@ -1,0 +1,9 @@
+name: mfh6_terrible_prior-bad-noisy0.125
+api:
+  name: mfh6_terrible
+  prior: bad
+  _target_: mfpbench.get
+  seed: ${seed}
+  preload: true
+  noisy_prior: true
+  prior_noise_scale: 0.125
