@@ -14,8 +14,8 @@ logger = logging.getLogger("mf_prior_experiments.run")
 
 
 def _set_seeds(seed):
-    random.seed(seed)
-    np.random.seed(seed)
+    random.seed(seed)  # important for NePS optimizers
+    np.random.seed(seed)  # important for NePS optimizers
     # torch.manual_seed(seed)
     # torch.backends.cudnn.benchmark = False
     # torch.backends.cudnn.deterministic = True

@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import random
+
 from metahyper.api import ConfigResult
 
 from neps.optimizers.base_optimizer import BaseOptimizer
@@ -14,8 +16,9 @@ class RandomSearch(BaseOptimizer):
     use_priors = False
     ignore_fidelity = True  # defaults to a black-box setup
 
-    def __init__(self, **optimizer_kwargs):
+    def __init__(self, random_interleave_prob: float = 0.0, **optimizer_kwargs):
         super().__init__(**optimizer_kwargs)
+        self.random_interleave_prob = random_interleave_prob
         self._num_previous_configs: int = 0
 
     def load_results(
@@ -26,9 +29,12 @@ class RandomSearch(BaseOptimizer):
         self._num_previous_configs = len(previous_results) + len(pending_evaluations)
 
     def get_config_and_ids(self) -> tuple[SearchSpace, str, str | None]:
+        use_priors = (
+            False if random.random() < self.random_interleave_prob else self.use_priors
+        )
         config = self.pipeline_space.sample(
             patience=self.patience,
-            user_priors=self.use_priors,
+            user_priors=use_priors,
             ignore_fidelity=self.ignore_fidelity,
         )
         config_id = str(self._num_previous_configs + 1)
