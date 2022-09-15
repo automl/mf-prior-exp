@@ -23,7 +23,11 @@ ALGORITHMS = {
     "ours_v2_3": "V2_3",
     "ours_v3": "V3",
     "ours_v3_2": "V3_2",
-    "ours_v4": "V4",
+    "ours_v4_sh": "V4_SH",
+    "ours_v4_asha": "V4_ASHA",
+    "ours_v4_hb": "V4_HB",
+    "ours_v4_asha_hb": "V4_ASHA-HB",
+    "ours_v4_v3_2": "V4_V3_2",
 }
 
 DATASETS = {
@@ -96,7 +100,11 @@ COLOR_MARKER_DICT = {
     "ours_v2_3": "darkseagreen",
     "ours_v3": "darkslateblue",
     "ours_v3_2": "slateblue",
-    "ours_v4": "peru",
+    "ours_v4_sh": "orangered",
+    "ours_v4_asha": "darkmagenta",
+    "ours_v4_hb": "limegreen",
+    "ours_v4_asha_hb": "gold",
+    "ours_v4_v3_2": "blueviolet",
 }
 
 Y_MAP = {
