@@ -1,8 +1,8 @@
 name: jahs_fashion_mnist_prior-good
 api:
-  _target_: mfpbench.get
   name: jahs_fashion_mnist
-  seed: ${seed}
-  preload: true
   datadir: ${hydra:runtime.cwd}/data/jahs-bench-data
   prior: good
+  _target_: mfpbench.get
+  seed: ${seed}
+  preload: true

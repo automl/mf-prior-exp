@@ -1,9 +1,7 @@
 name: mfh3_bad_prior-default
 api:
-  _target_: mfpbench.get
   name: mfh3_bad
+  prior: default
+  _target_: mfpbench.get
   seed: ${seed}
   preload: true
-  prior: default
-  bias: 2.0
-  noise: 0.4

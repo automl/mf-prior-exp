@@ -1,0 +1,7 @@
+name: mfh3_good_prior-perfect
+api:
+  name: mfh3_good
+  prior: perfect
+  _target_: mfpbench.get
+  seed: ${seed}
+  preload: true

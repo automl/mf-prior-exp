@@ -1,19 +1,19 @@
-import os
 import json
-import yaml
+import os
+from typing import List
 
+import yaml
 from attrdict import AttrDict
 from hpbandster.core.base_iteration import Datum
 from hpbandster.core.result import Result
-from typing import List
 
 # default output format is assumed to be NePS
-OUTPUT_FORMAT = {
-    "hpbandster": ["BOHB", "LCNet"]
-}
+OUTPUT_FORMAT = {"hpbandster": ["BOHB", "LCNet"]}
 
 SINGLE_FIDELITY_ALGORITHMS = [
-    "random_search", "random_search_prior", "bayesian_optimization"
+    "random_search",
+    "random_search_prior",
+    "bayesian_optimization",
 ]
 
 
@@ -153,7 +153,7 @@ def _get_info_smac(path, seed):
 
 
 def get_seed_info(path, seed, algorithm="random_search"):
-    """ Reads and processes data per seed.
+    """Reads and processes data per seed.
 
     An `algorithm` needs to be passed to calculate continuation costs.
     """
@@ -169,7 +169,7 @@ def get_seed_info(path, seed, algorithm="random_search"):
         #   continuations or freeze-thaw was not accounted for during optimization
         data.reverse()
         for idx, (id, loss, info) in enumerate(data):
-            for _id, _, _info in data[data.index((id, loss, info)) + 1:]:
+            for _id, _, _info in data[data.index((id, loss, info)) + 1 :]:
                 # if `_` is not found in the string, `split()` returns the original
                 # string and the 0-th element is the string itself, which fits the
                 # config ID format for non-NePS optimizers
