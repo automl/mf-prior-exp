@@ -4,4 +4,4 @@
 [submodule "src/mf-prior-bench"]
 	path = src/mf-prior-bench
 	url = https://github.com/automl/mf-prior-bench.git
-    branch = stable-mf-exp
+    branch = main
