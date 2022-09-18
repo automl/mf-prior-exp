@@ -15,6 +15,12 @@ from .configs.plotting.utils import plot_incumbent, save_fig, set_general_plot_s
 
 benchmark_configs_path = os.path.join(os.path.dirname(__file__), "configs/benchmark/")
 
+map_axs = (
+    lambda axs, idx, length: axs
+    if length == 1
+    else (axs[idx] if length == 2 else axs[idx // 2][idx % 2])
+)
+
 
 def plot(args):
 
@@ -22,9 +28,11 @@ def plot(args):
 
     set_general_plot_style()
 
+    nrows = np.ceil(len(args.benchmarks) / 2).astype(int)
+    ncols = 1 if len(args.benchmarks) == 1 else 2
     fig, axs = plt.subplots(
-        nrows=1,
-        ncols=len(args.benchmarks),
+        nrows=nrows,
+        ncols=ncols,
         figsize=(5.3, 2.2),
     )
 
@@ -51,7 +59,7 @@ def plot(args):
                 costs.append(cost)
 
             plot_incumbent(
-                ax=axs[benchmark_idx] if len(args.benchmarks) > 1 else axs,
+                ax=map_axs(axs, benchmark_idx, len(args.benchmarks)),
                 x=costs,
                 y=incumbents,
                 title=benchmark,
@@ -65,18 +73,16 @@ def plot(args):
 
     sns.despine(fig)
 
-    if len(args.benchmarks) > 1:
-        handles, labels = axs[0].get_legend_handles_labels()
-    else:
-        handles, labels = axs.get_legend_handles_labels()
+    handles, labels = map_axs(axs, 0, len(args.benchmarks)).get_legend_handles_labels()
 
-    ncol = int(np.ceil(len(args.algorithms) / 2))
+    ncol_map = lambda n: 1 if n == 1 else (2 if n == 2 else int(np.ceil(n / 2)))
+    ncol = ncol_map(len(args.algorithms))
     fig.legend(
         handles,
         labels,
         loc="lower center",
         bbox_to_anchor=(0.5, -0.15),
-        ncol=len(args.algorithms) if not ncol else ncol,
+        ncol=ncol,
         frameon=True,
     )
     fig.tight_layout(pad=0, h_pad=0.5)
