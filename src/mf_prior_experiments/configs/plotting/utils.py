@@ -132,5 +132,6 @@ def plot_incumbent(
     if log_x:
         ax.set_xscale("log")
     if log_y:
-        ax.set_yscale("log")
+        # ax.set_yscale("log")
+        ax.set_yscale("symlog")
     ax.grid(True, which="both", ls="-", alpha=0.8)
