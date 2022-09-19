@@ -1,7 +1,6 @@
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
-import seaborn as sns
 from path import Path
 from scipy import stats
 
@@ -109,7 +108,7 @@ def plot_incumbent(
         y_mean,
         label=ALGORITHMS[algorithm],
         **plot_kwargs,
-        color=COLOR_MARKER_DICT[algorithm],
+        # color=COLOR_MARKER_DICT[algorithm],
         linewidth=0.7,
     )
 
@@ -117,7 +116,7 @@ def plot_incumbent(
         x,
         y_mean - std_error,
         y_mean + std_error,
-        color=COLOR_MARKER_DICT[algorithm],
+        # color=COLOR_MARKER_DICT[algorithm],
         alpha=0.2,
     )
 
