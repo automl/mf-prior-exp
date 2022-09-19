@@ -1,25 +1,15 @@
 import argparse
 import errno
-import json
 import os
 
-import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
-import seaborn as sns
-import yaml  # type: ignore
+
 from attrdict import AttrDict
 from path import Path
 from scipy import stats
 
-from .configs.plotting.read_results import get_seed_info
-from .configs.plotting.styles import X_LABEL, Y_LABEL
-from .configs.plotting.utils import (
-    plot_incumbent,
-    plot_table,
-    save_fig,
-    set_general_plot_style,
-)
+from mf_prior_experiments.configs.plotting.read_results import get_seed_info
 
 benchmark_configs_path = os.path.join(os.path.dirname(__file__), "configs/benchmark/")
 
@@ -30,7 +20,7 @@ def plot(args):
     base_path = BASE_PATH / "results" / args.experiment_group
     output_dir = BASE_PATH / "tables" / args.experiment_group
     final_table = dict()
-    for benchmark_idx, benchmark in enumerate(args.benchmarks):
+    for _, benchmark in enumerate(args.benchmarks):
         _base_path = os.path.join(base_path, f"benchmark={benchmark}")
         if not os.path.isdir(_base_path):
             raise FileNotFoundError(errno.ENOENT, os.strerror(errno.ENOENT), _base_path)
