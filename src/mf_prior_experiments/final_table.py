@@ -4,12 +4,11 @@ import os
 
 import numpy as np
 import pandas as pd
-
 from attrdict import AttrDict
 from path import Path
 from scipy import stats
 
-from mf_prior_experiments.configs.plotting.read_results import get_seed_info
+from .configs.plotting.read_results import get_seed_info
 
 benchmark_configs_path = os.path.join(os.path.dirname(__file__), "configs/benchmark/")
 
@@ -40,11 +39,17 @@ def plot(args):
                 cost = [i["cost"] for i in infos]
                 costs.append(cost)
 
-            if isinstance(incumbents, list):
-                incumbents = np.array(incumbents)
+            from .configs.plotting.utils import interpolate_time
 
-            final_mean = np.mean(incumbents, axis=0)[-1]
-            final_std_error = stats.sem(incumbents, axis=0)[-1]
+            incumbents = np.array(incumbents)
+            costs = np.array(costs)
+
+            df = interpolate_time(incumbents, costs)
+
+            if args.budget is not None:
+                df = df.query(f"index <= {args.budget}")
+            final_mean = df.mean(axis=1).values[-1]
+            final_std_error = stats.sem(df.values, axis=1)[-1]
 
             if benchmark not in final_table:
                 final_table[benchmark] = dict()
@@ -78,6 +83,7 @@ if __name__ == "__main__":
         "--base_path", type=str, default=None, help="path where `results/` exists"
     )
     parser.add_argument("--experiment_group", type=str, default="")
+    parser.add_argument("--budget", type=float, default=None)
     parser.add_argument("--benchmarks", nargs="+", default=["jahs_cifar10"])
     parser.add_argument("--algorithms", nargs="+", default=["random_search"])
     parser.add_argument("--plot_id", type=str, default="1")
