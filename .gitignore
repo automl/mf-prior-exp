@@ -27,6 +27,7 @@ data
 results
 outputs
 plots
+tables
 
 # Unused by project
 .flake8

@@ -24,14 +24,13 @@ def _set_seeds(seed):
 
 
 def run_bohb(args):
-    from mfpbench import Benchmark
-
     import uuid
 
     import hpbandster.core.nameserver as hpns
     import hpbandster.core.result as hpres
     from hpbandster.core.worker import Worker
     from hpbandster.optimizers.bohb import BOHB
+    from mfpbench import Benchmark
 
     # Added the type here just for editors to be able to get a quick view
     benchmark: Benchmark = hydra.utils.instantiate(args.benchmark.api)
@@ -62,37 +61,23 @@ def run_bohb(args):
     max_evaluations_total = 10
 
     run_id = str(uuid.uuid4())
-    NS = hpns.NameServer(
-        run_id=run_id,
-        port=0,
-        working_directory="bohb_root_directory"
-    )
+    NS = hpns.NameServer(run_id=run_id, port=0, working_directory="bohb_root_directory")
     ns_host, ns_port = NS.start()
 
-    hpbandster_worker = Worker(
-        nameserver=ns_host,
-        nameserver_port=ns_port,
-        run_id=run_id
-    )
+    hpbandster_worker = Worker(nameserver=ns_host, nameserver_port=ns_port, run_id=run_id)
     hpbandster_worker.compute = compute
     hpbandster_worker.run(background=True)
 
     result_logger = hpres.json_result_logger(
-        directory="bohb_root_directory",
-        overwrite=True
+        directory="bohb_root_directory", overwrite=True
     )
-    bohb_config = {
-        "eta": 3,
-        "min_budget": lower,
-        "max_budget": upper,
-        "run_id": run_id
-    }
+    bohb_config = {"eta": 3, "min_budget": lower, "max_budget": upper, "run_id": run_id}
     bohb = BOHB(
         configspace=configspace,
         nameserver=ns_host,
         nameserver_port=ns_port,
         result_logger=result_logger,
-        **bohb_config
+        **bohb_config,
     )
 
     logger.info(f"Starting run...")
@@ -102,7 +87,7 @@ def run_bohb(args):
     NS.shutdown()
 
     id2config = res.get_id2config_mapping()
-    logger.info(f"A total of {len(id2config.keys())} unique configurations were sampled.")
+    logger.info(f"A total of {len(id2config.keys())} queries.")
 
 
 def run_neps(args):
