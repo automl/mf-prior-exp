@@ -23,6 +23,88 @@ def _set_seeds(seed):
     # tf.random.set_seed(seed)
 
 
+def run_bohb(args):
+    from mfpbench import Benchmark
+
+    import uuid
+
+    import hpbandster.core.nameserver as hpns
+    import hpbandster.core.result as hpres
+    from hpbandster.core.worker import Worker
+    from hpbandster.optimizers.bohb import BOHB
+
+    # Added the type here just for editors to be able to get a quick view
+    benchmark: Benchmark = hydra.utils.instantiate(args.benchmark.api)
+
+    def compute(**config: Any) -> dict:
+        fidelity = config["budget"]
+        result = benchmark.query(config["config"], at=int(fidelity))
+        return {
+            "loss": result.error,
+            "cost": result.cost,
+            "info": {
+                "cost": result.cost,
+                "val_score": result.val_score,
+                "test_score": result.test_score,
+                "fidelity": result.fidelity,
+                # val_error: result.val_error
+                # test_error: result.test_error
+            },
+        }
+
+    lower, upper, _ = benchmark.fidelity_range
+    fidelity_name = benchmark.fidelity_name
+    configspace = benchmark.space
+
+    logger.info(f"Using configspace: \n {configspace}")
+    logger.info(f"Using fidelity: \n {fidelity_name} in {lower}-{upper}")
+
+    max_evaluations_total = 10
+
+    run_id = str(uuid.uuid4())
+    NS = hpns.NameServer(
+        run_id=run_id,
+        port=0,
+        working_directory="bohb_root_directory"
+    )
+    ns_host, ns_port = NS.start()
+
+    hpbandster_worker = Worker(
+        nameserver=ns_host,
+        nameserver_port=ns_port,
+        run_id=run_id
+    )
+    hpbandster_worker.compute = compute
+    hpbandster_worker.run(background=True)
+
+    result_logger = hpres.json_result_logger(
+        directory="bohb_root_directory",
+        overwrite=True
+    )
+    bohb_config = {
+        "eta": 3,
+        "min_budget": lower,
+        "max_budget": upper,
+        "run_id": run_id
+    }
+    bohb = BOHB(
+        configspace=configspace,
+        nameserver=ns_host,
+        nameserver_port=ns_port,
+        result_logger=result_logger,
+        **bohb_config
+    )
+
+    logger.info(f"Starting run...")
+    res = bohb.run(n_iterations=max_evaluations_total)
+
+    bohb.shutdown(shutdown_workers=True)
+    NS.shutdown()
+
+    id2config = res.get_id2config_mapping()
+    logger.info(f"A total of {len(id2config.keys())} unique configurations were sampled.")
+
+
 def run_neps(args):
     from mfpbench import Benchmark
 
