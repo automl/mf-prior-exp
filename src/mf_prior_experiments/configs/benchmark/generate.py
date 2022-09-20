@@ -52,7 +52,11 @@ def hartmann_configs() -> Iterator[tuple[str, dict[str, Any]]]:
 
 def pd1_configs() -> Iterator[tuple[str, dict[str, Any]]]:
     datadir = "pd1-data"
-    names = ["lm1b_transformer_2048"]
+    names = [
+        "lm1b_transformer_2048",
+        "uniref50_transformer_128",
+        "translatewmt_xformer_64",
+    ]
 
     for name in names:
         config_name = f"{name}"

@@ -1,0 +1,7 @@
+name: translatewmt_xformer_64
+api:
+  name: translatewmt_xformer_64
+  datadir: ${hydra:runtime.cwd}/data/pd1-data
+  _target_: mfpbench.get
+  seed: ${seed}
+  preload: true
