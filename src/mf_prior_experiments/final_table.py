@@ -53,9 +53,9 @@ def plot(args):
 
             if benchmark not in final_table:
                 final_table[benchmark] = dict()
-            final_table[benchmark][algorithm] = (
-                f"{np.round(final_mean, 2)}" f" \u00B1 " f"{np.round(final_std_error, 2)}"
-            )
+            final_table[benchmark][
+                algorithm
+            ] = fr"${np.round(final_mean, 2)} \pm {np.round(final_std_error, 2)}$"
 
     final_table = pd.DataFrame.from_dict(final_table, orient="index")
 
@@ -67,12 +67,41 @@ def plot(args):
     output_dir.makedirs_p()
 
     with open(
-        os.path.join(output_dir, f"{filename}.md"),
+        os.path.join(output_dir, f"{filename}.tex"),
         "w",
         encoding="utf-8",
     ) as f:
-        f.write(final_table.to_markdown())
-    print(f'Saved to "{output_dir}/{filename}.md"')
+        f.write("\\begin{table}[htbp]" + " \n")
+        f.write("\\centering" + " \n")
+
+        f.write(
+            "\\begin{tabular}{"
+            + " | ".join(["c"] * (len(final_table.columns) + 1))
+            + "}\n"
+        )
+        f.write("\\toprule" + " \n")
+        f.write("{} ")
+
+        import re
+
+        for c in final_table.columns:
+            f.write("& ")
+            f.write(re.sub("_", r"\\_", c) + " ")
+        f.write("\\\\\n")
+        f.write("\\midrule" + " \n")
+
+        for i, row in final_table.iterrows():
+            f.write(re.sub("_", r"\\_", str(row.name)) + " ")
+            f.write(" & " + " & ".join([str(x) for x in row.values]))
+            f.write(" \\\\\n")
+        f.write("\\bottomrule" + " \n")
+        f.write("\\end{tabular}" + " \n")
+        f.write("\\caption{" f"{args.caption}" + "}" + " \n")
+        f.write("\\label{" f"{args.label}" + "}" + " \n")
+        f.write("\\end{table}")
+        # f.write(final_table.to_latex())
+    print(f"{final_table}")
+    print(f'Saved to "{output_dir}/{filename}.tex"')
 
 
 if __name__ == "__main__":
@@ -83,6 +112,8 @@ if __name__ == "__main__":
         "--base_path", type=str, default=None, help="path where `results/` exists"
     )
     parser.add_argument("--experiment_group", type=str, default="")
+    parser.add_argument("--caption", type=str, default="TODO")
+    parser.add_argument("--label", type=str, default="TODO")
     parser.add_argument("--budget", type=float, default=None)
     parser.add_argument("--benchmarks", nargs="+", default=["jahs_cifar10"])
     parser.add_argument("--algorithms", nargs="+", default=["random_search"])
