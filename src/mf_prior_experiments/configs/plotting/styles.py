@@ -69,8 +69,8 @@ DATASETS = {
     "mfh3_good_prior-default": "Hartmann 3 (good)",
     "mfh3_good_prior-good": "H3d (good corr-good prior)",
     "mfh3_good_prior-bad": "H3d (good corr-bad prior)",
-    "mfh3_good_prior-perfect-noisy0.125": "H3d (good corr-perfect prior - Noise 0.125)",
-    "mfh3_good_prior-bad-noisy0.125": "H3d (good corr-perfect prior - Noise 0.125)",
+    "mfh3_good_prior-perfect-noisy0.125": "H3d (good corr-good prior)",
+    "mfh3_good_prior-bad-noisy0.125": "H3d (good corr-bad prior)",
     # mfh3 moderate
     "mfh3_moderate_prior-default": "Hartmann 3 (moderate)",
     "mfh3_moderate_prior-good": "H3d (moderate corr-good prior)",
@@ -87,14 +87,14 @@ DATASETS = {
     "mfh3_terrible_prior-default": "Hartmann 3 (terrible)",
     "mfh3_terrible_prior-good": "H3d (terrible corr-good prior)",
     "mfh3_terrible_prior-bad": "H3d (terrible corr-bad prior)",
-    "mfh3_terrible_prior-perfect-noisy0.125": "H3d (terrible corr-perfect prior - Noise 0.125)",
-    "mfh3_terrible_prior-bad-noisy0.125": "H3d (terrible corr-perfect prior - Noise 0.125)",
+    "mfh3_terrible_prior-perfect-noisy0.125": "H3d (bad corr-good prior)",
+    "mfh3_terrible_prior-bad-noisy0.125": "H3d (bad corr-bad prior)",
     # mfh6 good
     "mfh6_good_prior-default": "Hartmann 6 (good)",
     "mfh6_good_prior-good": "H6d (good corr-good prior)",
     "mfh6_good_prior-bad": "H6d (good corr-bad prior)",
-    "mfh6_good_prior-perfect-noisy0.125": "H6d (good corr-perfect prior - Noise 0.125)",
-    "mfh6_good_prior-bad-noisy0.125": "H6d (good corr-perfect prior - Noise 0.125)",
+    "mfh6_good_prior-perfect-noisy0.125": "H6d (good corr-good prior)",
+    "mfh6_good_prior-bad-noisy0.125": "H6d (good corr-bad prior)",
     # mfh6 moderate
     "mfh6_moderate_prior-default": "Hartmann 6 (moderate)",
     "mfh6_moderate_prior-good": "H6d (moderate corr-good prior)",
@@ -111,8 +111,8 @@ DATASETS = {
     "mfh6_terrible_prior-default": "Hartmann 6 (terrible)",
     "mfh6_terrible_prior-good": "H6d (terrible corr-good prior)",
     "mfh6_terrible_prior-bad": "H6d (terrible corr-bad prior)",
-    "mfh6_terrible_prior-perfect-noisy0.125": "H6d (terrible corr-perfect prior - Noise 0.125)",
-    "mfh6_terrible_prior-bad-noisy0.125": "H6d (terrible corr-perfect prior - Noise 0.125)",
+    "mfh6_terrible_prior-perfect-noisy0.125": "H6d (bad corr-good prior)",
+    "mfh6_terrible_prior-bad-noisy0.125": "H6d (bad corr-badd prior)",
 }
 
 # https://matplotlib.org/stable/gallery/color/named_colors.html
