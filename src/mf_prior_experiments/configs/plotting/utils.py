@@ -60,11 +60,11 @@ def interpolate_time(incumbents, costs, x_range=None):
     if x_range is not None:
         min_b, max_b = x_range
         new_entry = {c: np.nan for c in df.columns}
-        _df = pd.DataFrame.from_dict(new_entry, orient="index", columns=df.columns)
+        _df = pd.DataFrame.from_dict(new_entry, orient="index").T
         _df.index = [min_b]
         df = pd.concat((df, _df)).sort_index()
         new_entry = {c: np.nan for c in df.columns}
-        _df = pd.DataFrame.from_dict(new_entry, orient="index", columns=df.columns)
+        _df = pd.DataFrame.from_dict(new_entry, orient="index").T
         _df.index = [max_b]
         df = pd.concat((df, _df)).sort_index()
 
