@@ -6,7 +6,6 @@ from pathlib import Path
 import matplotlib.pyplot as plt
 import numpy as np
 import seaborn as sns
-import yaml  # type: ignore
 from attrdict import AttrDict
 
 from .configs.plotting.read_results import get_seed_info
@@ -68,7 +67,7 @@ def plot(args):
                 algorithm=algorithm,
                 log_x=args.log_x,
                 log_y=args.log_y,
-                budget=args.budget,
+                # budget=args.budget,
                 x_range=args.x_range,
             )
 
@@ -131,16 +130,16 @@ if __name__ == "__main__":
     if args.x_range is not None:
         assert len(args.x_range) == 2
 
-    budget = None
-    # reading benchmark budget if only one benchmark is being plotted
-    if len(args.benchmarks) == 1:
-        with open(
-            os.path.join(benchmark_configs_path, f"{args.benchmarks[0]}.yaml"),
-            encoding="utf-8",
-        ) as f:
-            _args = AttrDict(yaml.load(f, yaml.Loader))
-            if "budget" in _args:
-                budget = _args.budget
-    # TODO: make log scaling of plots also a feature of the benchmark
-    args.update({"budget": budget})
+    # budget = None
+    # # reading benchmark budget if only one benchmark is being plotted
+    # if len(args.benchmarks) == 1:
+    #     with open(
+    #         os.path.join(benchmark_configs_path, f"{args.benchmarks[0]}.yaml"),
+    #         encoding="utf-8",
+    #     ) as f:
+    #         _args = AttrDict(yaml.load(f, yaml.Loader))
+    #         if "budget" in _args:
+    #             budget = _args.budget
+    # # TODO: make log scaling of plots also a feature of the benchmark
+    # args.update({"budget": budget})
     plot(args)  # pylint: disable=no-value-for-parameter
