@@ -112,7 +112,7 @@ DATASETS = {
     "mfh6_terrible_prior-good": "H6d (terrible corr-good prior)",
     "mfh6_terrible_prior-bad": "H6d (terrible corr-bad prior)",
     "mfh6_terrible_prior-perfect-noisy0.125": "H6d (bad corr-good prior)",
-    "mfh6_terrible_prior-bad-noisy0.125": "H6d (bad corr-badd prior)",
+    "mfh6_terrible_prior-bad-noisy0.125": "H6d (bad corr-bad prior)",
 }
 
 # https://matplotlib.org/stable/gallery/color/named_colors.html
