@@ -86,6 +86,7 @@ def plot_incumbent(
     algorithm=None,
     log_x=False,
     log_y=False,
+    x_range=None,
     **plot_kwargs,
 ):
     if isinstance(x, list):
@@ -99,6 +100,8 @@ def plot_incumbent(
         plot_kwargs.pop("budget")
 
     df = interpolate_time(incumbents=y, costs=x, budget=budget)
+    if x_range is not None:
+        df = df.query(f"{x_range[0]} <= index <- {x_range[1]}")
     x = df.index
     y_mean = df.mean(axis=1).values
     std_error = stats.sem(df.values, axis=1)
