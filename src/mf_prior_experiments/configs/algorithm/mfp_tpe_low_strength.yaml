@@ -1,8 +1,8 @@
-name: asha_prior-50
+name: mfp_tpe_low_strength
 mf: true
 run_function:
   _target_: mf_prior_experiments.run.run_neps
 searcher:
   _partial_: true  # To not instantiate the class directly as required by neps
-  _target_: neps.optimizers.multi_fidelity.successive_halving.AsynchronousSuccessiveHalvingWithPriors
-  random_interleave_prob: 0.5
+  _target_: neps.optimizers.bayesian_optimization.mf_tpe.MultiFidelityPriorWeightedTreeParzenEstimator
+  prior_num_evals: 1

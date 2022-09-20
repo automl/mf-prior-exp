@@ -1,8 +1,8 @@
-name: asha_prior-50
+name: ours_v5_conf-ultra
 mf: true
 run_function:
   _target_: mf_prior_experiments.run.run_neps
 searcher:
   _partial_: true  # To not instantiate the class directly as required by neps
-  _target_: neps.optimizers.multi_fidelity.successive_halving.AsynchronousSuccessiveHalvingWithPriors
-  random_interleave_prob: 0.5
+  _target_: neps.optimizers.multi_fidelity_prior.v5.OurOptimizerV5
+  prior_confidence: ultra

@@ -8,7 +8,7 @@ from hpbandster.core.base_iteration import Datum
 from hpbandster.core.result import Result
 
 # default output format is assumed to be NePS
-OUTPUT_FORMAT = {"hpbandster": ["BOHB", "LCNet"]}
+OUTPUT_FORMAT = {"hpbandster": ["bohb", "lcnet"]}
 
 SINGLE_FIDELITY_ALGORITHMS = [
     "random_search",
@@ -47,8 +47,13 @@ def logged_results_to_HBS_result(directory):
     time_ref = float("inf")
     budget_set = set()
 
-    with open(os.path.join(directory, "configs.json"), encoding="UTF-8") as fh:
-        for line in fh:
+    with open(
+        os.path.join(
+            directory, "bohb_root_directory", "configs.json"
+        ),
+        encoding="UTF-8",
+    ) as f:
+        for line in f:
 
             line = json.loads(line)
 
@@ -63,25 +68,30 @@ def logged_results_to_HBS_result(directory):
 
             data[tuple(config_id)] = Datum(config=config, config_info=config_info)
 
-    with open(os.path.join(directory, "results.json"), encoding="UTF-8") as fh:
-        for line in fh:
-            config_id, budget, time_stamps, result, exception = json.loads(line)
-            _id = tuple(config_id)
+    with open(
+        os.path.join(
+            directory, "bohb_root_directory", "results.json"
+        ),
+        encoding="UTF-8",
+    ) as f:
+        for line in f:
+            try:
+                config_id, budget, time_stamps, result, exception = json.loads(line)
+                _id = tuple(config_id)
 
-            data[_id].time_stamps[budget] = time_stamps
-            data[_id].results[budget] = result
-            data[_id].exceptions[budget] = exception
+                data[_id].time_stamps[budget] = time_stamps
+                data[_id].results[budget] = result
+                data[_id].exceptions[budget] = exception
 
-            budget_set.add(budget)
-            time_ref = min(time_ref, time_stamps["submitted"])
+                budget_set.add(budget)
+                time_ref = min(time_ref, time_stamps["submitted"])
+            except:
+                continue
 
     # infer the hyperband configuration from the data
     budget_list = sorted(list(budget_set))
 
     HB_config = {
-        # 'eta'        : None if len(budget_list) < 2 else budget_list[1]/budget_list[0],
-        # 'min_budget' : min(budget_set),
-        # 'max_budget' : max(budget_set),
         "budgets": budget_list,
         "max_SH_iter": len(budget_set),
         "time_ref": time_ref,
@@ -129,21 +139,34 @@ def _get_info_hpbandster(path, seed):
     # get all executed runs
     all_runs = result.get_all_runs()
 
-    runtime = {"started": [], "finished": []}
+    configs_evaluated = dict()
+    budgets = list(map(int, result.HB_config["budgets"]))
+
     data = []
-    for r in all_runs:
-        if r.loss is None:
+
+    for run in all_runs:
+        if run.loss is None:
             continue
 
-        _id = r.config_id
-        loss = get_loss_from_run_fn(r)
+        bracket_id, config_id = run.config_id[0], run.config_id[-1]
+        budget_id = budgets.index(run.info["fidelity"])
 
-        data.append((_id, loss, r.info))
+        _previous_brackets_ids = 0
+        if bracket_id > 0:
+            for bracket in range(0, bracket_id):
+                _previous_brackets_ids += len(configs_evaluated[bracket])
+        config_id += _previous_brackets_ids
 
-        for time, time_list in runtime.items():
-            time_list.append(r.time_stamps[time])
+        if bracket_id in configs_evaluated:
+            configs_evaluated[bracket_id].add(config_id)
+        else:
+            configs_evaluated[bracket_id] = set([config_id])
 
-    # total_runtime = runtime["finished"][-1] - runtime["started"][0]
+        neps_config_id = f"config_{config_id}_{budget_id}"
+        # print(neps_config_id)
+        loss = get_loss_from_run_fn(run)
+
+        data.append((neps_config_id, loss, run.info))
 
     return data
 
@@ -174,6 +197,8 @@ def get_seed_info(path, seed, algorithm="random_search"):
                 # string and the 0-th element is the string itself, which fits the
                 # config ID format for non-NePS optimizers
                 # MF algos in NePS contain a 2-part ID separated by `_` with the first
+                # element denoting config ID and the second element denoting the rung
+                # MF algos in HpBandSter contain a 3-part ID tuple with the first
                 # element denoting config ID and the second element denoting the rung
                 _subset_idx = 1 if "config" in id else 0
                 id_config_id = id.split("_")[_subset_idx]
