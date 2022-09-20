@@ -6,7 +6,7 @@ ALGORITHMS = {
     "random_search_prior": "RS+Prior",
     "random_search_prior-50": "RS+Prior(50%)",
     "grid_search": "Grid Search",
-    "BOHB": "BOHB",
+    "bohb": "BOHB",
     "successive_halving": "SH",
     "successive_halving_prior": "SH+Prior",
     "successive_halving_prior-50": "SH+Prior(50%)",
@@ -33,6 +33,9 @@ ALGORITHMS = {
     "ours_v4_hb": "V4_HB",
     "ours_v4_asha_hb": "V4_ASHA-HB",
     "ours_v4_v3_2": "V4_V3_2",
+    "ours_v4_v3_2_conf-high": "V4_V3_2 (high)",
+    "ours_v5": "V5",
+    "ours_v5_conf-high": "V5 (high)",
 }
 
 DATASETS = {
@@ -88,7 +91,7 @@ COLOR_MARKER_DICT = {
     "random_search_prior": "black",
     "random_search_prior-50": "darkgray",
     # "grid_search": "mediumpurple",
-    # "BOHB": "lightgreen",
+    "bohb": "green",
     "successive_halving": "navajowhite",
     "successive_halving_prior": "tan",
     "successive_halving_prior-50": "orange",
@@ -109,12 +112,15 @@ COLOR_MARKER_DICT = {
     "ours_v2_2": "lime",
     "ours_v2_3": "darkseagreen",
     "ours_v3": "darkslateblue",
-    "ours_v3_2": "slateblue",
+    "ours_v3_2": "blue",
     "ours_v4_sh": "orangered",
     "ours_v4_asha": "darkmagenta",
     "ours_v4_hb": "limegreen",
     "ours_v4_asha_hb": "gold",
     "ours_v4_v3_2": "blueviolet",
+    "ours_v4_v3_2_conf-high": "brown",
+    "ours_v5": "red",
+    "ours_v5_conf-high": "darkgreen",
 }
 
 Y_MAP = {

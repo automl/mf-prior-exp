@@ -6,12 +6,11 @@ from pathlib import Path
 import matplotlib.pyplot as plt
 import numpy as np
 import seaborn as sns
-import yaml  # type: ignore
 from attrdict import AttrDict
 
-from .configs.plotting.read_results import get_seed_info
-from .configs.plotting.styles import X_LABEL, Y_LABEL
-from .configs.plotting.utils import plot_incumbent, save_fig, set_general_plot_style
+from mf_prior_experiments.configs.plotting.read_results import get_seed_info
+from mf_prior_experiments.configs.plotting.styles import X_LABEL, Y_LABEL
+from mf_prior_experiments.configs.plotting.utils import plot_incumbent, save_fig, set_general_plot_style
 
 benchmark_configs_path = os.path.join(os.path.dirname(__file__), "configs/benchmark/")
 
@@ -68,7 +67,8 @@ def plot(args):
                 algorithm=algorithm,
                 log_x=args.log_x,
                 log_y=args.log_y,
-                budget=args.budget,
+                # budget=args.budget,
+                x_range=args.x_range,
             )
 
     sns.despine(fig)
@@ -81,7 +81,7 @@ def plot(args):
         handles,
         labels,
         loc="lower center",
-        bbox_to_anchor=(0.5, -0.15),
+        bbox_to_anchor=(0.5, -0.25),
         ncol=ncol,
         frameon=True,
     )
@@ -107,9 +107,10 @@ if __name__ == "__main__":
         "--base_path", type=str, default=None, help="path where `results/` exists"
     )
     parser.add_argument("--experiment_group", type=str, default="")
-    parser.add_argument("--benchmarks", nargs="+", default=["jahs_cifar10"])
-    parser.add_argument("--algorithms", nargs="+", default=["random_search"])
+    parser.add_argument("--benchmarks", nargs="+", default=None)
+    parser.add_argument("--algorithms", nargs="+", default=None)
     parser.add_argument("--plot_id", type=str, default="1")
+    parser.add_argument("--x_range", nargs="+", default=None, type=float)
     parser.add_argument("--log_x", action="store_true")
     parser.add_argument("--log_y", action="store_true")
     parser.add_argument(
@@ -125,16 +126,20 @@ if __name__ == "__main__":
     )
 
     args = AttrDict(parser.parse_args().__dict__)
-    budget = None
-    # reading benchmark budget if only one benchmark is being plotted
-    if len(args.benchmarks) == 1:
-        with open(
-            os.path.join(benchmark_configs_path, f"{args.benchmarks[0]}.yaml"),
-            encoding="utf-8",
-        ) as f:
-            _args = AttrDict(yaml.load(f, yaml.Loader))
-            if "budget" in _args:
-                budget = _args.budget
-    # TODO: make log scaling of plots also a feature of the benchmark
-    args.update({"budget": budget})
+
+    if args.x_range is not None:
+        assert len(args.x_range) == 2
+
+    # budget = None
+    # # reading benchmark budget if only one benchmark is being plotted
+    # if len(args.benchmarks) == 1:
+    #     with open(
+    #         os.path.join(benchmark_configs_path, f"{args.benchmarks[0]}.yaml"),
+    #         encoding="utf-8",
+    #     ) as f:
+    #         _args = AttrDict(yaml.load(f, yaml.Loader))
+    #         if "budget" in _args:
+    #             budget = _args.budget
+    # # TODO: make log scaling of plots also a feature of the benchmark
+    # args.update({"budget": budget})
     plot(args)  # pylint: disable=no-value-for-parameter
