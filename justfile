@@ -41,3 +41,6 @@
 # List all available algorithms
 @algorithms:
     ls -1 ./src/mf_prior_experiments/configs/algorithm | grep ".yaml" | sed -e "s/\.yaml$//"
+
+@download:
+    python -m mfpbench.download --data-dir "/work/dlclarge1/mallik-mf-prior/mf-prior-exp/data"
