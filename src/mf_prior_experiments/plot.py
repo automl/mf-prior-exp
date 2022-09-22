@@ -32,7 +32,7 @@ def plot(args):
     fig, axs = plt.subplots(
         nrows=nrows,
         ncols=ncols,
-        figsize=(5.3, 2.2),
+        figsize=(10.3, 6.2),
     )
 
     base_path = BASE_PATH / "results" / args.experiment_group
