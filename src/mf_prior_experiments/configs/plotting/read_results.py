@@ -183,14 +183,16 @@ def get_seed_info(path, seed, cost_as_runtime=False, algorithm="random_search"):
     else:
         data = _get_info_neps(path, seed, cost_as_runtime=cost_as_runtime)
 
-    max_cost = 0
+    # max_cost only relevant for scaling x-axis when using fidelity on the x-axis
+    max_cost = None if cost_as_runtime else 0
     if algorithm not in SINGLE_FIDELITY_ALGORITHMS:
         # calculates continuation costs for MF algorithms
         # NOTE: assumes that all recorded evaluations are black-box evaluations where
         #   continuations or freeze-thaw was not accounted for during optimization
         data.reverse()
         for idx, (id, loss, info) in enumerate(data):
-            max_cost = max(max_cost, info["cost"])
+            # `max_cost` tracks the maximum fidelity used for evaluation
+            max_cost = max(max_cost, info["cost"]) if max_cost is not None else None
             for _id, _, _info in data[data.index((id, loss, info)) + 1 :]:
                 # if `_` is not found in the string, `split()` returns the original
                 # string and the 0-th element is the string itself, which fits the
@@ -211,6 +213,10 @@ def get_seed_info(path, seed, cost_as_runtime=False, algorithm="random_search"):
                 data[idx] = (id, loss, info)
                 break
         data.reverse()
+    else:
+        for idx, (id, loss, info) in enumerate(data):
+            # `max_cost` tracks the maximum fidelity used for evaluation
+            max_cost = max(max_cost, info["cost"]) if max_cost is not None else None
 
     data = [(d[1], d[2]) for d in data]
     losses, infos = zip(*data)
