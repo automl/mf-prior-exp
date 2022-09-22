@@ -30,6 +30,16 @@
     --base_path {{base_path}} \
     --ext {{ext}}
 
+# Table job
+@table experiment_group benchmarks algorithms filename budget base_path=justfile_directory() :
+  python -m mf_prior_experiments.final_table \
+    --experiment_group {{experiment_group}} \
+    --benchmark {{benchmarks}} \
+    --algorithm {{algorithms}} \
+    --filename {{filename}} \
+    --base_path {{base_path}} \
+    --budget {{budget}}
+
 # List all available benchmarks
 @benchmarks:
     ls -1 ./src/mf_prior_experiments/configs/benchmark | grep ".yaml" | sed -e "s/\.yaml$//"
@@ -41,3 +51,6 @@
 # List all available algorithms
 @algorithms:
     ls -1 ./src/mf_prior_experiments/configs/algorithm | grep ".yaml" | sed -e "s/\.yaml$//"
+
+@download:
+    python -m mfpbench.download --data-dir "/work/dlclarge1/mallik-mf-prior/mf-prior-exp/data"

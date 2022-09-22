@@ -10,6 +10,12 @@ from neps.search_spaces.hyperparameters.categorical import CATEGORICAL_CONFIDENC
 from neps.search_spaces.hyperparameters.float import FLOAT_CONFIDENCE_SCORES
 from neps.search_spaces.search_space import SearchSpace
 
+CUSTOM_FLOAT_CONFIDENCE_SCORES = FLOAT_CONFIDENCE_SCORES.copy()
+CUSTOM_FLOAT_CONFIDENCE_SCORES.update({"ultra": 0.05})
+
+CUSTOM_CATEGORICAL_CONFIDENCE_SCORES = CATEGORICAL_CONFIDENCE_SCORES.copy()
+CUSTOM_CATEGORICAL_CONFIDENCE_SCORES.update({"ultra": 5})
+
 
 class RandomSearch(BaseOptimizer):
 
@@ -54,8 +60,8 @@ class RandomSearchWithPriors(RandomSearch):
             if self.pipeline_space[k].is_fidelity:
                 continue
             if isinstance(self.pipeline_space[k], (FloatParameter, IntegerParameter)):
-                confidence = FLOAT_CONFIDENCE_SCORES[self.prior_confidence]
+                confidence = CUSTOM_FLOAT_CONFIDENCE_SCORES[self.prior_confidence]
                 self.pipeline_space[k].default_confidence_score = confidence
             elif isinstance(self.pipeline_space[k], CategoricalParameter):
-                confidence = CATEGORICAL_CONFIDENCE_SCORES[self.prior_confidence]
+                confidence = CUSTOM_CATEGORICAL_CONFIDENCE_SCORES[self.prior_confidence]
                 self.pipeline_space[k].default_confidence_score = confidence

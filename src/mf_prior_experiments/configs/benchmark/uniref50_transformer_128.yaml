@@ -1,0 +1,7 @@
+name: uniref50_transformer_128
+api:
+  name: uniref50_transformer_128
+  datadir: ${hydra:runtime.cwd}/data/pd1-data
+  _target_: mfpbench.get
+  seed: ${seed}
+  preload: true

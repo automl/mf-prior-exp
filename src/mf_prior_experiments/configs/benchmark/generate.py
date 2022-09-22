@@ -1,13 +1,15 @@
 """Generates all possible benchmark configs from mfpbench."""
 from __future__ import annotations
 
-from itertools import product
-from pathlib import Path
 from typing import Any, Iterator
 
-import mfpbench
+from itertools import product
+from pathlib import Path
+
 import yaml
-from mfpbench import JAHSBenchmark, MFHartmannBenchmark, YAHPOBenchmark
+
+import mfpbench
+from mfpbench import JAHSBenchmark, MFHartmannBenchmark, YAHPOBenchmark, PD1Benchmark
 
 HERE = Path(__file__).parent.resolve()
 
@@ -48,6 +50,24 @@ def hartmann_configs() -> Iterator[tuple[str, dict[str, Any]]]:
                 }
 
 
+def pd1_configs() -> Iterator[tuple[str, dict[str, Any]]]:
+    datadir = "pd1-data"
+    names = [
+        "lm1b_transformer_2048",
+        "uniref50_transformer_128",
+        "translatewmt_xformer_64",
+    ]
+
+    for name in names:
+        config_name = f"{name}"
+        api = {
+            "name": name,
+            "datadir": "${hydra:runtime.cwd}/data/" + datadir,
+        }
+
+        yield config_name, api
+
+
 def yahpo_configs() -> Iterator[tuple[str, dict[str, Any]]]:
     datadir = "yahpo-gym-data"
 
@@ -55,7 +75,9 @@ def yahpo_configs() -> Iterator[tuple[str, dict[str, Any]]]:
         f"rbv2_{x}"
         for x in ("super", "aknn", "glmnet", "ranger", "rpart", "svm", "xgboost")
     ]
-    iaml_names = [f"rbv2_{x}" for x in ("super", "glmnet", "ranger", "rpart", "xgboost")]
+    iaml_names = [
+        f"rbv2_{x}" for x in ("super", "glmnet", "ranger", "rpart", "xgboost")
+    ]
     names = ["lcbench", "nb301"] + rbv2_names + iaml_names
 
     for name in names:
@@ -103,6 +125,7 @@ def configs() -> Iterator[tuple[Path, dict[str, Any]]]:
         YAHPOBenchmark: yahpo_configs,
         JAHSBenchmark: jahs_configs,
         MFHartmannBenchmark: hartmann_configs,
+        PD1Benchmark: pd1_configs,
     }
     generators = [
         generator

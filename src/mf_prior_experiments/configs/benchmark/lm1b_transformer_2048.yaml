@@ -1,0 +1,7 @@
+name: lm1b_transformer_2048
+api:
+  name: lm1b_transformer_2048
+  datadir: ${hydra:runtime.cwd}/data/pd1-data
+  _target_: mfpbench.get
+  seed: ${seed}
+  preload: true
