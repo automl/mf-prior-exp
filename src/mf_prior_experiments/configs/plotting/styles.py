@@ -1,4 +1,11 @@
-X_LABEL = "Runtime [s]"
+X_LABEL = dict(
+    {
+        False: "Full function evaluation(s)",  # if `cost_as_runtime` is False
+        True: "Runtime [s]",
+    }
+)
+
+# "Runtime [s]"
 Y_LABEL = "Error"
 
 ALGORITHMS = {

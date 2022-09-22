@@ -8,9 +8,9 @@ import numpy as np
 import seaborn as sns
 from attrdict import AttrDict
 
-from mf_prior_experiments.configs.plotting.read_results import get_seed_info
-from mf_prior_experiments.configs.plotting.styles import X_LABEL, Y_LABEL
-from mf_prior_experiments.configs.plotting.utils import plot_incumbent, save_fig, set_general_plot_style
+from .configs.plotting.read_results import get_seed_info
+from .configs.plotting.styles import X_LABEL, Y_LABEL
+from .configs.plotting.utils import plot_incumbent, save_fig, set_general_plot_style
 
 benchmark_configs_path = os.path.join(os.path.dirname(__file__), "configs/benchmark/")
 
@@ -51,7 +51,9 @@ def plot(args):
 
             for seed in sorted(os.listdir(_path)):
                 # `algorithm` is passed to calculate continuation costs
-                losses, infos = get_seed_info(_path, seed, algorithm=algorithm)
+                losses, infos, max_cost = get_seed_info(
+                    _path, seed, algorithm=algorithm, cost_as_runtime=args.cost_as_runtime
+                )
                 incumbent = np.minimum.accumulate(losses)
                 incumbents.append(incumbent)
                 cost = [i["cost"] for i in infos]
@@ -62,13 +64,14 @@ def plot(args):
                 x=costs,
                 y=incumbents,
                 title=benchmark,
-                xlabel=X_LABEL,
+                xlabel=X_LABEL[args.cost_as_runtime],
                 ylabel=Y_LABEL if benchmark_idx == 0 else None,
                 algorithm=algorithm,
                 log_x=args.log_x,
                 log_y=args.log_y,
                 # budget=args.budget,
                 x_range=args.x_range,
+                max_cost=None if args.cost_as_runtime else max_cost,
             )
 
     sns.despine(fig)
@@ -123,6 +126,13 @@ if __name__ == "__main__":
         choices=["pdf", "png"],
         default="pdf",
         help="the file extension or the plot file type",
+    )
+    parser.add_argument(
+        "--cost_as_runtime",
+        default=False,
+        action="store_true",
+        help="Default behaviour to use fidelities on the x-axis. "
+        "This parameter uses the training cost/runtime on the x-axis",
     )
 
     args = AttrDict(parser.parse_args().__dict__)
