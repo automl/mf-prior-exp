@@ -90,6 +90,7 @@ def plot_incumbent(
     log_y=False,
     x_range=None,
     max_cost=None,
+    plot_default=None,
     **plot_kwargs,
 ):
     if isinstance(x, list):
@@ -111,7 +112,9 @@ def plot_incumbent(
         # color=COLOR_MARKER_DICT[algorithm],
         linewidth=0.7,
     )
-
+    if plot_default is not None and plot_default < y_mean[0]:
+        # plot only if the default score is better than the first incumbent plotted
+        ax.hlines(y=plot_default, xmin=x[0], xmax=x[-1], color="black")
     ax.fill_between(
         x,
         y_mean - std_error,
