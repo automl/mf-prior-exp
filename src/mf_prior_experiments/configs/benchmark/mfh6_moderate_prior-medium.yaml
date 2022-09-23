@@ -1,7 +1,7 @@
-name: mfh6_moderate_prior-default
+name: mfh6_moderate_prior-medium
 api:
   name: mfh6_moderate
-  prior: default
+  prior: medium
   _target_: mfpbench.get
   seed: ${seed}
   preload: true

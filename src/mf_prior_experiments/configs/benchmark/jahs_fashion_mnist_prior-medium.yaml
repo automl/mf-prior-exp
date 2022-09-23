@@ -1,8 +1,8 @@
-name: jahs_fashion_mnist_prior-default
+name: jahs_fashion_mnist_prior-medium
 api:
   name: jahs_fashion_mnist
   datadir: ${hydra:runtime.cwd}/data/jahs-bench-data
-  prior: default
+  prior: medium
   _target_: mfpbench.get
   seed: ${seed}
   preload: true
