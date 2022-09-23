@@ -23,7 +23,7 @@ def _set_seeds(seed):
     # tf.random.set_seed(seed)
 
 
-def run_bohb(args):
+def run_hpbandster(args):
     import uuid
 
     import ConfigSpace
@@ -31,6 +31,7 @@ def run_bohb(args):
     import hpbandster.core.result as hpres
     from hpbandster.core.worker import Worker
     from hpbandster.optimizers.bohb import BOHB
+    from hpbandster.optimizers.hyperband import HyperBand
     from mfpbench import Benchmark
 
     # Added the type here just for editors to be able to get a quick view
@@ -83,7 +84,9 @@ def run_bohb(args):
     max_evaluations_total = 10
 
     run_id = str(uuid.uuid4())
-    NS = hpns.NameServer(run_id=run_id, port=0, working_directory="bohb_root_directory")
+    NS = hpns.NameServer(
+        run_id=run_id, port=0, working_directory="hpbandster_root_directory"
+    )
     ns_host, ns_port = NS.start()
 
     hpbandster_worker = Worker(nameserver=ns_host, nameserver_port=ns_port, run_id=run_id)
@@ -91,21 +94,32 @@ def run_bohb(args):
     hpbandster_worker.run(background=True)
 
     result_logger = hpres.json_result_logger(
-        directory="bohb_root_directory", overwrite=True
+        directory="hpbandster_root_directory", overwrite=True
     )
-    bohb_config = {"eta": 3, "min_budget": lower, "max_budget": upper, "run_id": run_id}
-    bohb = BOHB(
+    hpbandster_config = {
+        "eta": 3,
+        "min_budget": lower,
+        "max_budget": upper,
+        "run_id": run_id,
+    }
+
+    if "model" in args.algorithm and args.algorithm.model:
+        hpbandster_cls = BOHB
+    else:
+        hpbandster_cls = HyperBand
+
+    hpbandster_optimizer = hpbandster_cls(
         configspace=bohb_configspace,
         nameserver=ns_host,
         nameserver_port=ns_port,
         result_logger=result_logger,
-        **bohb_config,
+        **hpbandster_config,
     )
 
     logger.info("Starting run...")
-    res = bohb.run(n_iterations=max_evaluations_total)
+    res = hpbandster_optimizer.run(n_iterations=max_evaluations_total)
 
-    bohb.shutdown(shutdown_workers=True)
+    hpbandster_optimizer.shutdown(shutdown_workers=True)
     NS.shutdown()
 
     id2config = res.get_id2config_mapping()
