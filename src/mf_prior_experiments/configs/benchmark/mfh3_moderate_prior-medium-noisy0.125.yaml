@@ -1,7 +1,7 @@
-name: mfh3_good_prior-default-noisy0.125
+name: mfh3_moderate_prior-medium-noisy0.125
 api:
-  name: mfh3_good
-  prior: default
+  name: mfh3_moderate
+  prior: medium
   _target_: mfpbench.get
   seed: ${seed}
   preload: true

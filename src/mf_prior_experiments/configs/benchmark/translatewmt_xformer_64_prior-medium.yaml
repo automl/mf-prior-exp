@@ -1,6 +1,7 @@
-name: translatewmt_xformer_64
+name: translatewmt_xformer_64_prior-medium
 api:
   name: translatewmt_xformer_64
+  prior: medium
   datadir: ${hydra:runtime.cwd}/data/pd1-data
   _target_: mfpbench.get
   seed: ${seed}

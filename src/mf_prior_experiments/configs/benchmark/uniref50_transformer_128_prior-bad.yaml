@@ -1,0 +1,8 @@
+name: uniref50_transformer_128_prior-bad
+api:
+  name: uniref50_transformer_128
+  prior: bad
+  datadir: ${hydra:runtime.cwd}/data/pd1-data
+  _target_: mfpbench.get
+  seed: ${seed}
+  preload: true

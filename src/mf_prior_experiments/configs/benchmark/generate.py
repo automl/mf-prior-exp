@@ -13,15 +13,15 @@ from mfpbench import JAHSBenchmark, MFHartmannBenchmark, YAHPOBenchmark, PD1Benc
 
 HERE = Path(__file__).parent.resolve()
 
-
-# Don't generate benchmark yamls for these
-DONT_GENERATE_CLASSES = (YAHPOBenchmark,)
+EXCLUDE = ["rbv2", "iaml"]
+LCBENCH_TASKS = ["189862", "189862", "189866"]
 
 # Whether to generate configs for condtional spaces
 CONDITONAL_HP_SPACES = False
 
 # @carl, change them here as you need
 HARTMANN_NOISY_PRIOR_VALUES = [0.125]
+AVAILABLE_PRIORS = ["good", "medium", "bad"]
 
 
 def hartmann_configs() -> Iterator[tuple[str, dict[str, Any]]]:
@@ -30,24 +30,20 @@ def hartmann_configs() -> Iterator[tuple[str, dict[str, Any]]]:
         for i, corr in product([3, 6], ["terrible", "bad", "moderate", "good"])
     ]
 
-    for name in names:
-        bench = mfpbench._mapping[name]
-        assert issubclass(bench, MFHartmannBenchmark)
+    for name, prior in product(names, AVAILABLE_PRIORS + ["perfect"]):
+        config_name = f"{name}_prior-{prior}"
+        api = {"name": name, "prior": prior}
 
-        for prior in bench.available_priors:
-            config_name = f"{name}_prior-{prior}"
-            api = {"name": name, "prior": prior}
+        yield config_name, api
 
-            yield config_name, api
-
-            # We also give a noisy prior version for each
-            for noise_scale in HARTMANN_NOISY_PRIOR_VALUES:
-                config_name = f"{config_name}-noisy{str(noise_scale)}"
-                yield config_name, {
-                    **api,
-                    "noisy_prior": True,
-                    "prior_noise_scale": noise_scale,
-                }
+        # We also give a noisy prior version for each
+        for noise_scale in HARTMANN_NOISY_PRIOR_VALUES:
+            config_name = f"{config_name}-noisy{str(noise_scale)}"
+            yield config_name, {
+                **api,
+                "noisy_prior": True,
+                "prior_noise_scale": noise_scale,
+            }
 
 
 def pd1_configs() -> Iterator[tuple[str, dict[str, Any]]]:
@@ -58,10 +54,11 @@ def pd1_configs() -> Iterator[tuple[str, dict[str, Any]]]:
         "translatewmt_xformer_64",
     ]
 
-    for name in names:
-        config_name = f"{name}"
+    for name, prior in product(names, AVAILABLE_PRIORS):
+        config_name = f"{name}_prior-{prior}"
         api = {
             "name": name,
+            "prior": prior,
             "datadir": "${hydra:runtime.cwd}/data/" + datadir,
         }
 
@@ -80,7 +77,7 @@ def yahpo_configs() -> Iterator[tuple[str, dict[str, Any]]]:
     ]
     names = ["lcbench", "nb301"] + rbv2_names + iaml_names
 
-    for name in names:
+    for name, prior in product(names, AVAILABLE_PRIORS):
         bench = mfpbench._mapping[name]
         assert issubclass(bench, YAHPOBenchmark)
 
@@ -88,15 +85,17 @@ def yahpo_configs() -> Iterator[tuple[str, dict[str, Any]]]:
         if bench.has_conditionals and not CONDITONAL_HP_SPACES:
             continue
 
-        config_name = f"{name}"
         api = {
             "name": name,
+            "prior": prior,
             "datadir": "${hydra:runtime.cwd}/data/" + datadir,
         }
         if bench.instances is None:
+            config_name = f"{name}_prior-{prior}"
             yield config_name, api
         else:
             for task_id in bench.instances:
+                config_name = f"{name}-{task_id}_prior-{prior}"
                 yield config_name, {**api, "task_id": task_id}
 
 
@@ -105,18 +104,14 @@ def jahs_configs() -> Iterator[tuple[str, dict[str, Any]]]:
 
     names = ["jahs_cifar10", "jahs_colorectal_histology", "jahs_fashion_mnist"]
 
-    for name in names:
-        bench = mfpbench._mapping[name]
-        assert issubclass(bench, JAHSBenchmark)
-
-        for prior in bench.available_priors:
-            config_name = f"{name}_prior-{prior}"
-            api = {
-                "name": name,
-                "datadir": "${hydra:runtime.cwd}/data/" + datadir,
-                "prior": prior,
-            }
-            yield config_name, api
+    for name, prior in product(names, AVAILABLE_PRIORS):
+        config_name = f"{name}_prior-{prior}"
+        api = {
+            "name": name,
+            "datadir": "${hydra:runtime.cwd}/data/" + datadir,
+            "prior": prior,
+        }
+        yield config_name, api
 
 
 def configs() -> Iterator[tuple[Path, dict[str, Any]]]:
@@ -127,14 +122,17 @@ def configs() -> Iterator[tuple[Path, dict[str, Any]]]:
         MFHartmannBenchmark: hartmann_configs,
         PD1Benchmark: pd1_configs,
     }
-    generators = [
-        generator
-        for cls, generator in mapping.items()
-        if not issubclass(cls, DONT_GENERATE_CLASSES)
-    ]
+    generators = [generator for cls, generator in mapping.items()]
 
     for generator in generators:
         for config_name, api in generator():
+            if any(config_name.startswith(e) for e in EXCLUDE):
+                continue
+
+            if config_name.startswith("lcbench"):
+                if not any(i in config_name for i in LCBENCH_TASKS):
+                    continue
+
             # Put in defaults for each config
             api.update({"_target_": "mfpbench.get", "seed": "${seed}", "preload": True})
 
