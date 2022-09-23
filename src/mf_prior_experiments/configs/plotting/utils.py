@@ -49,13 +49,16 @@ def save_fig(fig, filename, output_dir, extension="pdf", dpi: int = 100):
     print(f'Saved to "{output_dir}/{filename}.{extension}"')
 
 
-def interpolate_time(incumbents, costs, x_range=None):
+def interpolate_time(incumbents, costs, x_range=None, scale_x=None):
     df_dict = {}
 
     for i, _ in enumerate(incumbents):
         _seed_info = pd.Series(incumbents[i], index=np.cumsum(costs[i]))
         df_dict[f"seed{i}"] = _seed_info
     df = pd.DataFrame.from_dict(df_dict)
+
+    # important step to plot func evals on x-axis
+    df.index = df.index if scale_x is None else df.index.values / scale_x
 
     if x_range is not None:
         min_b, max_b = x_range
@@ -69,7 +72,6 @@ def interpolate_time(incumbents, costs, x_range=None):
         df = pd.concat((df, _df)).sort_index()
 
     df = df.fillna(method="backfill", axis=0).fillna(method="ffill", axis=0)
-
     if x_range is not None:
         df = df.query(f"{x_range[0]} <= index <= {x_range[1]}")
 
@@ -87,6 +89,8 @@ def plot_incumbent(
     log_x=False,
     log_y=False,
     x_range=None,
+    max_cost=None,
+    plot_default=None,
     **plot_kwargs,
 ):
     if isinstance(x, list):
@@ -94,7 +98,7 @@ def plot_incumbent(
     if isinstance(y, list):
         y = np.array(y)
 
-    df = interpolate_time(incumbents=y, costs=x, x_range=x_range)
+    df = interpolate_time(incumbents=y, costs=x, x_range=x_range, scale_x=max_cost)
 
     x = df.index
     y_mean = df.mean(axis=1).values
@@ -108,7 +112,9 @@ def plot_incumbent(
         # color=COLOR_MARKER_DICT[algorithm],
         linewidth=0.7,
     )
-
+    if plot_default is not None and plot_default < y_mean[0]:
+        # plot only if the default score is better than the first incumbent plotted
+        ax.hlines(y=plot_default, xmin=x[0], xmax=x[-1], color="black")
     ax.fill_between(
         x,
         y_mean - std_error,

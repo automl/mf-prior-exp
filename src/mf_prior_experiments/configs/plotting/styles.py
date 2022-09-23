@@ -1,4 +1,11 @@
-X_LABEL = "Runtime [s]"
+X_LABEL = dict(
+    {
+        False: "Full function evaluation(s)",  # if `cost_as_runtime` is False
+        True: "Runtime [s]",
+    }
+)
+
+# "Runtime [s]"
 Y_LABEL = "Error"
 
 ALGORITHMS = {
@@ -34,6 +41,7 @@ ALGORITHMS = {
     "ours_v1_3": "V1_3",
     "mfp_tpe": "MFP-TPE",
     "ours_v2": "V2",
+    "raceband": "Raceband",
     "ours_v2_2": "V2_2",
     "ours_v2_3": "V2_3",
     "ours_v3": "V3",
@@ -146,6 +154,7 @@ COLOR_MARKER_DICT = {
     "ours_v1_2": "turquoise",
     "ours_v1_3": "cyan",
     "mfp_tpe": "indigo",
+    "raceband": "orange",
     "ours_v2": "olivedrab",
     "ours_v2_2": "lime",
     "ours_v2_3": "darkseagreen",

@@ -48,9 +48,7 @@ def logged_results_to_HBS_result(directory):
     budget_set = set()
 
     with open(
-        os.path.join(
-            directory, "bohb_root_directory", "configs.json"
-        ),
+        os.path.join(directory, "bohb_root_directory", "configs.json"),
         encoding="UTF-8",
     ) as f:
         for line in f:
@@ -69,9 +67,7 @@ def logged_results_to_HBS_result(directory):
             data[tuple(config_id)] = Datum(config=config, config_info=config_info)
 
     with open(
-        os.path.join(
-            directory, "bohb_root_directory", "results.json"
-        ),
+        os.path.join(directory, "bohb_root_directory", "results.json"),
         encoding="UTF-8",
     ) as f:
         for line in f:
@@ -99,7 +95,7 @@ def logged_results_to_HBS_result(directory):
     return Result([data], HB_config)
 
 
-def _get_info_neps(path, seed) -> List:
+def _get_info_neps(path, seed, cost_as_runtime=False) -> List:
     with open(
         os.path.join(
             path, str(seed), "neps_root_directory", "all_losses_and_configs.txt"
@@ -118,12 +114,13 @@ def _get_info_neps(path, seed) -> List:
     ]
     info = []
     result_path = os.path.join(path, str(seed), "neps_root_directory", "results")
+    key_to_extract = "cost" if cost_as_runtime else "fidelity"
     for config_id in config_ids:
         info.append(
             dict(
                 cost=load_yaml(
                     os.path.join(result_path, config_id, "result.yaml")
-                ).info_dict.cost
+                ).info_dict[key_to_extract]
             )
         )
 
@@ -160,7 +157,7 @@ def _get_info_hpbandster(path, seed):
         if bracket_id in configs_evaluated:
             configs_evaluated[bracket_id].add(config_id)
         else:
-            configs_evaluated[bracket_id] = set([config_id])
+            configs_evaluated[bracket_id] = {config_id}
 
         neps_config_id = f"config_{config_id}_{budget_id}"
         # print(neps_config_id)
@@ -175,7 +172,7 @@ def _get_info_smac(path, seed):
     raise NotImplementedError("SMAC parsing not implemented!")
 
 
-def get_seed_info(path, seed, algorithm="random_search"):
+def get_seed_info(path, seed, cost_as_runtime=False, algorithm="random_search"):
     """Reads and processes data per seed.
 
     An `algorithm` needs to be passed to calculate continuation costs.
@@ -184,14 +181,18 @@ def get_seed_info(path, seed, algorithm="random_search"):
     if algorithm in OUTPUT_FORMAT["hpbandster"]:
         data = _get_info_hpbandster(path, seed)
     else:
-        data = _get_info_neps(path, seed)
+        data = _get_info_neps(path, seed, cost_as_runtime=cost_as_runtime)
 
+    # max_cost only relevant for scaling x-axis when using fidelity on the x-axis
+    max_cost = None if cost_as_runtime else 0
     if algorithm not in SINGLE_FIDELITY_ALGORITHMS:
         # calculates continuation costs for MF algorithms
         # NOTE: assumes that all recorded evaluations are black-box evaluations where
         #   continuations or freeze-thaw was not accounted for during optimization
         data.reverse()
         for idx, (id, loss, info) in enumerate(data):
+            # `max_cost` tracks the maximum fidelity used for evaluation
+            max_cost = max(max_cost, info["cost"]) if max_cost is not None else None
             for _id, _, _info in data[data.index((id, loss, info)) + 1 :]:
                 # if `_` is not found in the string, `split()` returns the original
                 # string and the 0-th element is the string itself, which fits the
@@ -212,8 +213,12 @@ def get_seed_info(path, seed, algorithm="random_search"):
                 data[idx] = (id, loss, info)
                 break
         data.reverse()
+    else:
+        for idx, (id, loss, info) in enumerate(data):
+            # `max_cost` tracks the maximum fidelity used for evaluation
+            max_cost = max(max_cost, info["cost"]) if max_cost is not None else None
 
     data = [(d[1], d[2]) for d in data]
     losses, infos = zip(*data)
 
-    return list(losses), list(infos)
+    return list(losses), list(infos), max_cost

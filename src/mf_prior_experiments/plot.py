@@ -8,7 +8,7 @@ import numpy as np
 import seaborn as sns
 from attrdict import AttrDict
 
-from mf_prior_experiments.configs.plotting.read_results import get_seed_info
+from mf_prior_experiments.configs.plotting.read_results import get_seed_info, load_yaml
 from mf_prior_experiments.configs.plotting.styles import X_LABEL, Y_LABEL
 from mf_prior_experiments.configs.plotting.utils import plot_incumbent, save_fig, set_general_plot_style
 
@@ -23,7 +23,11 @@ map_axs = (
 
 def plot(args):
 
-    BASE_PATH = Path(".") if args.base_path is None else Path(args.base_path)
+    BASE_PATH = (
+        Path(__file__).parent / "../.."
+        if args.base_path is None
+        else Path(args.base_path)
+    )
 
     set_general_plot_style()
 
@@ -32,12 +36,29 @@ def plot(args):
     fig, axs = plt.subplots(
         nrows=nrows,
         ncols=ncols,
-        figsize=(5.3, 2.2),
+        figsize=(10.3, 6.2),
     )
 
     base_path = BASE_PATH / "results" / args.experiment_group
     output_dir = BASE_PATH / "plots" / args.experiment_group
     for benchmark_idx, benchmark in enumerate(args.benchmarks):
+        # loading the benchmark yaml
+        _bench_spec_path = (
+            BASE_PATH
+            / "src"
+            / "mf_prior_experiments"
+            / "configs"
+            / "benchmark"
+            / f"{benchmark}.yaml"
+        )
+        plot_default = None
+        if args.plot_default and os.path.isfile(_bench_spec_path):
+            try:
+                plot_default = load_yaml(_bench_spec_path).api.default_score
+            except Exception as e:
+                print(repr(e))
+                print(f"Could not load benchmark yaml {_bench_spec_path}")
+
         _base_path = os.path.join(base_path, f"benchmark={benchmark}")
         if not os.path.isdir(_base_path):
             raise FileNotFoundError(errno.ENOENT, os.strerror(errno.ENOENT), _base_path)
@@ -51,7 +72,9 @@ def plot(args):
 
             for seed in sorted(os.listdir(_path)):
                 # `algorithm` is passed to calculate continuation costs
-                losses, infos = get_seed_info(_path, seed, algorithm=algorithm)
+                losses, infos, max_cost = get_seed_info(
+                    _path, seed, algorithm=algorithm, cost_as_runtime=args.cost_as_runtime
+                )
                 incumbent = np.minimum.accumulate(losses)
                 incumbents.append(incumbent)
                 cost = [i["cost"] for i in infos]
@@ -62,13 +85,15 @@ def plot(args):
                 x=costs,
                 y=incumbents,
                 title=benchmark,
-                xlabel=X_LABEL,
+                xlabel=X_LABEL[args.cost_as_runtime],
                 ylabel=Y_LABEL if benchmark_idx == 0 else None,
                 algorithm=algorithm,
                 log_x=args.log_x,
                 log_y=args.log_y,
                 # budget=args.budget,
                 x_range=args.x_range,
+                max_cost=None if args.cost_as_runtime else max_cost,
+                plot_default=plot_default,
             )
 
     sns.despine(fig)
@@ -81,7 +106,7 @@ def plot(args):
         handles,
         labels,
         loc="lower center",
-        bbox_to_anchor=(0.5, -0.25),
+        bbox_to_anchor=(0.5, -0.1),
         ncol=ncol,
         frameon=True,
     )
@@ -123,6 +148,19 @@ if __name__ == "__main__":
         choices=["pdf", "png"],
         default="pdf",
         help="the file extension or the plot file type",
+    )
+    parser.add_argument(
+        "--cost_as_runtime",
+        default=False,
+        action="store_true",
+        help="Default behaviour to use fidelities on the x-axis. "
+        "This parameter uses the training cost/runtime on the x-axis",
+    )
+    parser.add_argument(
+        "--plot_default",
+        default=False,
+        action="store_true",
+        help="plots a horizontal line for the prior score if available",
     )
 
     args = AttrDict(parser.parse_args().__dict__)
