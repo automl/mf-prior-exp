@@ -23,13 +23,15 @@ def _set_seeds(seed):
     # tf.random.set_seed(seed)
 
 
-def run_bohb(args):
+def run_hpbandster(args):
     import uuid
 
+    import ConfigSpace
     import hpbandster.core.nameserver as hpns
     import hpbandster.core.result as hpres
     from hpbandster.core.worker import Worker
     from hpbandster.optimizers.bohb import BOHB
+    from hpbandster.optimizers.hyperband import HyperBand
     from mfpbench import Benchmark
 
     # Added the type here just for editors to be able to get a quick view
@@ -37,7 +39,14 @@ def run_bohb(args):
 
     def compute(**config: Any) -> dict:
         fidelity = config["budget"]
-        result = benchmark.query(config["config"], at=int(fidelity))
+        config = config["config"]
+
+        # transform to Ordinal HPs back
+        for hp_name, hp in benchmark.space.items():
+            if isinstance(hp, ConfigSpace.OrdinalHyperparameter):
+                config[hp_name] = hp.sequence[config[hp_name] - 1]
+
+        result = benchmark.query(config, at=int(fidelity))
         return {
             "loss": result.error,
             "cost": result.cost,
@@ -53,15 +62,31 @@ def run_bohb(args):
 
     lower, upper, _ = benchmark.fidelity_range
     fidelity_name = benchmark.fidelity_name
-    configspace = benchmark.space
+    benchmark_configspace = benchmark.space
 
-    logger.info(f"Using configspace: \n {configspace}")
+    # BOHB does not accept Ordinal HPs
+    bohb_configspace = ConfigSpace.ConfigurationSpace(
+        name=benchmark_configspace.name, seed=args.seed
+    )
+
+    for hp_name, hp in benchmark_configspace.items():
+        if isinstance(hp, ConfigSpace.OrdinalHyperparameter):
+            int_hp = ConfigSpace.UniformIntegerHyperparameter(
+                hp_name, lower=1, upper=len(hp.sequence)
+            )
+            bohb_configspace.add_hyperparameters([int_hp])
+        else:
+            bohb_configspace.add_hyperparameters([hp])
+
+    logger.info(f"Using configspace: \n {benchmark_configspace}")
     logger.info(f"Using fidelity: \n {fidelity_name} in {lower}-{upper}")
 
     max_evaluations_total = 10
 
     run_id = str(uuid.uuid4())
-    NS = hpns.NameServer(run_id=run_id, port=0, working_directory="bohb_root_directory")
+    NS = hpns.NameServer(
+        run_id=run_id, port=0, working_directory="hpbandster_root_directory"
+    )
     ns_host, ns_port = NS.start()
 
     hpbandster_worker = Worker(nameserver=ns_host, nameserver_port=ns_port, run_id=run_id)
@@ -69,21 +94,32 @@ def run_bohb(args):
     hpbandster_worker.run(background=True)
 
     result_logger = hpres.json_result_logger(
-        directory="bohb_root_directory", overwrite=True
+        directory="hpbandster_root_directory", overwrite=True
     )
-    bohb_config = {"eta": 3, "min_budget": lower, "max_budget": upper, "run_id": run_id}
-    bohb = BOHB(
-        configspace=configspace,
+    hpbandster_config = {
+        "eta": 3,
+        "min_budget": lower,
+        "max_budget": upper,
+        "run_id": run_id,
+    }
+
+    if "model" in args.algorithm and args.algorithm.model:
+        hpbandster_cls = BOHB
+    else:
+        hpbandster_cls = HyperBand
+
+    hpbandster_optimizer = hpbandster_cls(
+        configspace=bohb_configspace,
         nameserver=ns_host,
         nameserver_port=ns_port,
         result_logger=result_logger,
-        **bohb_config,
+        **hpbandster_config,
     )
 
-    logger.info(f"Starting run...")
-    res = bohb.run(n_iterations=max_evaluations_total)
+    logger.info("Starting run...")
+    res = hpbandster_optimizer.run(n_iterations=max_evaluations_total)
 
-    bohb.shutdown(shutdown_workers=True)
+    hpbandster_optimizer.shutdown(shutdown_workers=True)
     NS.shutdown()
 
     id2config = res.get_id2config_mapping()
