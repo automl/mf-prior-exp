@@ -26,6 +26,7 @@ def _set_seeds(seed):
 def run_bohb(args):
     import uuid
 
+    import ConfigSpace
     import hpbandster.core.nameserver as hpns
     import hpbandster.core.result as hpres
     from hpbandster.core.worker import Worker
@@ -37,7 +38,14 @@ def run_bohb(args):
 
     def compute(**config: Any) -> dict:
         fidelity = config["budget"]
-        result = benchmark.query(config["config"], at=int(fidelity))
+        config = config["config"]
+
+        # transform to Ordinal HPs back
+        for hp_name, hp in benchmark.space.items():
+            if isinstance(hp, ConfigSpace.OrdinalHyperparameter):
+                config[hp_name] = hp.sequence[config[hp_name] - 1]
+
+        result = benchmark.query(config, at=int(fidelity))
         return {
             "loss": result.error,
             "cost": result.cost,
@@ -53,9 +61,23 @@ def run_bohb(args):
 
     lower, upper, _ = benchmark.fidelity_range
     fidelity_name = benchmark.fidelity_name
-    configspace = benchmark.space
+    benchmark_configspace = benchmark.space
 
-    logger.info(f"Using configspace: \n {configspace}")
+    # BOHB does not accept Ordinal HPs
+    bohb_configspace = ConfigSpace.ConfigurationSpace(
+        name=benchmark_configspace.name, seed=args.seed
+    )
+
+    for hp_name, hp in benchmark_configspace.items():
+        if isinstance(hp, ConfigSpace.OrdinalHyperparameter):
+            int_hp = ConfigSpace.UniformIntegerHyperparameter(
+                hp_name, lower=1, upper=len(hp.sequence)
+            )
+            bohb_configspace.add_hyperparameters([int_hp])
+        else:
+            bohb_configspace.add_hyperparameters([hp])
+
+    logger.info(f"Using configspace: \n {benchmark_configspace}")
     logger.info(f"Using fidelity: \n {fidelity_name} in {lower}-{upper}")
 
     max_evaluations_total = 10
@@ -73,14 +95,14 @@ def run_bohb(args):
     )
     bohb_config = {"eta": 3, "min_budget": lower, "max_budget": upper, "run_id": run_id}
     bohb = BOHB(
-        configspace=configspace,
+        configspace=bohb_configspace,
         nameserver=ns_host,
         nameserver_port=ns_port,
         result_logger=result_logger,
         **bohb_config,
     )
 
-    logger.info(f"Starting run...")
+    logger.info("Starting run...")
     res = bohb.run(n_iterations=max_evaluations_total)
 
     bohb.shutdown(shutdown_workers=True)
