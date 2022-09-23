@@ -1,5 +1,5 @@
-name: bohb
-model: True
+name: hpbandster
+model: False
 run_function:
   _target_: mf_prior_experiments.run.run_hpbandster
 #searcher:
