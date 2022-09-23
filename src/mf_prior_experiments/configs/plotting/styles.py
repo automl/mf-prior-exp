@@ -15,6 +15,7 @@ ALGORITHMS = {
     "random_search_prior_conf-high": "RS+Prior (high)",
     "random_search_prior_conf-ultra": "RS+Prior (ultra)",
     "grid_search": "Grid Search",
+    "bo": "BO",
     "bohb": "BOHB",
     "successive_halving": "SH",
     "successive_halving_prior": "SH+Prior",
@@ -64,6 +65,7 @@ ALGORITHMS = {
     "ours_v5_v4_conf-high": "V5_v4 (high)",
     "ours_v5_2_v4": "V5_2_v4",
     "ours_v5_2_v4_conf-high": "V5_2_v4 (high)",
+    "pibo": r"$\pi$BO",
 }
 
 DATASETS = {
@@ -137,6 +139,7 @@ COLOR_MARKER_DICT = {
     "random_search_prior_conf-high": "darkgray",
     "random_search_prior_conf-ultra": "darkgray",
     # "grid_search": "mediumpurple",
+    "bo": "lightgreen",
     "bohb": "green",
     "successive_halving": "navajowhite",
     "successive_halving_prior": "tan",
@@ -168,6 +171,7 @@ COLOR_MARKER_DICT = {
     "ours_v4_v3_2_conf-high": "brown",
     "ours_v5": "red",
     "ours_v5_conf-high": "darkgreen",
+    "pibo": "red",
 }
 
 Y_MAP = {
