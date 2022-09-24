@@ -11,6 +11,7 @@ Y_LABEL = "Error"
 ALGORITHMS = {
     "random_search": "RS",
     "random_search_prior": "RS+Prior",
+    "random_search_prior-30": "RS+Prior(30%)",
     "random_search_prior-50": "RS+Prior(50%)",
     "random_search_prior_conf-high": "RS+Prior (high)",
     "random_search_prior_conf-ultra": "RS+Prior (ultra)",
@@ -19,22 +20,26 @@ ALGORITHMS = {
     "bohb": "BOHB",
     "successive_halving": "SH",
     "successive_halving_prior": "SH+Prior",
+    "successive_halving_prior-30": "SH+Prior(30%)",
     "successive_halving_prior-50": "SH+Prior(50%)",
     "successive_halving_prior_conf-high": "SH+Prior (high)",
     "successive_halving_prior_conf-ultra": "SH+Prior (ultra)",
     "hpbandster": "HpBandSter",
     "hyperband": "HB",
     "hyperband_prior": "HB+Prior",
+    "hyperband_prior-30": "HB+Prior(30%)",
     "hyperband_prior-50": "HB+Prior(50%)",
     "hyperband_prior_conf-high": "HB+Prior (high)",
     "hyperband_prior_conf-ultra": "HB+Prior (ultra)",
     "asha": "ASHA",
     "asha_prior": "ASHA+Prior",
+    "asha_prior-30": "ASHA+Prior(30%)",
     "asha_prior-50": "ASHA+Prior(50%)",
     "asha_prior_conf-high": "ASHA+Prior (high)",
     "asha_prior_conf-ultra": "ASHA+Prior (ultra)",
     "asha_hyperband": "ASHA-HB",
     "asha_hyperband_prior": "ASHA-HB+Prior",
+    "asha_hyperband_prior-30": "ASHA-HB+Prior(30%)",
     "asha_hyperband_prior-50": "ASHA-HB+Prior(50%)",
     "asha_hyperband_prior_conf-high": "ASHA-HB+Prior (high)",
     "asha_hyperband_prior_conf-ultra": "ASHA-HB+Prior (ultra)",
@@ -131,6 +136,26 @@ DATASETS = {
     "mfh6_terrible_prior-bad": "H6d (terrible corr-bad prior)",
     "mfh6_terrible_prior-perfect-noisy0.125": "H6d (bad corr-good prior)",
     "mfh6_terrible_prior-bad-noisy0.125": "H6d (bad corr-bad prior)",
+    # lcbench-189862
+    "lcbench-189862_prior-bad": "LCBench-189862 (bad)",
+    "lcbench-189862_prior-good": "LCBench-189862 (good)",
+    "lcbench-189862_prior-medium": "LCBench-189862 (moderate)",
+    # lcbench-189866
+    "lcbench-189866_prior-bad": "LCBench-189866 (bad)",
+    "lcbench-189866_prior-good": "LCBench-189866 (good)",
+    "lcbench-189866_prior-medium": "LCBench-189866 (moderate)",
+    # translate wmt
+    "translatewmt_xformer_64_prior-bad": "PD1-WMT (bad)",
+    "translatewmt_xformer_64_prior-good": "PD1-WMT (good)",
+    "translatewmt_xformer_64_prior-medium": "PD1-WMT (moderate)",
+    # lm1b
+    "lm1b_transformer_2048_prior-bad": "PD1-Lm1b (bad)",
+    "lm1b_transformer_2048_prior-good": "PD1-Lm1b (good)",
+    "lm1b_transformer_2048_prior-medium": "PD1-Lm1b (moderate)",
+    # uniref
+    "uniref50_transformer_prior-bad": "PD1-Uniref50 (bad)",
+    "uniref50_transformer_prior-good": "PD1-Uniref50 (good)",
+    "uniref50_transformer_prior-medium": "PD1-Uniref50 (moderate)",
 }
 
 # https://matplotlib.org/stable/gallery/color/named_colors.html
