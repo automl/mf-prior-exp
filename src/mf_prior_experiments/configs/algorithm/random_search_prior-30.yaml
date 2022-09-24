@@ -1,0 +1,8 @@
+name: random_search_prior-30
+mf: false
+run_function:
+  _target_: mf_prior_experiments.run.run_neps
+searcher:
+  _partial_: true  # To not instantiate the class directly as required by neps
+  _target_: mf_prior_algorithms.random_search.RandomSearchWithPriors
+  random_interleave_prob: 0.3  # 30% of times sample from uniformly random
