@@ -54,3 +54,10 @@
 
 @download:
     python -m mfpbench.download --data-dir "/work/dlclarge1/mallik-mf-prior/mf-prior-exp/data"
+
+# This will run some compute on the login node, not ideal but it's fairly lightweight
+@generate_priors:
+    echo "I hope you know what you're doing"
+    python "/work/dlclarge1/mallik-mf-prior/mf-prior-exp/src/mf-prior-bench/generate_priors.py" \
+        --only "lm1b" "uniref50" "translatewmt" \
+        --to "/work/dlclarge1/mallik-mf-prior/mf-prior-exp/src/mf-prior-bench/priors"
