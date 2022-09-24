@@ -95,7 +95,7 @@ def logged_results_to_HBS_result(directory):
     return Result([data], HB_config)
 
 
-def _get_info_neps(path, seed, cost_as_runtime=False) -> List:
+def _get_info_neps(path, seed) -> List:
     with open(
         os.path.join(
             path, str(seed), "neps_root_directory", "all_losses_and_configs.txt"
@@ -114,13 +114,15 @@ def _get_info_neps(path, seed, cost_as_runtime=False) -> List:
     ]
     info = []
     result_path = os.path.join(path, str(seed), "neps_root_directory", "results")
-    key_to_extract = "cost" if cost_as_runtime else "fidelity"
     for config_id in config_ids:
         info.append(
             dict(
+                fidelity=load_yaml(
+                    os.path.join(result_path, config_id, "result.yaml")
+                ).info_dict["fidelity"],
                 cost=load_yaml(
                     os.path.join(result_path, config_id, "result.yaml")
-                ).info_dict[key_to_extract]
+                ).info_dict["cost"]
             )
         )
 
@@ -129,7 +131,7 @@ def _get_info_neps(path, seed, cost_as_runtime=False) -> List:
     return data
 
 
-def _get_info_hpbandster(path, seed):
+def _get_info_hpbandster(path, seed) -> List:
     get_loss_from_run_fn = lambda r: r.loss
     # load runs from log file
     result = logged_results_to_HBS_result(os.path.join(path, str(seed)))
@@ -179,10 +181,12 @@ def get_seed_info(path, seed, cost_as_runtime=False, algorithm="random_search"):
     """
 
     if algorithm in OUTPUT_FORMAT["hpbandster"]:
-        data = _get_info_hpbandster(path, seed)
+        func = _get_info_hpbandster
     else:
-        data = _get_info_neps(path, seed, cost_as_runtime=cost_as_runtime)
+        func = _get_info_neps
+    data = func(path, seed)
 
+    key_to_extract = "cost" if cost_as_runtime else "fidelity"
     # max_cost only relevant for scaling x-axis when using fidelity on the x-axis
     max_cost = None if cost_as_runtime else 0
     if algorithm not in SINGLE_FIDELITY_ALGORITHMS:
@@ -192,7 +196,7 @@ def get_seed_info(path, seed, cost_as_runtime=False, algorithm="random_search"):
         data.reverse()
         for idx, (data_id, loss, info) in enumerate(data):
             # `max_cost` tracks the maximum fidelity used for evaluation
-            max_cost = max(max_cost, info["cost"]) if max_cost is not None else None
+            max_cost = max(max_cost, info[key_to_extract]) if max_cost is not None else None
             for _id, _, _info in data[data.index((data_id, loss, info)) + 1 :]:
                 # if `_` is not found in the string, `split()` returns the original
                 # string and the 0-th element is the string itself, which fits the
@@ -207,14 +211,14 @@ def get_seed_info(path, seed, cost_as_runtime=False, algorithm="random_search"):
                     continue
                 # subtracting the immediate lower fidelity cost available from the
                 # current higher fidelity --> continuation cost
-                info["cost"] -= _info["cost"]
+                info[key_to_extract] -= _info[key_to_extract]
                 data[idx] = (data_id, loss, info)
                 break
         data.reverse()
     else:
         for idx, (data_id, loss, info) in enumerate(data):
             # `max_cost` tracks the maximum fidelity used for evaluation
-            max_cost = max(max_cost, info["cost"]) if max_cost is not None else None
+            max_cost = max(max_cost, info[key_to_extract]) if max_cost is not None else None
 
     data = [(d[1], d[2]) for d in data]
     losses, infos = zip(*data)

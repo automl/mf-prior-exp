@@ -29,6 +29,8 @@ def plot(args):
         else Path(args.base_path)
     )
 
+    key_to_extract = "cost" if args.cost_as_runtime else "fidelity"
+
     set_general_plot_style()
 
     nrows = np.ceil(len(args.benchmarks) / 2).astype(int)
@@ -77,7 +79,7 @@ def plot(args):
                 )
                 incumbent = np.minimum.accumulate(losses)
                 incumbents.append(incumbent)
-                cost = [i["cost"] for i in infos]
+                cost = [i[key_to_extract] for i in infos]
                 costs.append(cost)
 
             plot_incumbent(
