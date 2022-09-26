@@ -146,8 +146,8 @@ def configs() -> Iterator[tuple[Path, dict[str, Any]]]:
                 highest_fidelity_error = results[-1].error
                 lowest_error = min(results, key=lambda r: r.error).error
 
-                config["highest_fidelity_error"] = float(highest_fidelity_error)
-                config["lower_error"] = float(lowest_error)
+                config["prior_highest_fidelity_error"] = float(highest_fidelity_error)
+                config["prior_lower_error"] = float(lowest_error)
 
             if isinstance(b, MFHartmannBenchmark):
                 optimum = b.Config.from_dict(

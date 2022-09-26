@@ -62,10 +62,18 @@ def plot(args):
         plot_default = None
         if args.plot_default and os.path.isfile(_bench_spec_path):
             try:
-                plot_default = load_yaml(_bench_spec_path).default_score
+                plot_default = load_yaml(_bench_spec_path).prior_highest_fidelity_error
             except Exception as e:
                 print(repr(e))
-                print(f"Could not load benchmark yaml {_bench_spec_path}")
+
+                print(f"Could not load error for benchmark yaml {_bench_spec_path}")
+
+        if args.plot_optimum and os.path.isfile(_bench_spec_path):
+            try:
+                plot_default = load_yaml(_bench_spec_path).optimum
+            except Exception as e:
+                print(repr(e))
+                print(f"Could not load optimum for benchmark yaml {_bench_spec_path}")
 
         _base_path = os.path.join(base_path, f"benchmark={benchmark}")
         if not os.path.isdir(_base_path):
@@ -182,6 +190,12 @@ if __name__ == "__main__":
         default=False,
         action="store_true",
         help="plots a horizontal line for the prior score if available",
+    )
+    parser.add_argument(
+        "--plot_optimum",
+        default=False,
+        action="store_true",
+        help="plots a horizontal line for the optimum score if available",
     )
 
     args = AttrDict(parser.parse_args().__dict__)
