@@ -1,15 +1,13 @@
 """Generates all possible benchmark configs from mfpbench."""
 from __future__ import annotations
 
-from typing import Any, Iterator
-
 from itertools import product
 from pathlib import Path
-
-import yaml
+from typing import Any, Iterator
 
 import mfpbench
-from mfpbench import JAHSBenchmark, MFHartmannBenchmark, YAHPOBenchmark, PD1Benchmark
+import yaml
+from mfpbench import JAHSBenchmark, MFHartmannBenchmark, PD1Benchmark, YAHPOBenchmark
 
 HERE = Path(__file__).parent.resolve()
 
@@ -72,9 +70,7 @@ def yahpo_configs() -> Iterator[tuple[str, dict[str, Any]]]:
         f"rbv2_{x}"
         for x in ("super", "aknn", "glmnet", "ranger", "rpart", "svm", "xgboost")
     ]
-    iaml_names = [
-        f"rbv2_{x}" for x in ("super", "glmnet", "ranger", "rpart", "xgboost")
-    ]
+    iaml_names = [f"rbv2_{x}" for x in ("super", "glmnet", "ranger", "rpart", "xgboost")]
     names = ["lcbench", "nb301"] + rbv2_names + iaml_names
 
     for name, prior in product(names, AVAILABLE_PRIORS):
@@ -137,9 +133,28 @@ def configs() -> Iterator[tuple[Path, dict[str, Any]]]:
             api.update({"_target_": "mfpbench.get", "seed": "${seed}", "preload": True})
 
             # Create the config and filename
-            config = {"name": config_name, "api": api}
+            config: dict[str, Any] = {"name": config_name, "api": api}
             filename = f"{config_name}.yaml"
             path = HERE / filename
+
+            # Get the scores for the prior
+            # Seed isnt need as prior is deterministic
+            kwargs = {k: v for k, v in config["api"].items() if k not in ["datadir", "_target_", "seed"]}
+            b = mfpbench.get(**kwargs)
+            if b.prior:
+                results = b.trajectory(b.prior)
+                highest_fidelity_error = results[-1].error
+                lowest_error = min(results, key=lambda r: r.error).error
+
+                config["highest_fidelity_error"] = float(highest_fidelity_error)
+                config["lower_error"] = float(lowest_error)
+
+            if isinstance(b, MFHartmannBenchmark):
+                optimum = b.Config.from_dict(
+                    {f"X_{i}": x for i, x in enumerate(b.Generator.optimum)}
+                )
+                result = b.query(optimum)
+                config["optimum"] = float(result.error)
 
             yield path, config
 
