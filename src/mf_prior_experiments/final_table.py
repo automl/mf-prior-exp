@@ -168,7 +168,12 @@ def plot(args):
             f.write(" \\\\\n")
         f.write("\\bottomrule" + " \n")
         f.write("\\end{tabular}" + " \n")
-        f.write("\\caption{" f"{args.caption}" + "}" + " \n")
+        budget_caption = (
+            ""
+            if args.budget is None
+            else f" until {args.budget} {'full function evaluations' if not args.cost_as_runtime else 's'}"
+        )
+        f.write("\\caption{" f"{args.caption + budget_caption}" + "}" + " \n")
         f.write("\\label{" f"{args.label}" + "}" + " \n")
         f.write("\\end{table}")
         # f.write(final_table.to_latex())
