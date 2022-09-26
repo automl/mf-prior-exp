@@ -137,4 +137,8 @@ def plot_incumbent(
     if log_y:
         # ax.set_yscale("log")
         ax.set_yscale("symlog")
+    if x_range is not None:
+        ax.set_xlim(*x_range)
+        if x_range == [1, 12]:
+            ax.set_xticks([1, 3, 5, 10, 12], [1, 3, 5, 10, 12])
     ax.grid(True, which="both", ls="-", alpha=0.8)

@@ -56,7 +56,7 @@ def plot(args):
         plot_default = None
         if args.plot_default and os.path.isfile(_bench_spec_path):
             try:
-                plot_default = load_yaml(_bench_spec_path).api.default_score
+                plot_default = load_yaml(_bench_spec_path).default_score
             except Exception as e:
                 print(repr(e))
                 print(f"Could not load benchmark yaml {_bench_spec_path}")

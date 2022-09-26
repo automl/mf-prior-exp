@@ -5,3 +5,4 @@ api:
   _target_: mfpbench.get
   seed: ${seed}
   preload: true
+default_score: -3.86278
