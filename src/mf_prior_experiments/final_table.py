@@ -3,12 +3,12 @@ import errno
 import os
 import time
 from multiprocessing import Manager
-from pathlib import Path
 
 import numpy as np
 import pandas as pd
 from attrdict import AttrDict
 from joblib import Parallel, delayed, parallel_backend
+from path import Path
 from scipy import stats
 
 from .configs.plotting.read_results import get_seed_info
@@ -38,7 +38,12 @@ def plot(args):
 
     starttime = time.time()
 
-    BASE_PATH = Path(".") if args.base_path is None else Path(args.base_path)
+    BASE_PATH = (
+        Path(__file__).parent / "../.."
+        if args.base_path is None
+        else Path(args.base_path)
+    )
+
     KEY_TO_EXTRACT = "cost" if args.cost_as_runtime else "fidelity"
 
     base_path = BASE_PATH / "results" / args.experiment_group
@@ -106,8 +111,9 @@ def plot(args):
 
             incumbents = np.array(results["incumbents"][:])
             costs = np.array(results["costs"][:])
+            max_cost = None if args.cost_as_runtime else max(results["max_costs"][:])
 
-            df = interpolate_time(incumbents, costs)
+            df = interpolate_time(incumbents, costs, scale_x=max_cost)
 
             if args.budget is not None:
                 df = df.query(f"index <= {args.budget}")
