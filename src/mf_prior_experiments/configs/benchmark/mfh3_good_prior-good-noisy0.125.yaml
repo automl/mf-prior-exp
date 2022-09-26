@@ -7,4 +7,6 @@ api:
   preload: true
   noisy_prior: true
   prior_noise_scale: 0.125
-default_score: -3.86278
+prior_highest_fidelity_error: -2.7382910007308303
+prior_lowest_error: -2.7382910007308303
+optimum: -3.8627797869493365
