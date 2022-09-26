@@ -24,6 +24,23 @@ map_axs = (
 )
 
 
+def _process_seed(_path, seed, algorithm, key_to_extract, cost_as_runtime, results):
+    print(
+        f"[{time.strftime('%H:%M:%S', time.localtime())}] "
+        f"[-] [{algorithm}] Processing seed {seed}..."
+    )
+
+    # `algorithm` is passed to calculate continuation costs
+    losses, infos, max_cost = get_seed_info(
+        _path, seed, algorithm=algorithm, cost_as_runtime=cost_as_runtime
+    )
+    incumbent = np.minimum.accumulate(losses)
+    cost = [i[key_to_extract] for i in infos]
+    results["incumbents"].append(incumbent)
+    results["costs"].append(cost)
+    results["max_costs"].append(max_cost)
+
+
 def plot(args):
 
     starttime = time.time()
@@ -94,22 +111,6 @@ def plot(args):
             if not os.path.isdir(_path):
                 raise FileNotFoundError(errno.ENOENT, os.strerror(errno.ENOENT), _path)
 
-            def _process_seed(_path, seed, algorithm, cost_as_runtime, results):
-                print(
-                    f"[{time.strftime('%H:%M:%S', time.localtime())}] "
-                    f"[-] [{algorithm}] Processing seed {seed}..."
-                )
-
-                # `algorithm` is passed to calculate continuation costs
-                losses, infos, max_cost = get_seed_info(
-                    _path, seed, algorithm=algorithm, cost_as_runtime=cost_as_runtime
-                )
-                incumbent = np.minimum.accumulate(losses)
-                cost = [i[KEY_TO_EXTRACT] for i in infos]
-                results["incumbents"].append(incumbent)
-                results["costs"].append(cost)
-                results["max_costs"].append(max_cost)
-
             algorithm_starttime = time.time()
             seeds = sorted(os.listdir(_path))
 
@@ -120,10 +121,15 @@ def plot(args):
                     costs=manager.list(),
                     max_costs=manager.list(),
                 )
-                with parallel_backend("threading", n_jobs=-1):
+                with parallel_backend(args.parallel_backend, n_jobs=-1):
                     Parallel()(
                         delayed(_process_seed)(
-                            _path, seed, algorithm, args.cost_as_runtime, results
+                            _path,
+                            seed,
+                            algorithm,
+                            KEY_TO_EXTRACT,
+                            args.cost_as_runtime,
+                            results,
                         )
                         for seed in seeds
                     )
@@ -132,7 +138,14 @@ def plot(args):
                 results = dict(incumbents=[], costs=[], max_costs=[])
                 # pylint: disable=expression-not-assigned
                 [
-                    _process_seed(_path, seed, algorithm, args.cost_as_runtime, results)
+                    _process_seed(
+                        _path,
+                        seed,
+                        algorithm,
+                        KEY_TO_EXTRACT,
+                        args.cost_as_runtime,
+                        results,
+                    )
                     for seed in seeds
                 ]
 
@@ -236,6 +249,13 @@ if __name__ == "__main__":
         default=False,
         action="store_true",
         help="whether to process data in parallel or not",
+    )
+    parser.add_argument(
+        "--parallel_backend",
+        type=str,
+        choices=["multiprocessing", "threading"],
+        default="multiprocessing",
+        help="which backend use for parallel",
     )
 
     args = AttrDict(parser.parse_args().__dict__)
