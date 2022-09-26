@@ -115,18 +115,15 @@ def _get_info_neps(path, seed) -> List:
     info = []
     result_path = os.path.join(path, str(seed), "neps_root_directory", "results")
     for config_id in config_ids:
+        result_yaml = load_yaml(os.path.join(result_path, config_id, "result.yaml"))
         info.append(
             dict(
-                fidelity=load_yaml(
-                    os.path.join(result_path, config_id, "result.yaml")
-                ).info_dict["fidelity"],
-                cost=load_yaml(
-                    os.path.join(result_path, config_id, "result.yaml")
-                ).info_dict["cost"]
+                fidelity=result_yaml.info_dict["fidelity"],
+                cost=result_yaml.info_dict["cost"],
             )
         )
 
-    data = list(zip(config_ids, losses, info))
+    data = list(zip(config_ids, losses, info))  # type: ignore
 
     return data
 
@@ -138,7 +135,7 @@ def _get_info_hpbandster(path, seed) -> List:
     # get all executed runs
     all_runs = result.get_all_runs()
 
-    configs_evaluated = dict()
+    configs_evaluated = dict()  # type: ignore
     budgets = list(map(int, result.HB_config["budgets"]))
 
     data = []
@@ -162,7 +159,7 @@ def _get_info_hpbandster(path, seed) -> List:
             configs_evaluated[bracket_id] = {config_id}
 
         neps_config_id = f"config_{config_id}_{budget_id}"
-        # print(neps_config_id)
+
         loss = get_loss_from_run_fn(run)
 
         data.append((neps_config_id, loss, run.info))
@@ -196,7 +193,9 @@ def get_seed_info(path, seed, cost_as_runtime=False, algorithm="random_search"):
         data.reverse()
         for idx, (data_id, loss, info) in enumerate(data):
             # `max_cost` tracks the maximum fidelity used for evaluation
-            max_cost = max(max_cost, info[key_to_extract]) if max_cost is not None else None
+            max_cost = (
+                max(max_cost, info[key_to_extract]) if max_cost is not None else None
+            )
             for _id, _, _info in data[data.index((data_id, loss, info)) + 1 :]:
                 # if `_` is not found in the string, `split()` returns the original
                 # string and the 0-th element is the string itself, which fits the
@@ -218,7 +217,9 @@ def get_seed_info(path, seed, cost_as_runtime=False, algorithm="random_search"):
     else:
         for idx, (data_id, loss, info) in enumerate(data):
             # `max_cost` tracks the maximum fidelity used for evaluation
-            max_cost = max(max_cost, info[key_to_extract]) if max_cost is not None else None
+            max_cost = (
+                max(max_cost, info[key_to_extract]) if max_cost is not None else None
+            )
 
     data = [(d[1], d[2]) for d in data]
     losses, infos = zip(*data)

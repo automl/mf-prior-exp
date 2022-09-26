@@ -1,16 +1,19 @@
 import argparse
 import errno
 import os
+import time
+from multiprocessing import Manager
 from pathlib import Path
 
 import matplotlib.pyplot as plt
 import numpy as np
 import seaborn as sns
 from attrdict import AttrDict
+from joblib import Parallel, delayed, parallel_backend
 
-from mf_prior_experiments.configs.plotting.read_results import get_seed_info, load_yaml
-from mf_prior_experiments.configs.plotting.styles import X_LABEL, Y_LABEL
-from mf_prior_experiments.configs.plotting.utils import plot_incumbent, save_fig, set_general_plot_style
+from .configs.plotting.read_results import get_seed_info, load_yaml
+from .configs.plotting.styles import X_LABEL, Y_LABEL
+from .configs.plotting.utils import plot_incumbent, save_fig, set_general_plot_style
 
 benchmark_configs_path = os.path.join(os.path.dirname(__file__), "configs/benchmark/")
 
@@ -21,7 +24,26 @@ map_axs = (
 )
 
 
+def _process_seed(_path, seed, algorithm, key_to_extract, cost_as_runtime, results):
+    print(
+        f"[{time.strftime('%H:%M:%S', time.localtime())}] "
+        f"[-] [{algorithm}] Processing seed {seed}..."
+    )
+
+    # `algorithm` is passed to calculate continuation costs
+    losses, infos, max_cost = get_seed_info(
+        _path, seed, algorithm=algorithm, cost_as_runtime=cost_as_runtime
+    )
+    incumbent = np.minimum.accumulate(losses)
+    cost = [i[key_to_extract] for i in infos]
+    results["incumbents"].append(incumbent)
+    results["costs"].append(cost)
+    results["max_costs"].append(max_cost)
+
+
 def plot(args):
+
+    starttime = time.time()
 
     BASE_PATH = (
         Path(__file__).parent / "../.."
@@ -29,7 +51,7 @@ def plot(args):
         else Path(args.base_path)
     )
 
-    key_to_extract = "cost" if args.cost_as_runtime else "fidelity"
+    KEY_TO_EXTRACT = "cost" if args.cost_as_runtime else "fidelity"
 
     set_general_plot_style()
 
@@ -43,7 +65,18 @@ def plot(args):
 
     base_path = BASE_PATH / "results" / args.experiment_group
     output_dir = BASE_PATH / "plots" / args.experiment_group
+    print(
+        f"[{time.strftime('%H:%M:%S', time.localtime())}]"
+        f" Processing {len(args.benchmarks)} benchmarks "
+        f"and {len(args.algorithms)} algorithms..."
+    )
+
     for benchmark_idx, benchmark in enumerate(args.benchmarks):
+        print(
+            f"[{time.strftime('%H:%M:%S', time.localtime())}] "
+            f"[{benchmark_idx}] Processing {benchmark} benchmark..."
+        )
+        benchmark_starttime = time.time()
         # loading the benchmark yaml
         _bench_spec_path = (
             BASE_PATH
@@ -56,10 +89,19 @@ def plot(args):
         plot_default = None
         if args.plot_default and os.path.isfile(_bench_spec_path):
             try:
-                plot_default = load_yaml(_bench_spec_path).api.default_score
+                plot_default = load_yaml(_bench_spec_path).prior_highest_fidelity_error
             except Exception as e:
                 print(repr(e))
-                print(f"Could not load benchmark yaml {_bench_spec_path}")
+
+                print(f"Could not load error for benchmark yaml {_bench_spec_path}")
+
+        plot_optimum = None
+        if args.plot_optimum and os.path.isfile(_bench_spec_path):
+            try:
+                plot_optimum = load_yaml(_bench_spec_path).optimum
+            except Exception as e:
+                print(repr(e))
+                print(f"Could not load optimum for benchmark yaml {_bench_spec_path}")
 
         _base_path = os.path.join(base_path, f"benchmark={benchmark}")
         if not os.path.isdir(_base_path):
@@ -69,34 +111,64 @@ def plot(args):
             if not os.path.isdir(_path):
                 raise FileNotFoundError(errno.ENOENT, os.strerror(errno.ENOENT), _path)
 
-            incumbents = []
-            costs = []
+            algorithm_starttime = time.time()
+            seeds = sorted(os.listdir(_path))
 
-            for seed in sorted(os.listdir(_path)):
-                # `algorithm` is passed to calculate continuation costs
-                losses, infos, max_cost = get_seed_info(
-                    _path, seed, algorithm=algorithm, cost_as_runtime=args.cost_as_runtime
+            if args.parallel:
+                manager = Manager()
+                results = manager.dict(
+                    incumbents=manager.list(),
+                    costs=manager.list(),
+                    max_costs=manager.list(),
                 )
-                incumbent = np.minimum.accumulate(losses)
-                incumbents.append(incumbent)
-                cost = [i[key_to_extract] for i in infos]
-                costs.append(cost)
+                with parallel_backend(args.parallel_backend, n_jobs=-1):
+                    Parallel()(
+                        delayed(_process_seed)(
+                            _path,
+                            seed,
+                            algorithm,
+                            KEY_TO_EXTRACT,
+                            args.cost_as_runtime,
+                            results,
+                        )
+                        for seed in seeds
+                    )
+
+            else:
+                results = dict(incumbents=[], costs=[], max_costs=[])
+                # pylint: disable=expression-not-assigned
+                [
+                    _process_seed(
+                        _path,
+                        seed,
+                        algorithm,
+                        KEY_TO_EXTRACT,
+                        args.cost_as_runtime,
+                        results,
+                    )
+                    for seed in seeds
+                ]
+
+            print(f"Time to process algorithm data: {time.time() - algorithm_starttime}")
 
             plot_incumbent(
                 ax=map_axs(axs, benchmark_idx, len(args.benchmarks)),
-                x=costs,
-                y=incumbents,
+                x=results["costs"][:],
+                y=results["incumbents"][:],
                 title=benchmark,
                 xlabel=X_LABEL[args.cost_as_runtime],
                 ylabel=Y_LABEL if benchmark_idx == 0 else None,
                 algorithm=algorithm,
                 log_x=args.log_x,
                 log_y=args.log_y,
-                # budget=args.budget,
                 x_range=args.x_range,
-                max_cost=None if args.cost_as_runtime else max_cost,
+                max_cost=None if args.cost_as_runtime else max(results["max_costs"][:]),
                 plot_default=plot_default,
+                plot_optimum=plot_optimum,
             )
+
+            print(f"Time to plot algorithm data: {time.time() - algorithm_starttime}")
+        print(f"Time to process benchmark data: {time.time() - benchmark_starttime}")
 
     sns.despine(fig)
 
@@ -124,6 +196,8 @@ def plot(args):
         extension=args.ext,
         dpi=args.dpi,
     )
+
+    print(f"Plotting took {time.time() - starttime}")
 
 
 if __name__ == "__main__":
@@ -163,6 +237,25 @@ if __name__ == "__main__":
         default=False,
         action="store_true",
         help="plots a horizontal line for the prior score if available",
+    )
+    parser.add_argument(
+        "--plot_optimum",
+        default=False,
+        action="store_true",
+        help="plots a horizontal line for the optimum score if available",
+    )
+    parser.add_argument(
+        "--parallel",
+        default=False,
+        action="store_true",
+        help="whether to process data in parallel or not",
+    )
+    parser.add_argument(
+        "--parallel_backend",
+        type=str,
+        choices=["multiprocessing", "threading"],
+        default="multiprocessing",
+        help="which backend use for parallel",
     )
 
     args = AttrDict(parser.parse_args().__dict__)

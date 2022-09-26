@@ -53,6 +53,7 @@ ALGORITHMS = {
     "raceband_5iters": "Raceband",
     "raceband_10iters": "Raceband",
     "racebandv2": "RacebandV2",
+    "raceband_no_local_promotion": "Raceband (no-local)",
     "ours_v2_2": "V2_2",
     "ours_v2_3": "V2_3",
     "ours_v3": "V3",
