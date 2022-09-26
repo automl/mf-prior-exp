@@ -8,7 +8,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import seaborn as sns
 from attrdict import AttrDict
-from joblib import Parallel, delayed
+from joblib import Parallel, delayed, parallel_backend
 
 from .configs.plotting.read_results import get_seed_info, load_yaml
 from .configs.plotting.styles import X_LABEL, Y_LABEL
@@ -24,6 +24,10 @@ map_axs = (
 
 
 def plot(args):
+
+    import time
+
+    start_time = time.time()
 
     BASE_PATH = (
         Path(__file__).parent / "../.."
@@ -88,12 +92,13 @@ def plot(args):
                 results["max_costs"].append(max_cost)
 
             seeds = sorted(os.listdir(_path))
-            _ = Parallel(n_jobs=len(seeds))(
-                delayed(_process_seed)(
-                    _path, seed, algorithm, args.cost_as_runtime, results
+            with parallel_backend("threading", n_jobs=-1):
+                Parallel()(
+                    delayed(_process_seed)(
+                        _path, seed, algorithm, args.cost_as_runtime, results
+                    )
+                    for seed in seeds
                 )
-                for seed in seeds
-            )
 
             plot_incumbent(
                 ax=map_axs(axs, benchmark_idx, len(args.benchmarks)),
@@ -136,6 +141,8 @@ def plot(args):
         extension=args.ext,
         dpi=args.dpi,
     )
+
+    print(time.time() - start_time)
 
 
 if __name__ == "__main__":
