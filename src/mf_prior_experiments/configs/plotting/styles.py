@@ -68,11 +68,17 @@ ALGORITHMS = {
     "ours_v5_conf-ultra": "V5 (ultra)",
     "ours_v5_2": "V5_2",
     "ours_v5_2_conf-high": "V5_2 (high)",
+    "ours_v5_3": "V5_3",
+    "ours_v5_3_conf-high": "V5_3 (high)",
     "ours_v5_v4": "V5_v4",
     "ours_v5_v4_conf-high": "V5_v4 (high)",
     "ours_v5_2_v4": "V5_2_v4",
     "ours_v5_2_v4_conf-high": "V5_2_v4 (high)",
-    "pibo": r"$\pi$BO",
+    "pibo": "Pi-BO",
+    "ours_v6": "v6",
+    "ours_v6_v5": "v6_v5",
+    "ours_v6_v5_2": "v6_v5_2",
+    "ours_v6_v5_3": "v6_v5_3",
 }
 
 DATASETS = {

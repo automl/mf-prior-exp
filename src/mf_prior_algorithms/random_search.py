@@ -7,6 +7,7 @@ from metahyper.api import ConfigResult
 from neps.optimizers.base_optimizer import BaseOptimizer
 from neps.search_spaces import CategoricalParameter, FloatParameter, IntegerParameter
 from neps.search_spaces.hyperparameters.categorical import CATEGORICAL_CONFIDENCE_SCORES
+from neps.search_spaces.hyperparameters.constant import ConstantParameter
 from neps.search_spaces.hyperparameters.float import FLOAT_CONFIDENCE_SCORES
 from neps.search_spaces.search_space import SearchSpace
 
@@ -14,7 +15,7 @@ CUSTOM_FLOAT_CONFIDENCE_SCORES = FLOAT_CONFIDENCE_SCORES.copy()
 CUSTOM_FLOAT_CONFIDENCE_SCORES.update({"ultra": 0.05})
 
 CUSTOM_CATEGORICAL_CONFIDENCE_SCORES = CATEGORICAL_CONFIDENCE_SCORES.copy()
-CUSTOM_CATEGORICAL_CONFIDENCE_SCORES.update({"ultra": 5})
+CUSTOM_CATEGORICAL_CONFIDENCE_SCORES.update({"ultra": 8})
 
 
 class RandomSearch(BaseOptimizer):
@@ -55,13 +56,30 @@ class RandomSearchWithPriors(RandomSearch):
         self.prior_confidence = prior_confidence
         self._enhance_priors()
 
-    def _enhance_priors(self):
-        for k in self.pipeline_space.keys():
-            if self.pipeline_space[k].is_fidelity:
+    def _enhance_priors(self, confidence_score=None):
+        """Only applicable when priors are given along with a confidence.
+
+        Args:
+            confidence_score: dict
+                The confidence scores for the types.
+                Example: {"categorical": 5.2, "numeric": 0.15}
+        """
+        if not self.use_priors and self.prior_confidence is None:
+            return
+        for k, v in self.pipeline_space.items():
+            if v.is_fidelity or isinstance(v, ConstantParameter):
                 continue
-            if isinstance(self.pipeline_space[k], (FloatParameter, IntegerParameter)):
-                confidence = CUSTOM_FLOAT_CONFIDENCE_SCORES[self.prior_confidence]
+            elif isinstance(v, (FloatParameter, IntegerParameter)):
+                if confidence_score is None:
+                    confidence = CUSTOM_FLOAT_CONFIDENCE_SCORES[self.prior_confidence]
+                else:
+                    confidence = confidence_score["numeric"]
                 self.pipeline_space[k].default_confidence_score = confidence
-            elif isinstance(self.pipeline_space[k], CategoricalParameter):
-                confidence = CUSTOM_CATEGORICAL_CONFIDENCE_SCORES[self.prior_confidence]
+            elif isinstance(v, CategoricalParameter):
+                if confidence_score is None:
+                    confidence = CUSTOM_CATEGORICAL_CONFIDENCE_SCORES[
+                        self.prior_confidence
+                    ]
+                else:
+                    confidence = confidence_score["categorical"]
                 self.pipeline_space[k].default_confidence_score = confidence

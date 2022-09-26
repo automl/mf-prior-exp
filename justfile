@@ -28,7 +28,8 @@
     --algorithm {{algorithms}} \
     --filename {{filename}} \
     --base_path {{base_path}} \
-    --ext {{ext}}
+    --ext {{ext}} \
+    --x_range 1 12
 
 # Table job
 @table experiment_group benchmarks algorithms filename budget base_path=justfile_directory() :
