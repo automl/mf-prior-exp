@@ -68,9 +68,10 @@ def plot(args):
 
                 print(f"Could not load error for benchmark yaml {_bench_spec_path}")
 
+        plot_optimum = None
         if args.plot_optimum and os.path.isfile(_bench_spec_path):
             try:
-                plot_default = load_yaml(_bench_spec_path).optimum
+                plot_optimum = load_yaml(_bench_spec_path).optimum
             except Exception as e:
                 print(repr(e))
                 print(f"Could not load optimum for benchmark yaml {_bench_spec_path}")
@@ -121,6 +122,7 @@ def plot(args):
                 x_range=args.x_range,
                 max_cost=None if args.cost_as_runtime else max(results["max_costs"][:]),
                 plot_default=plot_default,
+                plot_optimum=plot_optimum,
             )
 
     sns.despine(fig)
