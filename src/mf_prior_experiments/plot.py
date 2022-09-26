@@ -1,16 +1,18 @@
 import argparse
 import errno
 import os
+from multiprocessing import Manager
 from pathlib import Path
 
 import matplotlib.pyplot as plt
 import numpy as np
 import seaborn as sns
 from attrdict import AttrDict
+from joblib import Parallel, delayed, parallel_backend
 
-from mf_prior_experiments.configs.plotting.read_results import get_seed_info, load_yaml
-from mf_prior_experiments.configs.plotting.styles import X_LABEL, Y_LABEL
-from mf_prior_experiments.configs.plotting.utils import plot_incumbent, save_fig, set_general_plot_style
+from .configs.plotting.read_results import get_seed_info, load_yaml
+from .configs.plotting.styles import X_LABEL, Y_LABEL
+from .configs.plotting.utils import plot_incumbent, save_fig, set_general_plot_style
 
 benchmark_configs_path = os.path.join(os.path.dirname(__file__), "configs/benchmark/")
 
@@ -23,13 +25,17 @@ map_axs = (
 
 def plot(args):
 
+    import time
+
+    start_time = time.time()
+
     BASE_PATH = (
         Path(__file__).parent / "../.."
         if args.base_path is None
         else Path(args.base_path)
     )
 
-    key_to_extract = "cost" if args.cost_as_runtime else "fidelity"
+    KEY_TO_EXTRACT = "cost" if args.cost_as_runtime else "fidelity"
 
     set_general_plot_style()
 
@@ -56,10 +62,19 @@ def plot(args):
         plot_default = None
         if args.plot_default and os.path.isfile(_bench_spec_path):
             try:
-                plot_default = load_yaml(_bench_spec_path).default_score
+                plot_default = load_yaml(_bench_spec_path).prior_highest_fidelity_error
             except Exception as e:
                 print(repr(e))
-                print(f"Could not load benchmark yaml {_bench_spec_path}")
+
+                print(f"Could not load error for benchmark yaml {_bench_spec_path}")
+
+        plot_optimum = None
+        if args.plot_optimum and os.path.isfile(_bench_spec_path):
+            try:
+                plot_optimum = load_yaml(_bench_spec_path).optimum
+            except Exception as e:
+                print(repr(e))
+                print(f"Could not load optimum for benchmark yaml {_bench_spec_path}")
 
         _base_path = os.path.join(base_path, f"benchmark={benchmark}")
         if not os.path.isdir(_base_path):
@@ -69,33 +84,45 @@ def plot(args):
             if not os.path.isdir(_path):
                 raise FileNotFoundError(errno.ENOENT, os.strerror(errno.ENOENT), _path)
 
-            incumbents = []
-            costs = []
+            manager = Manager()
+            results = manager.dict(
+                incumbents=manager.list(), costs=manager.list(), max_costs=manager.list()
+            )
 
-            for seed in sorted(os.listdir(_path)):
+            def _process_seed(_path, seed, algorithm, cost_as_runtime, results):
                 # `algorithm` is passed to calculate continuation costs
                 losses, infos, max_cost = get_seed_info(
-                    _path, seed, algorithm=algorithm, cost_as_runtime=args.cost_as_runtime
+                    _path, seed, algorithm=algorithm, cost_as_runtime=cost_as_runtime
                 )
                 incumbent = np.minimum.accumulate(losses)
-                incumbents.append(incumbent)
-                cost = [i[key_to_extract] for i in infos]
-                costs.append(cost)
+                cost = [i[KEY_TO_EXTRACT] for i in infos]
+                results["incumbents"].append(incumbent)
+                results["costs"].append(cost)
+                results["max_costs"].append(max_cost)
+
+            seeds = sorted(os.listdir(_path))
+            with parallel_backend("threading", n_jobs=-1):
+                Parallel()(
+                    delayed(_process_seed)(
+                        _path, seed, algorithm, args.cost_as_runtime, results
+                    )
+                    for seed in seeds
+                )
 
             plot_incumbent(
                 ax=map_axs(axs, benchmark_idx, len(args.benchmarks)),
-                x=costs,
-                y=incumbents,
+                x=results["costs"][:],
+                y=results["incumbents"][:],
                 title=benchmark,
                 xlabel=X_LABEL[args.cost_as_runtime],
                 ylabel=Y_LABEL if benchmark_idx == 0 else None,
                 algorithm=algorithm,
                 log_x=args.log_x,
                 log_y=args.log_y,
-                # budget=args.budget,
                 x_range=args.x_range,
-                max_cost=None if args.cost_as_runtime else max_cost,
+                max_cost=None if args.cost_as_runtime else max(results["max_costs"][:]),
                 plot_default=plot_default,
+                plot_optimum=plot_optimum,
             )
 
     sns.despine(fig)
@@ -124,6 +151,8 @@ def plot(args):
         extension=args.ext,
         dpi=args.dpi,
     )
+
+    print(time.time() - start_time)
 
 
 if __name__ == "__main__":
@@ -163,6 +192,12 @@ if __name__ == "__main__":
         default=False,
         action="store_true",
         help="plots a horizontal line for the prior score if available",
+    )
+    parser.add_argument(
+        "--plot_optimum",
+        default=False,
+        action="store_true",
+        help="plots a horizontal line for the optimum score if available",
     )
 
     args = AttrDict(parser.parse_args().__dict__)
