@@ -1,6 +1,7 @@
 import argparse
 import errno
 import os
+import time
 from multiprocessing import Manager
 from pathlib import Path
 
@@ -25,9 +26,7 @@ map_axs = (
 
 def plot(args):
 
-    import time
-
-    start_time = time.time()
+    starttime = time.time()
 
     BASE_PATH = (
         Path(__file__).parent / "../.."
@@ -49,7 +48,18 @@ def plot(args):
 
     base_path = BASE_PATH / "results" / args.experiment_group
     output_dir = BASE_PATH / "plots" / args.experiment_group
+    print(
+        f"[{time.strftime('%H:%M:%S', time.localtime())}]"
+        f" Processing {len(args.benchmarks)} benchmarks "
+        f"and {len(args.algorithms)} algorithms..."
+    )
+
     for benchmark_idx, benchmark in enumerate(args.benchmarks):
+        print(
+            f"[{time.strftime('%H:%M:%S', time.localtime())}] "
+            f"[{benchmark_idx}] Processing {benchmark} benchmark..."
+        )
+        benchmark_starttime = time.time()
         # loading the benchmark yaml
         _bench_spec_path = (
             BASE_PATH
@@ -84,12 +94,12 @@ def plot(args):
             if not os.path.isdir(_path):
                 raise FileNotFoundError(errno.ENOENT, os.strerror(errno.ENOENT), _path)
 
-            manager = Manager()
-            results = manager.dict(
-                incumbents=manager.list(), costs=manager.list(), max_costs=manager.list()
-            )
-
             def _process_seed(_path, seed, algorithm, cost_as_runtime, results):
+                print(
+                    f"[{time.strftime('%H:%M:%S', time.localtime())}] "
+                    f"[-] [{algorithm}] Processing seed {seed}..."
+                )
+
                 # `algorithm` is passed to calculate continuation costs
                 losses, infos, max_cost = get_seed_info(
                     _path, seed, algorithm=algorithm, cost_as_runtime=cost_as_runtime
@@ -100,14 +110,33 @@ def plot(args):
                 results["costs"].append(cost)
                 results["max_costs"].append(max_cost)
 
+            algorithm_starttime = time.time()
             seeds = sorted(os.listdir(_path))
-            with parallel_backend("threading", n_jobs=-1):
-                Parallel()(
-                    delayed(_process_seed)(
-                        _path, seed, algorithm, args.cost_as_runtime, results
-                    )
-                    for seed in seeds
+
+            if args.parallel:
+                manager = Manager()
+                results = manager.dict(
+                    incumbents=manager.list(),
+                    costs=manager.list(),
+                    max_costs=manager.list(),
                 )
+                with parallel_backend("threading", n_jobs=-1):
+                    Parallel()(
+                        delayed(_process_seed)(
+                            _path, seed, algorithm, args.cost_as_runtime, results
+                        )
+                        for seed in seeds
+                    )
+
+            else:
+                results = dict(incumbents=[], costs=[], max_costs=[])
+                # pylint: disable=expression-not-assigned
+                [
+                    _process_seed(_path, seed, algorithm, args.cost_as_runtime, results)
+                    for seed in seeds
+                ]
+
+            print(f"Time to process algorithm data: {time.time() - algorithm_starttime}")
 
             plot_incumbent(
                 ax=map_axs(axs, benchmark_idx, len(args.benchmarks)),
@@ -124,6 +153,9 @@ def plot(args):
                 plot_default=plot_default,
                 plot_optimum=plot_optimum,
             )
+
+            print(f"Time to plot algorithm data: {time.time() - algorithm_starttime}")
+        print(f"Time to process benchmark data: {time.time() - benchmark_starttime}")
 
     sns.despine(fig)
 
@@ -152,7 +184,7 @@ def plot(args):
         dpi=args.dpi,
     )
 
-    print(time.time() - start_time)
+    print(f"Plotting took {time.time() - starttime}")
 
 
 if __name__ == "__main__":
@@ -198,6 +230,12 @@ if __name__ == "__main__":
         default=False,
         action="store_true",
         help="plots a horizontal line for the optimum score if available",
+    )
+    parser.add_argument(
+        "--parallel",
+        default=False,
+        action="store_true",
+        help="whether to process data in parallel or not",
     )
 
     args = AttrDict(parser.parse_args().__dict__)
