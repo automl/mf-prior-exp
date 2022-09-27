@@ -1,0 +1,8 @@
+name: successive_halving_prior-default-first
+mf: true
+run_function:
+  _target_: mf_prior_experiments.run.run_neps
+searcher:
+  _partial_: true  # To not instantiate the class directly as required by neps
+  _target_: neps.optimizers.multi_fidelity.successive_halving.SuccessiveHalvingWithPriors
+  sample_default_first: True

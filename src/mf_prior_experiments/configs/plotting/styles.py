@@ -92,16 +92,16 @@ ALGORITHMS = {
 DATASETS = {
     # jahs cifar10
     "jahs_cifar10_prior-default": "CIFAR-10",
-    "jahs_cifar10_prior-good": "CIFAR-10 (Good)",
-    "jahs_cifar10_prior-bad": "CIFAR-10 (Bad)",
+    "jahs_cifar10_prior-good": "CIFAR-10 (good)",
+    "jahs_cifar10_prior-bad": "CIFAR-10 (bad)",
     # jahs colorectal histology
     "jahs_colorectal_histology_prior-default": "Colorectal-Histology",
-    "jahs_colorectal_histology_prior-good": "Colorectal-Histology (Good)",
-    "jahs_colorectal_histology_prior-bad": "Colorectal-Histology (Bad)",
+    "jahs_colorectal_histology_prior-good": "Colorectal-Histology (good)",
+    "jahs_colorectal_histology_prior-bad": "Colorectal-Histology (bad)",
     # jahs fashion_mnist
     "jahs_fashion_mnist_prior-default": "Fashion-MNIST",
-    "jahs_fashion_mnist_prior-good": "Fashion-MNIST (Good)",
-    "jahs_fashion_mnist_prior-bad": "Fashion-MNIST (Bad)",
+    "jahs_fashion_mnist_prior-good": "Fashion-MNIST (good)",
+    "jahs_fashion_mnist_prior-bad": "Fashion-MNIST (bad)",
     # mfh3 good
     "mfh3_good_prior-default": "Hartmann 3 (good)",
     "mfh3_good_prior-good": "H3d (good corr-good prior)",
@@ -199,7 +199,7 @@ COLOR_MARKER_DICT = {
     "ours_v1_2": "turquoise",
     "ours_v1_3": "cyan",
     "mfp_tpe": "indigo",
-    "raceband": "orange",    
+    "raceband": "orange",
     "raceband_3iters": "orange",
     "raceband_5iters": "orange",
     "raceband_10iters": "orange",
