@@ -193,8 +193,8 @@ if __name__ == "__main__":
     parser.add_argument("--caption", type=str, default="TODO")
     parser.add_argument("--label", type=str, default="TODO")
     parser.add_argument("--budget", type=float, default=None)
-    parser.add_argument("--benchmarks", nargs="+", default=["jahs_cifar10"])
-    parser.add_argument("--algorithms", nargs="+", default=["random_search"])
+    parser.add_argument("--benchmarks", nargs="+", default=None)
+    parser.add_argument("--algorithms", nargs="+", default=None)
     parser.add_argument("--plot_id", type=str, default="1")
     parser.add_argument(
         "--filename", type=str, default=None, help="name out pdf file generated"
