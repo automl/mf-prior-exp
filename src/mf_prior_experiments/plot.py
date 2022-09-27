@@ -18,9 +18,9 @@ from .configs.plotting.utils import plot_incumbent, save_fig, set_general_plot_s
 benchmark_configs_path = os.path.join(os.path.dirname(__file__), "configs/benchmark/")
 
 map_axs = (
-    lambda axs, idx, length: axs
+    lambda axs, idx, length, ncols: axs
     if length == 1
-    else (axs[idx] if length == 2 else axs[idx // 2][idx % 2])
+    else (axs[idx] if length == ncols else axs[idx // ncols][idx % ncols])
 )
 
 
@@ -55,12 +55,18 @@ def plot(args):
 
     set_general_plot_style()
 
-    nrows = np.ceil(len(args.benchmarks) / 2).astype(int)
-    ncols = 1 if len(args.benchmarks) == 1 else 2
+    if args.research_question == 1:
+        nrows = np.ceil(len(args.benchmarks) / 2).astype(int)
+        ncols = 1 if len(args.benchmarks) == 1 else 2
+    elif args.research_question == 2:
+        nrows = np.ceil(len(args.benchmarks) / 4).astype(int)
+        ncols = 4
+    else:
+        raise ValueError("Plotting works only for RQ1 and RQ2.")
     fig, axs = plt.subplots(
         nrows=nrows,
         ncols=ncols,
-        figsize=(10.3, 6.2),
+        figsize=(10.3, 6.2) if args.research_question == 1 else (13.8, 8.3),
     )
 
     base_path = BASE_PATH / "results" / args.experiment_group
@@ -152,12 +158,12 @@ def plot(args):
             print(f"Time to process algorithm data: {time.time() - algorithm_starttime}")
 
             plot_incumbent(
-                ax=map_axs(axs, benchmark_idx, len(args.benchmarks)),
+                ax=map_axs(axs, benchmark_idx, len(args.benchmarks), ncols),
                 x=results["costs"][:],
                 y=results["incumbents"][:],
                 title=benchmark,
                 xlabel=X_LABEL[args.cost_as_runtime],
-                ylabel=Y_LABEL if benchmark_idx == 0 else None,
+                ylabel=Y_LABEL if benchmark_idx % ncols == 0 else None,
                 algorithm=algorithm,
                 log_x=args.log_x,
                 log_y=args.log_y,
@@ -172,15 +178,22 @@ def plot(args):
 
     sns.despine(fig)
 
-    handles, labels = map_axs(axs, 0, len(args.benchmarks)).get_legend_handles_labels()
+    handles, labels = map_axs(
+        axs, 0, len(args.benchmarks), ncols
+    ).get_legend_handles_labels()
 
-    ncol_map = lambda n: 1 if n == 1 else (2 if n == 2 else int(np.ceil(n / 2)))
-    ncol = ncol_map(len(args.algorithms))
+    if args.research_question == 1:
+        ncol_map = lambda n: 1 if n == 1 else (2 if n == 2 else int(np.ceil(n / 2)))
+        ncol = ncol_map(len(args.algorithms))
+        bbox_to_anchor = (0.5, -0.1)
+    else:
+        ncol = len(args.algorithms)
+        bbox_to_anchor = (0.5, -0.05)
     fig.legend(
         handles,
         labels,
         loc="lower center",
-        bbox_to_anchor=(0.5, -0.1),
+        bbox_to_anchor=bbox_to_anchor,
         ncol=ncol,
         frameon=True,
     )
@@ -211,6 +224,7 @@ if __name__ == "__main__":
     parser.add_argument("--benchmarks", nargs="+", default=None)
     parser.add_argument("--algorithms", nargs="+", default=None)
     parser.add_argument("--plot_id", type=str, default="1")
+    parser.add_argument("--research_question", type=int, default=1)
     parser.add_argument("--x_range", nargs="+", default=None, type=float)
     parser.add_argument("--log_x", action="store_true")
     parser.add_argument("--log_y", action="store_true")
