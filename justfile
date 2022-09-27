@@ -18,7 +18,8 @@
     --job_name {{job_name}} \
     --partition {{partition}} \
     --memory {{memory}} \
-    --arguments algorithm={{algorithms}} benchmark={{benchmarks}} seed="{{seeds}}" hydra/job_logging=only_file
+    --arguments algorithm={{algorithms}} benchmark={{benchmarks}} seed="{{seeds}}" hydra/job_logging=only_file \
+    --exclude "kisexe20,kisexe28,kisexe34"
 
 # Plot job
 @plot experiment_group benchmarks algorithms filename ext="pdf" base_path=justfile_directory() :

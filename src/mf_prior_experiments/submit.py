@@ -47,9 +47,11 @@ def construct_script(args, cluster_oe_dir):
     script.append(f"#SBATCH --job-name {args.job_name}")
     script.append(f"#SBATCH --partition {args.partition}")
     script.append(f"#SBATCH --array 0-{num_tasks - 1}%{args.max_tasks}")
-    script.append(f"#SBATCH --error {cluster_oe_dir}/%A_%x_%a.oe")
-    script.append(f"#SBATCH --output {cluster_oe_dir}/%A_%x_%a.oe")
+    script.append(f"#SBATCH --error {cluster_oe_dir}/%N_%A_%x_%a.oe")
+    script.append(f"#SBATCH --output {cluster_oe_dir}/%N_%A_%x_%a.oe")
     script.append(f"#SBATCH --mem {args.memory}")
+    if args.exclude:
+        script.append(f"#SBATCH --exclude {args.exclude}")
     script.append("")
     script.append(argument_string)
     script.append("")
@@ -69,6 +71,9 @@ if __name__ == "__main__":
     parser.add_argument("--memory", default=0, type=int)
     parser.add_argument("--partition", required=True)
     parser.add_argument("--arguments", nargs="+")
+    parser.add_argument(
+        "--exclude", default=None, type=str, help="example: kisexe24,kisexe34"
+    )
     args = parser.parse_args()
 
     experiment_group_dir = Path("results", args.experiment_group)
