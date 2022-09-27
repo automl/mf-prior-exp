@@ -56,17 +56,35 @@ def plot(args):
     set_general_plot_style()
 
     if args.research_question == 1:
-        nrows = np.ceil(len(args.benchmarks) / 2).astype(int)
         ncols = 1 if len(args.benchmarks) == 1 else 2
+        figsize = (10.3, 6.2)
+        ncol_map = lambda n: 1 if n == 1 else (2 if n == 2 else int(np.ceil(n / 2)))
+        ncol = ncol_map(len(args.algorithms))
+        bbox_to_anchor = (0.5, -0.1)
     elif args.research_question == 2:
-        nrows = np.ceil(len(args.benchmarks) / 4).astype(int)
+        if args.benchmarks is None:
+            args.benchmarks = [
+                f"jahs_cifar10_prior-{args.which_prior}",
+                f"jahs_fashion_mnist_prior-{args.which_prior}",
+                f"jahs_colorectal_histology_prior-{args.which_prior}",
+                f"lcbench-189862_prior-{args.which_prior}",
+                f"lcbench-189866_prior-{args.which_prior}",
+                f"translatewmt_xformer_64_prior-{args.which_prior}",
+                f"lm1b_transformer_2048_prior-{args.which_prior}",
+                f"uniref50_transformer_prior-{args.which_prior}",
+            ]
         ncols = 4
+        figsize = (13.8, 8.3)
+        ncol = len(args.algorithms)
+        bbox_to_anchor = (0.5, -0.05)
     else:
         raise ValueError("Plotting works only for RQ1 and RQ2.")
+    nrows = np.ceil(len(args.benchmarks) / ncols).astype(int)
+
     fig, axs = plt.subplots(
         nrows=nrows,
         ncols=ncols,
-        figsize=(10.3, 6.2) if args.research_question == 1 else (13.8, 8.3),
+        figsize=figsize,
     )
 
     base_path = BASE_PATH / "results" / args.experiment_group
@@ -182,13 +200,6 @@ def plot(args):
         axs, 0, len(args.benchmarks), ncols
     ).get_legend_handles_labels()
 
-    if args.research_question == 1:
-        ncol_map = lambda n: 1 if n == 1 else (2 if n == 2 else int(np.ceil(n / 2)))
-        ncol = ncol_map(len(args.algorithms))
-        bbox_to_anchor = (0.5, -0.1)
-    else:
-        ncol = len(args.algorithms)
-        bbox_to_anchor = (0.5, -0.05)
     fig.legend(
         handles,
         labels,
@@ -225,6 +236,13 @@ if __name__ == "__main__":
     parser.add_argument("--algorithms", nargs="+", default=None)
     parser.add_argument("--plot_id", type=str, default="1")
     parser.add_argument("--research_question", type=int, default=1)
+    parser.add_argument(
+        "--which_prior",
+        type=str,
+        choices=["good", "bad"],
+        default="bad",
+        help="for RQ2 choose whether to plot good or bad",
+    )
     parser.add_argument("--x_range", nargs="+", default=None, type=float)
     parser.add_argument("--log_x", action="store_true")
     parser.add_argument("--log_y", action="store_true")
