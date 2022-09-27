@@ -1,4 +1,4 @@
-name: successive_halving_prior
+name: successive_halving_prior-default-first
 mf: true
 run_function:
   _target_: mf_prior_experiments.run.run_neps
