@@ -116,12 +116,22 @@ def _get_info_neps(path, seed) -> List:
     result_path = os.path.join(path, str(seed), "neps_root_directory", "results")
     for config_id in config_ids:
         result_yaml = load_yaml(os.path.join(result_path, config_id, "result.yaml"))
+        start_time = (
+            result_yaml.info_dict["start_time"]
+            if "start_time" in result_yaml.info_dict["start_time"]
+            else 0.0
+        )
+        end_time = (
+            result_yaml.info_dict["end_time"]
+            if "start_time" in result_yaml.info_dict["end_time"]
+            else 0.0
+        )
         info.append(
             dict(
                 fidelity=result_yaml.info_dict["fidelity"],
                 cost=result_yaml.info_dict["cost"],
-                start_time=result_yaml.info_dict["start_time"],
-                end_time=result_yaml.info_dict["end_time"],
+                start_time=start_time,
+                end_time=end_time,
                 config_id=config_id,
             )
         )
