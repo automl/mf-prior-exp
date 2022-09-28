@@ -132,6 +132,30 @@ def plot(args):
                 print(repr(e))
                 print(f"Could not load optimum for benchmark yaml {_bench_spec_path}")
 
+        plot_rs_10 = None
+        if args.plot_rs_10 and os.path.isfile(_bench_spec_path):
+            try:
+                plot_rs_10 = load_yaml(_bench_spec_path).best_10_error
+            except Exception as e:
+                print(repr(e))
+                print(f"Could not load optimum for benchmark yaml {_bench_spec_path}")
+
+        plot_rs_25 = None
+        if args.plot_rs_25 and os.path.isfile(_bench_spec_path):
+            try:
+                plot_rs_25 = load_yaml(_bench_spec_path).best_25_error
+            except Exception as e:
+                print(repr(e))
+                print(f"Could not load optimum for benchmark yaml {_bench_spec_path}")
+
+        plot_rs_100 = None
+        if args.plot_rs_100 and os.path.isfile(_bench_spec_path):
+            try:
+                plot_rs_100 = load_yaml(_bench_spec_path).best_100_error
+            except Exception as e:
+                print(repr(e))
+                print(f"Could not load optimum for benchmark yaml {_bench_spec_path}")
+
         _base_path = os.path.join(base_path, f"benchmark={benchmark}")
         if not os.path.isdir(_base_path):
             raise FileNotFoundError(errno.ENOENT, os.strerror(errno.ENOENT), _base_path)
@@ -196,6 +220,9 @@ def plot(args):
                 max_cost=None if args.cost_as_runtime else max(results["max_costs"][:]),
                 plot_default=plot_default,
                 plot_optimum=plot_optimum,
+                plot_rs_10=plot_rs_10,
+                plot_rs_25=plot_rs_25,
+                plot_rs_100=plot_rs_100,
             )
 
             print(f"Time to plot algorithm data: {time.time() - algorithm_starttime}")
@@ -289,6 +316,24 @@ if __name__ == "__main__":
         default=False,
         action="store_true",
         help="plots a horizontal line for the optimum score if available",
+    )
+    parser.add_argument(
+        "--plot_rs_10",
+        default=False,
+        action="store_true",
+        help="plots a horizontal line for RS at 10x",
+    )
+    parser.add_argument(
+        "--plot_rs_25",
+        default=False,
+        action="store_true",
+        help="plots a horizontal line for RS at 25x",
+    )
+    parser.add_argument(
+        "--plot_rs_100",
+        default=False,
+        action="store_true",
+        help="plots a horizontal line for RS at 100x",
     )
     parser.add_argument(
         "--parallel",
