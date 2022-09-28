@@ -208,7 +208,7 @@ def plot(args):
                     ]
 
                 benchmark_y_lim.append(
-                    min(
+                    np.mean(
                         np.stack(
                             [r[:2] for r in results["incumbents"][:]], axis=1
                         ).flatten()
