@@ -66,12 +66,12 @@ def plot(args):
             args.benchmarks = [
                 f"jahs_cifar10_prior-{args.which_prior}",
                 f"jahs_fashion_mnist_prior-{args.which_prior}",
-                f"jahs_colorectal_histology_prior-{args.which_prior}",
+#                f"jahs_colorectal_histology_prior-{args.which_prior}",
                 f"lcbench-189862_prior-{args.which_prior}",
                 f"lcbench-189866_prior-{args.which_prior}",
                 f"translatewmt_xformer_64_prior-{args.which_prior}",
                 f"lm1b_transformer_2048_prior-{args.which_prior}",
-                f"uniref50_transformer_prior-{args.which_prior}",
+ #               f"uniref50_transformer_prior-{args.which_prior}",
             ]
         ncols = 4
         figsize = (13.8, 8.3)
