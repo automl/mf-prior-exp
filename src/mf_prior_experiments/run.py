@@ -140,6 +140,7 @@ def run_neps(args):
         fidelity = config.pop(benchmark.fidelity_name)
         result = benchmark.query(config, at=fidelity)
         if args.n_workers > 1:
+            # time.sleep(3)
             time.sleep(fidelity + MIN_SLEEP_TIME)
         end = time.time()
         return {
@@ -151,7 +152,7 @@ def run_neps(args):
                 "test_score": result.test_score,
                 "fidelity": result.fidelity,
                 "start_time": start,
-                "end_time": end,
+                "end_time": end,  # + fidelity,
                 # val_error: result.val_error
                 # test_error: result.test_error
             },
