@@ -3,6 +3,7 @@ import logging
 import random
 import sys
 from pathlib import Path
+import time
 from typing import Any
 
 import hydra
@@ -11,7 +12,7 @@ from gitinfo import gitinfo
 from omegaconf import OmegaConf
 
 logger = logging.getLogger("mf_prior_experiments.run")
-
+MIN_SLEEP_TIME = 10  # 10s hopefully is enough to simulate wait times for metahyper
 
 def _set_seeds(seed):
     random.seed(seed)  # important for NePS optimizers
@@ -135,8 +136,12 @@ def run_neps(args):
     benchmark: Benchmark = hydra.utils.instantiate(args.benchmark.api)
 
     def run_pipeline(**config: Any) -> dict:
+        start = time.time()
         fidelity = config.pop(benchmark.fidelity_name)
         result = benchmark.query(config, at=fidelity)
+        if args.n_workers > 1:
+            time.sleep(fidelity + MIN_SLEEP_TIME)
+        end = time.time()
         return {
             "loss": result.error,
             "cost": result.cost,
@@ -145,6 +150,8 @@ def run_neps(args):
                 "val_score": result.val_score,
                 "test_score": result.test_score,
                 "fidelity": result.fidelity,
+                "start_time": start,
+                "end_time": end,
                 # val_error: result.val_error
                 # test_error: result.test_error
             },
