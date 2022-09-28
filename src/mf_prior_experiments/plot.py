@@ -63,10 +63,8 @@ def plot(args):
 
     if args.research_question == 1:
         ncols = 1 if len(args.benchmarks) == 1 else 2
-        figsize = (10.3, 6.2)
         ncol_map = lambda n: 1 if n == 1 else (2 if n == 2 else int(np.ceil(n / 2)))
         ncol = ncol_map(len(args.algorithms))
-        bbox_to_anchor = (0.5, -0.1)
     elif args.research_question == 2:
         if args.benchmarks is None:
             args.benchmarks = [
@@ -80,12 +78,12 @@ def plot(args):
                 #               f"uniref50_transformer_prior-{args.which_prior}",
             ]
         ncols = 4
-        figsize = (13.8, 8.3)
         ncol = len(args.algorithms)
-        bbox_to_anchor = (0.5, -0.05)
     else:
         raise ValueError("Plotting works only for RQ1 and RQ2.")
     nrows = np.ceil(len(args.benchmarks) / ncols).astype(int)
+    figsize = (4 * ncols, 3 * nrows)
+    bbox_to_anchor = (0.5, -0.05 * (ncols // 2))
 
     fig, axs = plt.subplots(
         nrows=nrows,
