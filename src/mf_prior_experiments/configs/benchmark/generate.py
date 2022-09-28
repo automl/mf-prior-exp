@@ -11,6 +11,7 @@ from mfpbench import JAHSBenchmark, MFHartmannBenchmark, PD1Benchmark, YAHPOBenc
 
 HERE = Path(__file__).parent.resolve()
 
+SEED = 1
 EXCLUDE = ["rbv2", "iaml"]
 LCBENCH_TASKS = ["189862", "189862", "189866"]
 
@@ -145,7 +146,7 @@ def configs() -> Iterator[tuple[Path, dict[str, Any]]]:
             # Get the scores for the prior
             # Seed isnt need as prior is deterministic
             kwargs = {k: v for k, v in config["api"].items() if k not in ["datadir", "_target_", "seed"]}
-            b = mfpbench.get(**kwargs)
+            b = mfpbench.get(seed=SEED, **kwargs)
             if b.prior:
                 results = b.trajectory(b.prior)
                 highest_fidelity_error = results[-1].error
@@ -153,6 +154,18 @@ def configs() -> Iterator[tuple[Path, dict[str, Any]]]:
 
                 config["prior_highest_fidelity_error"] = float(highest_fidelity_error)
                 config["prior_lowest_error"] = float(lowest_error)
+
+            # We also give the best score of RS for 10, 25, 100
+            configs = b.sample(100)
+            results = [b.query(c) for c in configs]
+
+            best_10 = min(results[:10], key=lambda r: r.error)
+            best_25 = min(results[:25], key=lambda r: r.error)
+            best_100 = min(results[:100], key=lambda r: r.error)
+
+            config["best_10_error"] = float(best_10.error)
+            config["best_25_error"] = float(best_25.error)
+            config["best_100_error"] = float(best_100.error)
 
             if isinstance(b, MFHartmannBenchmark):
                 optimum = b.Config.from_dict(

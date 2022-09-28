@@ -9,3 +9,6 @@ api:
   preload: true
 prior_highest_fidelity_error: 0.3430434465408325
 prior_lowest_error: 0.3430434465408325
+best_10_error: 0.3435570001602173
+best_25_error: 0.24677115678787231
+best_100_error: 0.24677115678787231
