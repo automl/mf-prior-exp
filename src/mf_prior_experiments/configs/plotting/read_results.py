@@ -118,12 +118,12 @@ def _get_info_neps(path, seed) -> List:
         result_yaml = load_yaml(os.path.join(result_path, config_id, "result.yaml"))
         start_time = (
             result_yaml.info_dict["start_time"]
-            if "start_time" in result_yaml.info_dict["start_time"]
+            if "start_time" in result_yaml.info_dict
             else 0.0
         )
         end_time = (
             result_yaml.info_dict["end_time"]
-            if "start_time" in result_yaml.info_dict["end_time"]
+            if "start_time" in result_yaml.info_dict
             else 0.0
         )
         info.append(
