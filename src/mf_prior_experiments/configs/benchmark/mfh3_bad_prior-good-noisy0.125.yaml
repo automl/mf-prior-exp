@@ -6,7 +6,7 @@ api:
   seed: ${seed}
   preload: true
   noisy_prior: true
-  prior_noise_scale: 0.125
-prior_highest_fidelity_error: -1.9614336331151172
-prior_lowest_error: -1.9614336331151172
+  prior_noise_scale: 0.25
+prior_highest_fidelity_error: -1.4124548364023504
+prior_lowest_error: -1.4124548364023504
 optimum: -3.8627797869493365

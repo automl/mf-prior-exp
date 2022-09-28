@@ -18,7 +18,7 @@ LCBENCH_TASKS = ["189862", "189862", "189866"]
 CONDITONAL_HP_SPACES = False
 
 # @carl, change them here as you need
-HARTMANN_NOISY_PRIOR_VALUES = [0.125]
+HARTMANN_NOISY_PRIOR_VALUES = [0.250]
 AVAILABLE_PRIORS = ["good", "medium", "bad"]
 
 
@@ -36,7 +36,12 @@ def hartmann_configs() -> Iterator[tuple[str, dict[str, Any]]]:
 
         # We also give a noisy prior version for each
         for noise_scale in HARTMANN_NOISY_PRIOR_VALUES:
-            config_name = f"{config_name}-noisy{str(noise_scale)}"
+            # TODO: This is a last minute fix
+            if noise_scale == 0.250:
+                noise_scale_str = "0.125"
+            else:
+                noise_scale_str = str(noise_scale)
+            config_name = f"{config_name}-noisy{noise_scale_str}"
             yield config_name, {
                 **api,
                 "noisy_prior": True,
