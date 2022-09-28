@@ -92,6 +92,9 @@ def plot_incumbent(
     max_cost=None,
     plot_default=None,
     plot_optimum=None,
+    plot_rs_10=None,
+    plot_rs_25=None,
+    plot_rs_100=None,
     **plot_kwargs,
 ):
     if isinstance(x, list):
@@ -121,6 +124,18 @@ def plot_incumbent(
     if plot_optimum is not None and plot_optimum < y_mean[0]:
         # plot only if the optimum score is better than the first incumbent plotted
         ax.hlines(y=plot_optimum, xmin=x[0], xmax=x[-1], color="black", linestyle=":")
+
+    if plot_rs_10 is not None and plot_rs_10 < y_mean[0]:
+        # plot only if the optimum score is better than the first incumbent plotted
+        ax.hlines(y=plot_rs_10, xmin=x[0], xmax=x[-1], color="grey", linestyle=":")
+
+    if plot_rs_25 is not None and plot_rs_25 < y_mean[0]:
+        # plot only if the optimum score is better than the first incumbent plotted
+        ax.hlines(y=plot_rs_25, xmin=x[0], xmax=x[-1], color="grey", linestyle="-.")
+
+    if plot_rs_100 is not None and plot_rs_100 < y_mean[0]:
+        # plot only if the optimum score is better than the first incumbent plotted
+        ax.hlines(y=plot_rs_100, xmin=x[0], xmax=x[-1], color="grey", linestyle="--")
 
     ax.fill_between(
         x,
