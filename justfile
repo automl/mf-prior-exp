@@ -11,7 +11,7 @@
     n_workers={{n_workers}}
 
 # Submit job
-@submit algorithms benchmarks seeds="range(1)" experiment_group="test" job_name="default" partition="mldlc_gpu-rtx2080" max_tasks="1000" time="0-23:59" memory="0":
+@submit algorithms benchmarks seeds="range(1)" experiment_group="test" job_name="default" partition="mldlc_gpu-rtx2080" max_tasks="1000" time="0-23:59" memory="0" n_worker="1":
   python -m mf_prior_experiments.submit \
     --experiment_group {{experiment_group}} \
     --max_tasks {{max_tasks}} \
@@ -19,7 +19,8 @@
     --job_name {{job_name}} \
     --partition {{partition}} \
     --memory {{memory}} \
-    --arguments algorithm={{algorithms}} benchmark={{benchmarks}} seed="{{seeds}}" hydra/job_logging=only_file \
+    --n_worker {{n_worker}} \
+    --arguments algorithm={{algorithms}} benchmark={{benchmarks}} n_workers={{n_worker}} seed="{{seeds}}" hydra/job_logging=only_file \
     --exclude "kisexe20,kisexe28,kisexe34"
 
 # Plot job

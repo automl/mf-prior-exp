@@ -50,15 +50,24 @@ def construct_script(args, cluster_oe_dir):
     script.append(f"#SBATCH --error {cluster_oe_dir}/%N_%A_%x_%a.oe")
     script.append(f"#SBATCH --output {cluster_oe_dir}/%N_%A_%x_%a.oe")
     script.append(f"#SBATCH --mem {args.memory}")
+    if args.n_worker > 1:
+        script.append(f"#SBATCH -c {args.n_worker}")
     if args.exclude:
         script.append(f"#SBATCH --exclude {args.exclude}")
     script.append("")
     script.append(argument_string)
     script.append("")
-    script.append(
-        f"python -m mf_prior_experiments.run experiment_group={args.experiment_group} "
-        f"${{ARGS[@]:{len(args.arguments)}*$SLURM_ARRAY_TASK_ID:{len(args.arguments)}}}"
-    )
+    if args.n_worker > 1:
+        script.append(
+            f"srun --ntasks {args.n_worker} --cpus-per-task 1 "
+            f"python -m mf_prior_experiments.run experiment_group={args.experiment_group} "
+            f"${{ARGS[@]:{len(args.arguments)}*$SLURM_ARRAY_TASK_ID:{len(args.arguments)}}}"
+        )
+    else:
+        script.append(
+            f"python -m mf_prior_experiments.run experiment_group={args.experiment_group} "
+            f"${{ARGS[@]:{len(args.arguments)}*$SLURM_ARRAY_TASK_ID:{len(args.arguments)}}}"
+        )
     return "\n".join(script) + "\n"  # type: ignore[assignment]
 
 
@@ -69,6 +78,7 @@ if __name__ == "__main__":
     parser.add_argument("--time", default="0-23:59")
     parser.add_argument("--job_name", default="test")
     parser.add_argument("--memory", default=0, type=int)
+    parser.add_argument("--n_worker", default=1, type=int)
     parser.add_argument("--partition", required=True)
     parser.add_argument("--arguments", nargs="+")
     parser.add_argument(
