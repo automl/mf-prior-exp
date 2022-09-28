@@ -110,7 +110,8 @@ def plot_incumbent(
         y_mean,
         label=ALGORITHMS[algorithm],
         **plot_kwargs,
-        # color=COLOR_MARKER_DICT[algorithm],
+        color=COLOR_MARKER_DICT[algorithm],
+        linestyle="-" if "prior" in algorithm else "--",
         linewidth=0.7,
     )
     if plot_default is not None and plot_default < y_mean[0]:
@@ -119,13 +120,13 @@ def plot_incumbent(
 
     if plot_optimum is not None and plot_optimum < y_mean[0]:
         # plot only if the optimum score is better than the first incumbent plotted
-        ax.hlines(y=plot_optimum, xmin=x[0], xmax=x[-1], color="black", linestyle="--")
+        ax.hlines(y=plot_optimum, xmin=x[0], xmax=x[-1], color="black", linestyle=":")
 
     ax.fill_between(
         x,
         y_mean - std_error,
         y_mean + std_error,
-        # color=COLOR_MARKER_DICT[algorithm],
+        color=COLOR_MARKER_DICT[algorithm],
         alpha=0.2,
     )
 
