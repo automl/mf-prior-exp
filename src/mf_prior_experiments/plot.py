@@ -159,6 +159,63 @@ def plot(args):
         _base_path = os.path.join(base_path, f"benchmark={benchmark}")
         if not os.path.isdir(_base_path):
             raise FileNotFoundError(errno.ENOENT, os.strerror(errno.ENOENT), _base_path)
+
+        if args.dynamic_y_lim:
+            benchmark_y_lim = []
+            for algorithm in ["random_search", "random_search_prior"]:
+                _path = os.path.join(_base_path, f"algorithm={algorithm}")
+                if not os.path.isdir(_path):
+                    raise FileNotFoundError(
+                        errno.ENOENT, os.strerror(errno.ENOENT), _path
+                    )
+                seeds = sorted(os.listdir(_path))
+
+                if args.parallel:
+                    manager = Manager()
+                    results = manager.dict(
+                        incumbents=manager.list(),
+                        costs=manager.list(),
+                        max_costs=manager.list(),
+                    )
+                    with parallel_backend(args.parallel_backend, n_jobs=-1):
+                        Parallel()(
+                            delayed(_process_seed)(
+                                _path,
+                                seed,
+                                algorithm,
+                                KEY_TO_EXTRACT,
+                                args.cost_as_runtime,
+                                results,
+                                args.n_workers,
+                            )
+                            for seed in seeds
+                        )
+
+                else:
+                    results = dict(incumbents=[], costs=[], max_costs=[])
+                    # pylint: disable=expression-not-assigned
+                    [
+                        _process_seed(
+                            _path,
+                            seed,
+                            algorithm,
+                            KEY_TO_EXTRACT,
+                            args.cost_as_runtime,
+                            results,
+                            args.n_workers,
+                        )
+                        for seed in seeds
+                    ]
+
+                benchmark_y_lim.append(
+                    min(
+                        np.stack(
+                            [r[:2] for r in results["incumbents"][:]], axis=1
+                        ).flatten()
+                    )
+                )
+            benchmark_y_lim = max(benchmark_y_lim)
+
         for algorithm in args.algorithms:
             _path = os.path.join(_base_path, f"algorithm={algorithm}")
             if not os.path.isdir(_path):
@@ -206,8 +263,9 @@ def plot(args):
 
             print(f"Time to process algorithm data: {time.time() - algorithm_starttime}")
 
+            ax = map_axs(axs, benchmark_idx, len(args.benchmarks), ncols)
             plot_incumbent(
-                ax=map_axs(axs, benchmark_idx, len(args.benchmarks), ncols),
+                ax=ax,
                 x=results["costs"][:],
                 y=results["incumbents"][:],
                 title=benchmark,
@@ -224,6 +282,8 @@ def plot(args):
                 plot_rs_25=plot_rs_25,
                 plot_rs_100=plot_rs_100,
             )
+            if args.dynamic_y_lim:
+                ax.set_ylim(top=benchmark_y_lim)
 
             print(f"Time to plot algorithm data: {time.time() - algorithm_starttime}")
         print(f"Time to process benchmark data: {time.time() - benchmark_starttime}")
@@ -334,6 +394,14 @@ if __name__ == "__main__":
         default=False,
         action="store_true",
         help="plots a horizontal line for RS at 100x",
+    )
+    parser.add_argument(
+        "--dynamic_y_lim",
+        default=False,
+        action="store_true",
+        help="whether to set y_lim for plots to the worst performance of incumbents"
+        "of random_search and random_search_prior after 2 evals"
+        "(remember to run it first!)",
     )
     parser.add_argument(
         "--parallel",
