@@ -24,7 +24,9 @@ map_axs = (
 )
 
 
-def _process_seed(_path, seed, algorithm, key_to_extract, cost_as_runtime, results):
+def _process_seed(
+    _path, seed, algorithm, key_to_extract, cost_as_runtime, results, n_workers
+):
     print(
         f"[{time.strftime('%H:%M:%S', time.localtime())}] "
         f"[-] [{algorithm}] Processing seed {seed}..."
@@ -32,7 +34,11 @@ def _process_seed(_path, seed, algorithm, key_to_extract, cost_as_runtime, resul
 
     # `algorithm` is passed to calculate continuation costs
     losses, infos, max_cost = get_seed_info(
-        _path, seed, algorithm=algorithm, cost_as_runtime=cost_as_runtime
+        _path,
+        seed,
+        algorithm=algorithm,
+        cost_as_runtime=cost_as_runtime,
+        n_workers=n_workers,
     )
     incumbent = np.minimum.accumulate(losses)
     cost = [i[key_to_extract] for i in infos]
@@ -66,12 +72,12 @@ def plot(args):
             args.benchmarks = [
                 f"jahs_cifar10_prior-{args.which_prior}",
                 f"jahs_fashion_mnist_prior-{args.which_prior}",
-#                f"jahs_colorectal_histology_prior-{args.which_prior}",
+                #                f"jahs_colorectal_histology_prior-{args.which_prior}",
                 f"lcbench-189862_prior-{args.which_prior}",
                 f"lcbench-189866_prior-{args.which_prior}",
                 f"translatewmt_xformer_64_prior-{args.which_prior}",
                 f"lm1b_transformer_2048_prior-{args.which_prior}",
- #               f"uniref50_transformer_prior-{args.which_prior}",
+                #               f"uniref50_transformer_prior-{args.which_prior}",
             ]
         ncols = 4
         figsize = (13.8, 8.3)
@@ -154,6 +160,7 @@ def plot(args):
                             KEY_TO_EXTRACT,
                             args.cost_as_runtime,
                             results,
+                            args.n_workers,
                         )
                         for seed in seeds
                     )
@@ -169,6 +176,7 @@ def plot(args):
                         KEY_TO_EXTRACT,
                         args.cost_as_runtime,
                         results,
+                        args.n_workers,
                     )
                     for seed in seeds
                 ]
@@ -232,6 +240,13 @@ if __name__ == "__main__":
         "--base_path", type=str, default=None, help="path where `results/` exists"
     )
     parser.add_argument("--experiment_group", type=str, default="")
+    parser.add_argument(
+        "--n_workers",
+        type=int,
+        default=1,
+        help="for multiple workers we plot based on end timestamps on "
+        "x-axis (no continuation considered)",
+    )
     parser.add_argument("--benchmarks", nargs="+", default=None)
     parser.add_argument("--algorithms", nargs="+", default=None)
     parser.add_argument("--plot_id", type=str, default="1")

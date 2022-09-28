@@ -120,6 +120,9 @@ def _get_info_neps(path, seed) -> List:
             dict(
                 fidelity=result_yaml.info_dict["fidelity"],
                 cost=result_yaml.info_dict["cost"],
+                start_time=result_yaml.info_dict["start_time"],
+                end_time=result_yaml.info_dict["end_time"],
+                config_id=config_id,
             )
         )
 
@@ -171,7 +174,9 @@ def _get_info_smac(path, seed):
     raise NotImplementedError("SMAC parsing not implemented!")
 
 
-def get_seed_info(path, seed, cost_as_runtime=False, algorithm="random_search"):
+def get_seed_info(
+    path, seed, cost_as_runtime=False, algorithm="random_search", n_workers=1
+):
     """Reads and processes data per seed.
 
     An `algorithm` needs to be passed to calculate continuation costs.
@@ -183,43 +188,51 @@ def get_seed_info(path, seed, cost_as_runtime=False, algorithm="random_search"):
         func = _get_info_neps
     data = func(path, seed)
 
-    key_to_extract = "cost" if cost_as_runtime else "fidelity"
-    # max_cost only relevant for scaling x-axis when using fidelity on the x-axis
-    max_cost = None if cost_as_runtime else 0
-    if algorithm not in SINGLE_FIDELITY_ALGORITHMS:
-        # calculates continuation costs for MF algorithms
-        # NOTE: assumes that all recorded evaluations are black-box evaluations where
-        #   continuations or freeze-thaw was not accounted for during optimization
-        data.reverse()
-        for idx, (data_id, loss, info) in enumerate(data):
-            # `max_cost` tracks the maximum fidelity used for evaluation
-            max_cost = (
-                max(max_cost, info[key_to_extract]) if max_cost is not None else None
-            )
-            for _id, _, _info in data[data.index((data_id, loss, info)) + 1 :]:
-                # if `_` is not found in the string, `split()` returns the original
-                # string and the 0-th element is the string itself, which fits the
-                # config ID format for non-NePS optimizers
-                # MF algos in NePS contain a 2-part ID separated by `_` with the first
-                # element denoting config ID and the second element denoting the rung
-                _subset_idx = 1 if "config" in data_id else 0
-                id_config_id = data_id.split("_")[_subset_idx]
-                _id_config_id = _id.split("_")[_subset_idx]
-                # checking if the base config ID is the same
-                if id_config_id != _id_config_id:
-                    continue
-                # subtracting the immediate lower fidelity cost available from the
-                # current higher fidelity --> continuation cost
-                info[key_to_extract] -= _info[key_to_extract]
-                data[idx] = (data_id, loss, info)
-                break
-        data.reverse()
+    if n_workers == 1:
+        key_to_extract = "cost" if cost_as_runtime else "fidelity"
+        # max_cost only relevant for scaling x-axis when using fidelity on the x-axis
+        max_cost = None if cost_as_runtime else 0
+        if algorithm not in SINGLE_FIDELITY_ALGORITHMS:
+            # calculates continuation costs for MF algorithms
+            # NOTE: assumes that all recorded evaluations are black-box evaluations where
+            #   continuations or freeze-thaw was not accounted for during optimization
+            data.reverse()
+            for idx, (data_id, loss, info) in enumerate(data):
+                # `max_cost` tracks the maximum fidelity used for evaluation
+                max_cost = (
+                    max(max_cost, info[key_to_extract]) if max_cost is not None else None
+                )
+                for _id, _, _info in data[data.index((data_id, loss, info)) + 1 :]:
+                    # if `_` is not found in the string, `split()` returns the original
+                    # string and the 0-th element is the string itself, which fits the
+                    # config ID format for non-NePS optimizers
+                    # MF algos in NePS contain a 2-part ID separated by `_` with the first
+                    # element denoting config ID and the second element denoting the rung
+                    _subset_idx = 1 if "config" in data_id else 0
+                    id_config_id = data_id.split("_")[_subset_idx]
+                    _id_config_id = _id.split("_")[_subset_idx]
+                    # checking if the base config ID is the same
+                    if id_config_id != _id_config_id:
+                        continue
+                    # subtracting the immediate lower fidelity cost available from the
+                    # current higher fidelity --> continuation cost
+                    info[key_to_extract] -= _info[key_to_extract]
+                    data[idx] = (data_id, loss, info)
+                    break
+            data.reverse()
+        else:
+            for idx, (data_id, loss, info) in enumerate(data):
+                # `max_cost` tracks the maximum fidelity used for evaluation
+                max_cost = (
+                    max(max_cost, info[key_to_extract]) if max_cost is not None else None
+                )
     else:
+        global_start = data[0][-1]["start_time"]
+        max_cost = None if cost_as_runtime else 0
         for idx, (data_id, loss, info) in enumerate(data):
-            # `max_cost` tracks the maximum fidelity used for evaluation
-            max_cost = (
-                max(max_cost, info[key_to_extract]) if max_cost is not None else None
-            )
+            info["cost"] = info["end_time"] - global_start
+            max_cost = max(max_cost, info["cost"]) if max_cost is not None else None
+        max_cost += 10
 
     data = [(d[1], d[2]) for d in data]
     losses, infos = zip(*data)
