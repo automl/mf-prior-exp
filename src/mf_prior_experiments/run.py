@@ -2,8 +2,8 @@ import contextlib
 import logging
 import random
 import sys
-from pathlib import Path
 import time
+from pathlib import Path
 from typing import Any
 
 import hydra
@@ -13,6 +13,7 @@ from omegaconf import OmegaConf
 
 logger = logging.getLogger("mf_prior_experiments.run")
 MIN_SLEEP_TIME = 10  # 10s hopefully is enough to simulate wait times for metahyper
+
 
 def _set_seeds(seed):
     random.seed(seed)  # important for NePS optimizers
@@ -48,14 +49,18 @@ def run_hpbandster(args):
                 config[hp_name] = hp.sequence[config[hp_name] - 1]
 
         result = benchmark.query(config, at=int(fidelity))
+        # we need to cast to float here as serpent will break on np.floating that might
+        # come from a benchmark (LCBench)
         return {
-            "loss": result.error,
-            "cost": result.cost,
+            "loss": float(result.error),
+            "cost": float(result.cost),
             "info": {
-                "cost": result.cost,
-                "val_score": result.val_score,
-                "test_score": result.test_score,
-                "fidelity": result.fidelity,
+                "cost": float(result.cost),
+                "val_score": float(result.val_score),
+                "test_score": float(result.test_score),
+                "fidelity": float(result.fidelity)
+                if isinstance(result.fidelity, np.floating)
+                else result.fidelity,
                 # val_error: result.val_error
                 # test_error: result.test_error
             },
