@@ -160,8 +160,9 @@ def plot(args):
         if not os.path.isdir(_base_path):
             raise FileNotFoundError(errno.ENOENT, os.strerror(errno.ENOENT), _base_path)
 
+        y_max = []
+        y_min = None
         if args.dynamic_y_lim:
-            benchmark_y_lim = []
             for algorithm in ["random_search", "random_search_prior"]:
                 _path = os.path.join(_base_path, f"algorithm={algorithm}")
                 if not os.path.isdir(_path):
@@ -207,15 +208,8 @@ def plot(args):
                         for seed in seeds
                     ]
 
-                #benchmark_y_lim.append(
-                #    np.mean(
-                #        np.stack(
-                #            [r[:2] for r in results["incumbents"][:]], axis=1
-                #        ).flatten()
-                #    )
-                #)
-                benchmark_y_lim.extend([min(r[:2]) for r in results["incumbents"][:]])
-            benchmark_y_lim = np.mean(benchmark_y_lim)
+                y_max.extend([min(r[:2]) for r in results["incumbents"][:]])
+            y_max = np.mean(y_max)
 
         for algorithm in args.algorithms:
             _path = os.path.join(_base_path, f"algorithm={algorithm}")
@@ -265,10 +259,19 @@ def plot(args):
             print(f"Time to process algorithm data: {time.time() - algorithm_starttime}")
 
             ax = map_axs(axs, benchmark_idx, len(args.benchmarks), ncols)
+            y = results["incumbents"][:]
+            y_min = min(
+                list(
+                    filter(
+                        None,
+                        [min(min(r) for r in y), y_min, plot_default, plot_optimum],
+                    )
+                )
+            )
             plot_incumbent(
                 ax=ax,
                 x=results["costs"][:],
-                y=results["incumbents"][:],
+                y=y,
                 title=benchmark,
                 xlabel=X_LABEL[args.cost_as_runtime],
                 ylabel=Y_LABEL if benchmark_idx % ncols == 0 else None,
@@ -284,7 +287,9 @@ def plot(args):
                 plot_rs_100=plot_rs_100,
             )
             if args.dynamic_y_lim:
-                ax.set_ylim(top=benchmark_y_lim)
+                plot_offset = 0.05
+                dy = abs(y_max - y_min)
+                ax.set_ylim(y_min - dy * plot_offset, y_max + dy * plot_offset)
             else:
                 ax.set_ylim(auto=True)
 
