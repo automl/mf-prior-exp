@@ -11,9 +11,9 @@ import seaborn as sns
 from attrdict import AttrDict
 from joblib import Parallel, delayed, parallel_backend
 
-from mf_prior_experiments.configs.plotting.read_results import get_seed_info, load_yaml
-from mf_prior_experiments.configs.plotting.styles import X_LABEL, Y_LABEL
-from mf_prior_experiments.configs.plotting.utils import plot_incumbent, save_fig, set_general_plot_style
+from .configs.plotting.read_results import get_seed_info, load_yaml
+from .configs.plotting.styles import X_LABEL, Y_LABEL
+from .configs.plotting.utils import plot_incumbent, save_fig, set_general_plot_style
 
 benchmark_configs_path = os.path.join(os.path.dirname(__file__), "configs/benchmark/")
 
@@ -35,7 +35,7 @@ def _process_seed(
         # `algorithm` is passed to calculate continuation costs
         losses, infos, max_cost = get_seed_info(
             _path,
-             seed,
+            seed,
             algorithm=algorithm,
             cost_as_runtime=cost_as_runtime,
             n_workers=n_workers,
@@ -45,8 +45,10 @@ def _process_seed(
         results["incumbents"].append(incumbent)
         results["costs"].append(cost)
         results["max_costs"].append(max_cost)
-    except:
+    except Exception as e:
+        print(repr(e))
         print(f"Seed {seed} did not work from {_path}/{algorithm}")
+
 
 def plot(args):
 
@@ -270,10 +272,13 @@ def plot(args):
                 y = np.array(y)
 
             from configs.plotting.utils import interpolate_time
-            df = interpolate_time(incumbents=y, costs=x, x_range=args.x_range,
-                                  scale_x=max_cost)
+
+            df = interpolate_time(
+                incumbents=y, costs=x, x_range=args.x_range, scale_x=max_cost
+            )
 
             import pandas as pd
+
             x_max = np.inf if args.x_range is None else int(args.x_range[-1])
             new_entry = {c: np.nan for c in df.columns}
             _df = pd.DataFrame.from_dict(new_entry, orient="index").T
