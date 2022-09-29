@@ -23,10 +23,16 @@ class RandomSearch(BaseOptimizer):
     use_priors = False
     ignore_fidelity = True  # defaults to a black-box setup
 
-    def __init__(self, random_interleave_prob: float = 0.0, **optimizer_kwargs):
+    def __init__(
+        self,
+        random_interleave_prob: float = 0.0,
+        sample_default_first: bool = False,
+        **optimizer_kwargs,
+    ):
         super().__init__(**optimizer_kwargs)
         self.random_interleave_prob = random_interleave_prob
         self._num_previous_configs: int = 0
+        self.sample_default_first = sample_default_first
 
     def load_results(
         self,
@@ -39,11 +45,14 @@ class RandomSearch(BaseOptimizer):
         use_priors = (
             False if random.random() < self.random_interleave_prob else self.use_priors
         )
-        config = self.pipeline_space.sample(
-            patience=self.patience,
-            user_priors=use_priors,
-            ignore_fidelity=self.ignore_fidelity,
-        )
+        if self._num_previous_configs == 0 and self.sample_default_first:
+            config = self.pipeline_space.sample_default_configuration()
+        else:
+            config = self.pipeline_space.sample(
+                patience=self.patience,
+                user_priors=use_priors,
+                ignore_fidelity=self.ignore_fidelity,
+            )
         config_id = str(self._num_previous_configs + 1)
         return config.hp_values(), config_id, None
 
