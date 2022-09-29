@@ -31,21 +31,22 @@ def _process_seed(
         f"[{time.strftime('%H:%M:%S', time.localtime())}] "
         f"[-] [{algorithm}] Processing seed {seed}..."
     )
-
-    # `algorithm` is passed to calculate continuation costs
-    losses, infos, max_cost = get_seed_info(
-        _path,
-        seed,
-        algorithm=algorithm,
-        cost_as_runtime=cost_as_runtime,
-        n_workers=n_workers,
-    )
-    incumbent = np.minimum.accumulate(losses)
-    cost = [i[key_to_extract] for i in infos]
-    results["incumbents"].append(incumbent)
-    results["costs"].append(cost)
-    results["max_costs"].append(max_cost)
-
+    try:
+        # `algorithm` is passed to calculate continuation costs
+        losses, infos, max_cost = get_seed_info(
+            _path,
+             seed,
+            algorithm=algorithm,
+            cost_as_runtime=cost_as_runtime,
+            n_workers=n_workers,
+        )
+        incumbent = np.minimum.accumulate(losses)
+        cost = [i[key_to_extract] for i in infos]
+        results["incumbents"].append(incumbent)
+        results["costs"].append(cost)
+        results["max_costs"].append(max_cost)
+    except:
+        print(f"Seed {seed} did not work from {_path}/{algorithm}")
 
 def plot(args):
 
