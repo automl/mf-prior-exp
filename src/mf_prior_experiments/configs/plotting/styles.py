@@ -11,6 +11,7 @@ Y_LABEL = "Error"
 ALGORITHMS = {
     "random_search": "RS",
     "random_search_prior": "RS+Prior",
+    "random_search_prior-default-first": "RS+Prior",
     "random_search_prior-30": "RS+Prior(30%)",
     "random_search_prior-50": "RS+Prior(50%)",
     "random_search_prior_conf-high": "RS+Prior (high)",
@@ -26,6 +27,7 @@ ALGORITHMS = {
     "successive_halving_prior_conf-ultra": "SH+Prior (ultra)",
     "hpbandster": "HpBandSter",
     "hyperband": "HB",
+    "hyperband_prior-default-first": "HB+Prior",
     "hyperband_prior": "HB+Prior",
     "hyperband_prior-30": "HB+Prior(30%)",
     "hyperband_prior-50": "HB+Prior(50%)",
@@ -83,6 +85,7 @@ ALGORITHMS = {
     "ours_v5_2_v4": "V5_2_v4",
     "ours_v5_2_v4_conf-high": "V5_2_v4 (high)",
     "pibo": "\u03C0BO",
+    "pibo-default-first": "\u03C0BO",
     "ours_v6": "v6",
     "ours_v6_v5": "v6_v5",
     "ours_v6_v5_2": "v6_v5_2",
