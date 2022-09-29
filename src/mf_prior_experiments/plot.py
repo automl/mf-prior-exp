@@ -207,14 +207,15 @@ def plot(args):
                         for seed in seeds
                     ]
 
-                benchmark_y_lim.append(
-                    np.mean(
-                        np.stack(
-                            [r[:2] for r in results["incumbents"][:]], axis=1
-                        ).flatten()
-                    )
-                )
-            benchmark_y_lim = max(benchmark_y_lim)
+                #benchmark_y_lim.append(
+                #    np.mean(
+                #        np.stack(
+                #            [r[:2] for r in results["incumbents"][:]], axis=1
+                #        ).flatten()
+                #    )
+                #)
+                benchmark_y_lim.extend([min(r[:2]) for r in results["incumbents"][:]])
+            benchmark_y_lim = np.mean(benchmark_y_lim)
 
         for algorithm in args.algorithms:
             _path = os.path.join(_base_path, f"algorithm={algorithm}")
@@ -284,6 +285,8 @@ def plot(args):
             )
             if args.dynamic_y_lim:
                 ax.set_ylim(top=benchmark_y_lim)
+            else:
+                ax.set_ylim(auto=True)
 
             print(f"Time to plot algorithm data: {time.time() - algorithm_starttime}")
         print(f"Time to process benchmark data: {time.time() - benchmark_starttime}")

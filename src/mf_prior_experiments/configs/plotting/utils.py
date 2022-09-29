@@ -146,7 +146,7 @@ def plot_incumbent(
     )
 
     ax.set_xlim(auto=True)
-    ax.set_ylim(auto=True)
+    #ax.set_ylim(auto=True)
 
     if title is not None:
         ax.set_title(DATASETS[title])
