@@ -80,8 +80,9 @@ def interpolate_time(incumbents, costs, x_range=None, scale_x=None):
 
 def plot_incumbent(
     ax,
-    x,
-    y,
+    df,
+    # x,
+    # y,
     xlabel=None,
     ylabel=None,
     title=None,
@@ -89,7 +90,7 @@ def plot_incumbent(
     log_x=False,
     log_y=False,
     x_range=None,
-    max_cost=None,
+    # max_cost=None,
     plot_default=None,
     plot_optimum=None,
     plot_rs_10=None,
@@ -97,12 +98,12 @@ def plot_incumbent(
     plot_rs_100=None,
     **plot_kwargs,
 ):
-    if isinstance(x, list):
-        x = np.array(x)
-    if isinstance(y, list):
-        y = np.array(y)
+    # if isinstance(x, list):
+    #     x = np.array(x)
+    # if isinstance(y, list):
+    #     y = np.array(y)
 
-    df = interpolate_time(incumbents=y, costs=x, x_range=x_range, scale_x=max_cost)
+    # df = interpolate_time(incumbents=y, costs=x, x_range=x_range, scale_x=max_cost)
 
     x = df.index
     y_mean = df.mean(axis=1).values

@@ -11,9 +11,9 @@ import seaborn as sns
 from attrdict import AttrDict
 from joblib import Parallel, delayed, parallel_backend
 
-from .configs.plotting.read_results import get_seed_info, load_yaml
-from .configs.plotting.styles import X_LABEL, Y_LABEL
-from .configs.plotting.utils import plot_incumbent, save_fig, set_general_plot_style
+from mf_prior_experiments.configs.plotting.read_results import get_seed_info, load_yaml
+from mf_prior_experiments.configs.plotting.styles import X_LABEL, Y_LABEL
+from mf_prior_experiments.configs.plotting.utils import plot_incumbent, save_fig, set_general_plot_style
 
 benchmark_configs_path = os.path.join(os.path.dirname(__file__), "configs/benchmark/")
 
@@ -260,14 +260,33 @@ def plot(args):
             print(f"Time to process algorithm data: {time.time() - algorithm_starttime}")
 
             ax = map_axs(axs, benchmark_idx, len(args.benchmarks), ncols)
+            x = results["costs"][:]
             y = results["incumbents"][:]
-            x_max = -1 if args.x_range is None else int(args.x_range[-1])
+            max_cost = None if args.cost_as_runtime else max(results["max_costs"][:])
+
+            if isinstance(x, list):
+                x = np.array(x)
+            if isinstance(y, list):
+                y = np.array(y)
+
+            from configs.plotting.utils import interpolate_time
+            df = interpolate_time(incumbents=y, costs=x, x_range=args.x_range,
+                                  scale_x=max_cost)
+
+            import pandas as pd
+            x_max = np.inf if args.x_range is None else int(args.x_range[-1])
+            new_entry = {c: np.nan for c in df.columns}
+            _df = pd.DataFrame.from_dict(new_entry, orient="index").T
+            _df.index = [x_max]
+            df = pd.concat((df, _df)).sort_index()
+            df = df.fillna(method="backfill", axis=0).fillna(method="ffill", axis=0)
+
             y_min = min(
                 list(
                     filter(
                         None,
                         [
-                            np.mean(min(r[:x_max][-1] for r in y)),
+                            np.mean(df.query(f"index <= {x_max}").values[-1]),
                             y_min,
                             plot_default,
                             plot_optimum,
@@ -277,8 +296,9 @@ def plot(args):
             )
             plot_incumbent(
                 ax=ax,
-                x=results["costs"][:],
-                y=y,
+                # x=x,
+                # y=y,
+                df=df,
                 title=benchmark,
                 xlabel=X_LABEL[args.cost_as_runtime],
                 ylabel=Y_LABEL if benchmark_idx % ncols == 0 else None,
@@ -286,7 +306,7 @@ def plot(args):
                 log_x=args.log_x,
                 log_y=args.log_y,
                 x_range=args.x_range,
-                max_cost=None if args.cost_as_runtime else max(results["max_costs"][:]),
+                # max_cost=max_cost,
                 plot_default=plot_default,
                 plot_optimum=plot_optimum,
                 plot_rs_10=plot_rs_10,
@@ -294,7 +314,7 @@ def plot(args):
                 plot_rs_100=plot_rs_100,
             )
             if args.dynamic_y_lim:
-                plot_offset = 0.05
+                plot_offset = 0.15
                 dy = abs(y_max - y_min)
                 ax.set_ylim(y_min - dy * plot_offset, y_max + dy * plot_offset)
             else:
