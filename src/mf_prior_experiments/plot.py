@@ -260,11 +260,17 @@ def plot(args):
 
             ax = map_axs(axs, benchmark_idx, len(args.benchmarks), ncols)
             y = results["incumbents"][:]
+            x_max = -1 if args.x_range is None else int(args.x_range[-1])
             y_min = min(
                 list(
                     filter(
                         None,
-                        [min(min(r) for r in y), y_min, plot_default, plot_optimum],
+                        [
+                            np.mean(min(r[:x_max][-1] for r in y)),
+                            y_min,
+                            plot_default,
+                            plot_optimum,
+                        ],
                     )
                 )
             )
