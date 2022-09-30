@@ -183,6 +183,7 @@ COLOR_MARKER_DICT = {
     "hyperband_prior": "darkgreen",
     "hyperband_prior-default-first": "darkgreen",
     "pibo": "violet",
+    "pibo-default-first": "violet",
     "raceband": "indigo",
     "random_search": "palevioletred",
     "random_search_prior": "magenta",
