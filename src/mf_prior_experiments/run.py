@@ -142,7 +142,10 @@ def run_neps(args):
 
     def run_pipeline(**config: Any) -> dict:
         start = time.time()
-        fidelity = config.pop(benchmark.fidelity_name)
+        if benchmark.fidelity_name in config:
+            fidelity = config.pop(benchmark.fidelity_name)
+        else:
+            fidelity = benchmark.fidelity_range[1]
         result = benchmark.query(config, at=fidelity)
         if args.n_workers > 1:
             # time.sleep(3)
@@ -166,14 +169,20 @@ def run_neps(args):
     lower, upper, _ = benchmark.fidelity_range
     fidelity_name = benchmark.fidelity_name
 
-    if isinstance(lower, float):
-        fidelity_param = neps.FloatParameter(lower=lower, upper=upper, is_fidelity=True)
-    else:
-        fidelity_param = neps.IntegerParameter(lower=lower, upper=upper, is_fidelity=True)
-
-    pipeline_space = {"search_space": benchmark.space, fidelity_name: fidelity_param}
+    pipeline_space = {"search_space": benchmark.space}
+    if args.algorithm.mf:
+        if isinstance(lower, float):
+            fidelity_param = neps.FloatParameter(
+                lower=lower, upper=upper, is_fidelity=True
+            )
+        else:
+            fidelity_param = neps.IntegerParameter(
+                lower=lower, upper=upper, is_fidelity=True
+            )
+        pipeline_space = {**pipeline_space, **{fidelity_name: fidelity_param}}
+        logger.info(f"Using fidelity space: \n {fidelity_param}")
+    # pipeline_space = {"search_space": benchmark.space, fidelity_name: fidelity_param}
     logger.info(f"Using search space: \n {pipeline_space}")
-    logger.info(f"Using fidelity space: \n {fidelity_param}")
 
     # TODO: could we pass budget per benchmark
     # if "budget" in args.benchmark:
