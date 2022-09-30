@@ -13,8 +13,12 @@ from joblib import Parallel, delayed, parallel_backend
 
 from .configs.plotting.read_results import get_seed_info, load_yaml
 from .configs.plotting.styles import X_LABEL, Y_LABEL
-from .configs.plotting.utils import plot_incumbent, save_fig, set_general_plot_style
-from .configs.plotting.utils import interpolate_time
+from .configs.plotting.utils import (
+    interpolate_time,
+    plot_incumbent,
+    save_fig,
+    set_general_plot_style,
+)
 
 benchmark_configs_path = os.path.join(os.path.dirname(__file__), "configs/benchmark/")
 
@@ -163,6 +167,31 @@ def plot(args):
         _base_path = os.path.join(base_path, f"benchmark={benchmark}")
         if not os.path.isdir(_base_path):
             raise FileNotFoundError(errno.ENOENT, os.strerror(errno.ENOENT), _base_path)
+
+        # Due to an error, if we have negative "classification errors", then we correct
+        # them to be what they should be.
+        #
+        # acc = 95
+        # error_version = 1 - 95 = 94   <- accidentally took acc away from 1
+        # corrected_version = 100 - 95 = 5   <- Corrected version
+        jahs_benchmarks = [
+            "jahs_fashion_mnist",
+            "jahs_cifar10",
+            "jahs_colorectal_histology",
+        ]
+        print(benchmark)
+        if any(benchmark.startswith(b) for b in jahs_benchmarks):
+            # correct_loss(-94) = 5, correct_loss(0.95) = 0.95, correct_loss(None) = None
+            correct_loss = (
+                lambda l: (100 + l - 1) if (l is not None and l < 0) else None
+            )  # noqa
+            print(plot_default)
+            plot_default = correct_loss(plot_default)
+            print(plot_default)
+            plot_optimum = correct_loss(plot_optimum)
+            plot_rs_10 = correct_loss(plot_rs_10)
+            plot_rs_25 = correct_loss(plot_rs_25)
+            plot_rs_100 = correct_loss(plot_rs_100)
 
         y_max = []
         y_min = None
