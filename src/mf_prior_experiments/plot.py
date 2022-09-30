@@ -167,7 +167,7 @@ def plot(args):
         y_max = []
         y_min = None
         if args.dynamic_y_lim:
-            for algorithm in ["random_search", "random_search_prior"]:
+            for algorithm in ["random_search", "random_search_prior-default-first"]:
                 _path = os.path.join(_base_path, f"algorithm={algorithm}")
                 if not os.path.isdir(_path):
                     raise FileNotFoundError(
