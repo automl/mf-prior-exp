@@ -178,7 +178,7 @@ DATASETS = {
 
 # https://matplotlib.org/stable/gallery/color/named_colors.html
 COLOR_MARKER_DICT = {
-    "bo": "darkgoldenred",
+    "bo": "darkgoldenrod",
     "bohb": "darkcyan",
     "hyperband": "limegreen",
     "hyperband_prior": "darkgreen",
