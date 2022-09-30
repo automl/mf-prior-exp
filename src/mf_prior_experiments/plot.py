@@ -72,8 +72,10 @@ def plot(args):
     if args.research_question == 1:
         ncols = 1 if len(args.benchmarks) == 1 else 2
         ncol_map = lambda n: 1 if n == 1 else (2 if n == 2 else int(np.ceil(n / 2)))
-        ncol = ncol_map(len(args.algorithms))
-        bbox_to_anchor = (0.5, -0.1)
+        ncol = len(args.algorithms)
+        ncol += 1 if args.plot_default is not None else 0
+        ncol += 1 if args.plot_optimum is not None else 0
+        bbox_to_anchor = (0.5, -0.2)
     elif args.research_question == 2:
         if args.benchmarks is None:
             args.benchmarks = [
@@ -88,7 +90,9 @@ def plot(args):
             ]
         ncols = 4
         ncol = len(args.algorithms)
-        bbox_to_anchor = (0.5, -0.05 * (ncols // 2))
+        ncol += 1 if args.plot_default is not None else 0
+        ncol += 1 if args.plot_optimum is not None else 0
+        bbox_to_anchor = (0.5, -0.2)
     else:
         raise ValueError("Plotting works only for RQ1 and RQ2.")
     nrows = np.ceil(len(args.benchmarks) / ncols).astype(int)
@@ -167,31 +171,6 @@ def plot(args):
         _base_path = os.path.join(base_path, f"benchmark={benchmark}")
         if not os.path.isdir(_base_path):
             raise FileNotFoundError(errno.ENOENT, os.strerror(errno.ENOENT), _base_path)
-
-        # Due to an error, if we have negative "classification errors", then we correct
-        # them to be what they should be.
-        #
-        # acc = 95
-        # error_version = 1 - 95 = 94   <- accidentally took acc away from 1
-        # corrected_version = 100 - 95 = 5   <- Corrected version
-        jahs_benchmarks = [
-            "jahs_fashion_mnist",
-            "jahs_cifar10",
-            "jahs_colorectal_histology",
-        ]
-        print(benchmark)
-        if any(benchmark.startswith(b) for b in jahs_benchmarks):
-            # correct_loss(-94) = 5, correct_loss(0.95) = 0.95, correct_loss(None) = None
-            correct_loss = (
-                lambda l: (100 + l - 1) if (l is not None and l < 0) else None
-            )  # noqa
-            print(plot_default)
-            plot_default = correct_loss(plot_default)
-            print(plot_default)
-            plot_optimum = correct_loss(plot_optimum)
-            plot_rs_10 = correct_loss(plot_rs_10)
-            plot_rs_25 = correct_loss(plot_rs_25)
-            plot_rs_100 = correct_loss(plot_rs_100)
 
         y_max = []
         y_min = None
@@ -327,14 +306,16 @@ def plot(args):
                     )
                 )
             )
+            is_last_row = lambda idx: idx >= (nrows - 1) * ncols
+            is_first_column = lambda idx: benchmark_idx % ncols == 0
             plot_incumbent(
                 ax=ax,
                 # x=x,
                 # y=y,
                 df=df,
                 title=benchmark,
-                xlabel=X_LABEL[args.cost_as_runtime],
-                ylabel=Y_LABEL if benchmark_idx % ncols == 0 else None,
+                xlabel=X_LABEL[args.cost_as_runtime] if is_last_row(benchmark_idx) else None,
+                ylabel=Y_LABEL if is_first_column(benchmark_idx) else None,
                 algorithm=algorithm,
                 log_x=args.log_x,
                 log_y=args.log_y,
@@ -345,11 +326,15 @@ def plot(args):
                 plot_rs_10=plot_rs_10,
                 plot_rs_25=plot_rs_25,
                 plot_rs_100=plot_rs_100,
+                force_prior_line="good" in benchmark
             )
             if args.dynamic_y_lim:
                 plot_offset = 0.15
                 dy = abs(y_max - y_min)
                 ax.set_ylim(y_min - dy * plot_offset, y_max + dy * plot_offset)
+            elif "jahs_colorectal_histology" in benchmark:
+                # EDIT THIS IF JAHS COLORECTAL CHANGES
+                ax.set_ylim(bottom=4.5, top=8)
             else:
                 ax.set_ylim(auto=True)
 
@@ -362,14 +347,32 @@ def plot(args):
         axs, 0, len(args.benchmarks), ncols
     ).get_legend_handles_labels()
 
-    fig.legend(
-        handles,
-        labels,
+    handles_to_plot, labels_to_plot = [], []
+    handles_default, labels_default = [], []
+    for h, l in zip(handles, labels):
+        if l not in (labels_to_plot):
+            if l.lower() in ["mode", "optimum"]:
+                handles_default.append(h)
+                labels_default.append(l)
+            else:
+                handles_to_plot.append(h)
+                labels_to_plot.append(l)
+
+    handles_to_plot += handles_default
+    labels_to_plot += labels_default
+
+    leg = fig.legend(
+        handles_to_plot,
+        labels_to_plot,
+        fontsize="xx-large",
         loc="lower center",
         bbox_to_anchor=bbox_to_anchor,
         ncol=ncol,
         frameon=True,
     )
+    for legend_item in leg.legendHandles:
+        legend_item.set_linewidth(2.0)
+
     fig.tight_layout(pad=0, h_pad=0.5)
 
     filename = args.filename

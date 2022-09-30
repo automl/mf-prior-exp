@@ -247,15 +247,4 @@ def get_seed_info(
     data = [(d[1], d[2]) for d in data]
     losses, infos = zip(*data)
 
-    # Due to an error, if we have negative "classification errors", then we correct
-    # them to be what they should be.
-    #
-    # acc = 95
-    # error_version = 1 - 95 = 94   <- accidentally took acc away from 1
-    # corrected_version = 100 - 95 = 5   <- Corrected version
-    jahs_benchmarks = ["jahs_fashion_mnist", "jahs_cifar10", "jahs_colorectal_histology"]
-    if any(b in str(path) for b in jahs_benchmarks):
-        if any(loss < 0 for loss in losses):
-            losses = [100 + loss - 1 for loss in losses]
-
     return list(losses), list(infos), max_cost
