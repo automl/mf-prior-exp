@@ -7,3 +7,4 @@ searcher:
   _target_: neps.optimizers.BayesianOptimization
   disable_priors: False
   sample_default_first: True
+  initial_design_size: 5  # specific to the 10x setting
