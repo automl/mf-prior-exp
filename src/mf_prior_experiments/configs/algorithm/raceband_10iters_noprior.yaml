@@ -9,3 +9,5 @@ searcher:
   use_priors: false
   sampling_kwargs:
     use_sobol: false
+  promotion_kwargs:
+    promotion_type: random

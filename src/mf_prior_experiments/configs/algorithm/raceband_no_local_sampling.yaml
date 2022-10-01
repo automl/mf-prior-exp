@@ -7,3 +7,5 @@ searcher:
   _target_: neps.optimizers.multi_fidelity_prior.raceband.RaceBand
   sampling_kwargs:
     sample_local: false
+  promotion_kwargs:
+    promotion_type: global
