@@ -75,7 +75,6 @@ def plot(args):
         ncol = len(args.algorithms)
         ncol += 1 if args.plot_default is not None else 0
         ncol += 1 if args.plot_optimum is not None else 0
-        bbox_to_anchor = (0.5, -0.2)
     elif args.research_question == 2:
         if args.benchmarks is None:
             args.benchmarks = [
@@ -92,10 +91,20 @@ def plot(args):
         ncol = len(args.algorithms)
         ncol += 1 if args.plot_default is not None else 0
         ncol += 1 if args.plot_optimum is not None else 0
-        bbox_to_anchor = (0.5, -0.2)
     else:
         raise ValueError("Plotting works only for RQ1 and RQ2.")
     nrows = np.ceil(len(args.benchmarks) / ncols).astype(int)
+    print("===============")
+    print(nrows)
+    print("===============")
+    bbox_y_mapping = {
+        1: -0.20,
+        2: -0.11,
+        3: -0.07,
+        4: -0.05,
+        5: -0.04,
+    }
+    bbox_to_anchor = (0.5, bbox_y_mapping[nrows])
     figsize = (4 * ncols, 3 * nrows)
 
     fig, axs = plt.subplots(
@@ -350,7 +359,7 @@ def plot(args):
     handles_to_plot, labels_to_plot = [], []
     handles_default, labels_default = [], []
     for h, l in zip(handles, labels):
-        if l not in (labels_to_plot):
+        if l not in (labels_to_plot + labels_default):
             if l.lower() in ["mode", "optimum"]:
                 handles_default.append(h)
                 labels_default.append(l)
@@ -358,8 +367,8 @@ def plot(args):
                 handles_to_plot.append(h)
                 labels_to_plot.append(l)
 
-    handles_to_plot += handles_default
-    labels_to_plot += labels_default
+    handles_to_plot = handles_default + handles_to_plot
+    labels_to_plot = labels_default + labels_to_plot
 
     leg = fig.legend(
         handles_to_plot,
@@ -370,6 +379,7 @@ def plot(args):
         ncol=ncol,
         frameon=True,
     )
+
     for legend_item in leg.legendHandles:
         legend_item.set_linewidth(2.0)
 

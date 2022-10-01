@@ -156,11 +156,11 @@ def plot_incumbent(
     #ax.set_ylim(auto=True)
 
     if title is not None:
-        ax.set_title(DATASETS[title])
+        ax.set_title(DATASETS[title], fontsize="xx-large")
     if xlabel is not None:
-        ax.set_xlabel(xlabel, fontsize="large")
+        ax.set_xlabel(xlabel, fontsize="xx-large", color=(0, 0, 0, 0.69))
     if ylabel is not None:
-        ax.set_ylabel(ylabel, fontsize="large")
+        ax.set_ylabel(ylabel, fontsize="xx-large", color=(0, 0, 0, 0.69))
     if log_x:
         ax.set_xscale("log")
     if log_y:
