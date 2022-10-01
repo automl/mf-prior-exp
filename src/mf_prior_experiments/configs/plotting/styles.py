@@ -1,6 +1,6 @@
 X_LABEL = dict(
     {
-        False: "Full function evaluation(s)",  # if `cost_as_runtime` is False
+        False: "Full trainings",  # if `cost_as_runtime` is False
         True: "Runtime [s]",
     }
 )
@@ -185,7 +185,6 @@ COLOR_MARKER_DICT = {
     "hyperband_prior-default-first": "darkgreen",
     "pibo": "firebrick",
     "pibo-default-first": "firebrick",
-
     "raceband": "indigo",
     "random_search": "palevioletred",
     "random_search_prior": "magenta",
@@ -218,13 +217,11 @@ COLOR_MARKER_DICT = {
     "raceband_5iters": "orange",
     "raceband_10iters": "orange",
     "raceband_10iters_default": "black",
-
     "raceband_10iters_noprior": "darkturquoise",
     "raceband_no_local_promotion": "mediumvioletred",
     "raceband_no_local_anything": "mediumvioletred",
     "raceband_10iters_random": "chocolate",
     "raceband_10iters_random_sparse": "blue",
-
     "racebandv2": "orange",
     "ours_v2": "olivedrab",
     "ours_v2_2": "lime",

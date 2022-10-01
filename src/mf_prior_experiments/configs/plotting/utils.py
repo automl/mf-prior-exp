@@ -121,12 +121,27 @@ def plot_incumbent(
     )
     if force_prior_line or (plot_default is not None and plot_default < y_mean[0]):
         # plot only if the default score is better than the first incumbent plotted
-        ax.plot(x, [plot_default] * len(x), color="black", linestyle=":", linewidth=1.0, dashes=(5, 10), label="Mode")
-        #ax.hlines(y=plot_default, xmin=x[0], xmax=x[-1], color="black")
+        ax.plot(
+            x,
+            [plot_default] * len(x),
+            color="black",
+            linestyle=":",
+            linewidth=1.0,
+            dashes=(5, 10),
+            label="Mode",
+        )
+        # ax.hlines(y=plot_default, xmin=x[0], xmax=x[-1], color="black")
 
     if plot_optimum is not None and plot_optimum < y_mean[0]:
         # plot only if the optimum score is better than the first incumbent plotted
-        ax.plot(x, [plot_optimum] * len(x), color="black", linestyle="-.", linewidth=1.2, label="Optimum")
+        ax.plot(
+            x,
+            [plot_optimum] * len(x),
+            color="black",
+            linestyle="-.",
+            linewidth=1.2,
+            label="Optimum",
+        )
         # ax.hlines(y=plot_optimum, xmin=x[0], xmax=x[-1], color="black", linestyle=":")
 
     if plot_rs_10 is not None and plot_rs_10 < y_mean[0]:
@@ -137,12 +152,12 @@ def plot_incumbent(
     if plot_rs_25 is not None and plot_rs_25 < y_mean[0]:
         # plot only if the optimum score is better than the first incumbent plotted
         ax.plot(x, [plot_rs_25] * len(x), color="grey", linestyle="-.", label="RS@25")
-        #ax.hlines(y=plot_rs_25, xmin=x[0], xmax=x[-1], color="grey", linestyle="-.")
+        # ax.hlines(y=plot_rs_25, xmin=x[0], xmax=x[-1], color="grey", linestyle="-.")
 
     if plot_rs_100 is not None and plot_rs_100 < y_mean[0]:
         # plot only if the optimum score is better than the first incumbent plotted
         ax.plot(x, [plot_rs_100] * len(x), color="grey", linestyle="--", label="RS@100")
-        #ax.hlines(y=plot_rs_100, xmin=x[0], xmax=x[-1], color="grey", linestyle="--")
+        # ax.hlines(y=plot_rs_100, xmin=x[0], xmax=x[-1], color="grey", linestyle="--")
 
     ax.fill_between(
         x,
@@ -153,14 +168,14 @@ def plot_incumbent(
     )
 
     ax.set_xlim(auto=True)
-    #ax.set_ylim(auto=True)
+    # ax.set_ylim(auto=True)
 
     if title is not None:
-        ax.set_title(DATASETS[title], fontsize="xx-large")
+        ax.set_title(DATASETS[title], fontsize=20)
     if xlabel is not None:
-        ax.set_xlabel(xlabel, fontsize="xx-large", color=(0, 0, 0, 0.69))
+        ax.set_xlabel(xlabel, fontsize=18, color=(0, 0, 0, 0.69))
     if ylabel is not None:
-        ax.set_ylabel(ylabel, fontsize="xx-large", color=(0, 0, 0, 0.69))
+        ax.set_ylabel(ylabel, fontsize=18, color=(0, 0, 0, 0.69))
     if log_x:
         ax.set_xscale("log")
     if log_y:
@@ -172,5 +187,5 @@ def plot_incumbent(
             ax.set_xticks([1, 3, 5, 10, 12], [1, 3, 5, 10, 12])
 
     # Black with some alpha
-    ax.tick_params(axis="both", which="major", labelsize="large", labelcolor=(0, 0, 0, 0.69))
+    ax.tick_params(axis="both", which="major", labelsize=18, labelcolor=(0, 0, 0, 0.69))
     ax.grid(True, which="both", ls="-", alpha=0.8)
