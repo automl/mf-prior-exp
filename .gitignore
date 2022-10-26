@@ -31,3 +31,13 @@ tables
 
 # Unused by project
 .flake8
+
+# Rogue files
+benchmarks.txt
+failed.pkl
+failed.txt
+find_empty_runs.py
+find_empty_runs_backup.py
+find_empty_runs_custom.py
+prior_overlap_plots/logs/
+test_if_mfpbench_is_broken.py

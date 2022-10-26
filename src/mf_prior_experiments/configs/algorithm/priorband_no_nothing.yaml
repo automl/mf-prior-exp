@@ -1,11 +1,10 @@
-name: raceband_no_local_sampling
+name: priorband_no_nothing
 mf: true
 run_function:
   _target_: mf_prior_experiments.run.run_neps
 searcher:
   _partial_: true  # To not instantiate the class directly as required by neps
   _target_: neps.optimizers.multi_fidelity_prior.raceband.RaceBand
-  sampling_kwargs:
+  use_priors: false
+  sampling_kwargs: 
     sample_local: false
-  promotion_kwargs:
-    promotion_type: global
