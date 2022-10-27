@@ -1,4 +1,6 @@
 # MF + Priors
+Experiments for the paper (TODO: link).
+
 
 ## Installation
 
@@ -6,13 +8,16 @@
 
 ```bash
 git clone --recursive https://github.com/automl/mf-prior-exp.git
+
+# To use the version used for the paper
+git clone --branch "vPaper-PriorBand" --recursive https://github.com/automl/mf-prior-exp.git
 ```
 
 ### 2. Conda, Poetry, Package, Pre-Commit
 
 To setup tooling and install the package, follow [this documentation](https://automl.github.io/neps/0.5.1/contributing/installation/) using the environment name of your choice.
 
-**NOTE**: NePS requires Python version \<3.8 so consider creating an environment with `conda create -n mf-prior python=3.7.12`
+**NOTE**: The version used for the paper `vPaper-PriorBand` requires an older version of `NePS` which requires Python version \<3.8 so consider creating an environment with `conda create -n mf-prior python=3.7.12`
 
 ### 3. Just
 
