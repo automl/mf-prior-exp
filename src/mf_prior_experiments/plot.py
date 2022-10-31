@@ -412,7 +412,7 @@ if __name__ == "__main__":
         type=int,
         default=1,
         help="for multiple workers we plot based on end timestamps on "
-        "x-axis (no continuation considered)",
+        "x-axis (no continuation considered); any value > 1 is adequate",
     )
     parser.add_argument("--benchmarks", nargs="+", default=None)
     parser.add_argument("--algorithms", nargs="+", default=None)

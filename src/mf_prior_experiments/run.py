@@ -148,8 +148,8 @@ def run_neps(args):
             fidelity = benchmark.fidelity_range[1]
         result = benchmark.query(config, at=fidelity)
         if args.n_workers > 1:
-            # time.sleep(3)
-            time.sleep(fidelity + MIN_SLEEP_TIME)
+            # essential step to simulate speed-up
+            time.sleep(fidelity + 2)  #MIN_SLEEP_TIME)
         end = time.time()
         return {
             "loss": result.error,
@@ -204,7 +204,7 @@ def run_neps(args):
         # **budget_args,
         max_evaluations_total=max_evaluations_total,
         searcher=hydra.utils.instantiate(args.algorithm.searcher, _partial_=True),
-        overwrite_working_directory=True,   # MAKE SURE COMMENTED WHEN PUSHING
+        # overwrite_working_directory=True,   # MAKE SURE COMMENTED WHEN PUSHING
     )
 
 
