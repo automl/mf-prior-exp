@@ -11,9 +11,9 @@ import seaborn as sns
 from attrdict import AttrDict
 from joblib import Parallel, delayed, parallel_backend
 
-from .configs.plotting.read_results import get_seed_info, load_yaml
-from .configs.plotting.styles import X_LABEL, Y_LABEL
-from .configs.plotting.utils import (
+from mf_prior_experiments.configs.plotting.read_results import get_seed_info, load_yaml
+from mf_prior_experiments.configs.plotting.styles import X_LABEL, Y_LABEL
+from mf_prior_experiments.configs.plotting.utils import (
     interpolate_time,
     plot_incumbent,
     save_fig,
