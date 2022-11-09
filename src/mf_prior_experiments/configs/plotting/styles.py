@@ -211,7 +211,7 @@ COLOR_MARKER_DICT = {
     "asha_prior-default-first": "magenta",
     "asha_priorband": "palevioletred",
     "asha_prior-50": "palevioletred",
-    "asha_hyperband": "lightyellow",
+    "asha_hyperband": "peru",
     "asha_hyperband_prior": "yellow",
     "asha_hyperband_prior-default-first": "khaki",
     "asha_hb_priorband": "palevioletred",
