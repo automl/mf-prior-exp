@@ -91,6 +91,8 @@ ALGORITHMS = {
     "ours_v6_v5_2": "v6_v5_2",
     "ours_v6_v5_3": "v6_v5_3",
     "hb_priorband": "HB-PriorBand",
+    "hb_priorband_gaussian": "HB-PriorBand (G)",
+    "hb_priorband_custom": "HB-PriorBand (1/3)",
     "asha_priorband": "ASHA-PriorBand",
     "asha_hb_priorband": "ASHA-HB-PriorBand",
 }
@@ -186,6 +188,8 @@ COLOR_MARKER_DICT = {
     "hyperband_prior": "darkgreen",
     "hyperband_prior-default-first": "darkgreen",
     "hb_priorband": "cornflowerblue",
+    "hb_priorband_gaussian": "seagreen",
+    "hb_priorband_custom": "teal",
     "pibo": "firebrick",
     "pibo-default-first": "firebrick",
     "raceband": "indigo",
