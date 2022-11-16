@@ -10,7 +10,7 @@ Experiments for the paper (TODO: link).
 git clone --recursive https://github.com/automl/mf-prior-exp.git
 
 # To use the version used for the paper
-git clone --branch "vPaper-PriorBand" --recursive https://github.com/automl/mf-prior-exp.git
+git clone --branch "vPaper-priorband" --recursive https://github.com/automl/mf-prior-exp.git
 ```
 
 ### 2. Conda, Poetry, Package, Pre-Commit
