@@ -100,7 +100,7 @@ ALGORITHMS = {
     "hb_priorband_hypo": "PB hypo",
     "hb_priorband_noprior": "PB-prior",
     "asha_priorband": "ASHA-PriorBand",
-    "asha_hb_priorband": "ASHA-HB-PriorBand",
+    "asha_hb_priorband": "AsyncHB-PriorBand",
 }
 
 DATASETS = {
@@ -199,7 +199,7 @@ COLOR_MARKER_DICT = {
     "hb_priorband_dyna": "seagreen",
     "hb_priorband_noinc_prior": "darkcyan",
     "hb_priorband_noinc_random": "tan",
-    "hb_priorband_hypo": "black",
+    "hb_priorband_hypo": "slateblue",
     "hb_priorband_noprior": "black",
     "pibo": "firebrick",
     "pibo-default-first": "firebrick",
@@ -228,8 +228,8 @@ COLOR_MARKER_DICT = {
     "asha_prior-50": "palevioletred",
     "asha_hyperband": "peru",
     "asha_hyperband_prior": "yellow",
-    "asha_hyperband_prior-default-first": "khaki",
-    "asha_hb_priorband": "palevioletred",
+    "asha_hyperband_prior-default-first": "olive",
+    "asha_hb_priorband": "darkmagenta",
     "asha_hyperband_prior-50": "gold",
     "ours_v1": "blue",
     "ours_v1_2": "turquoise",
