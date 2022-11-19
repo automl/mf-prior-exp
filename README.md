@@ -1,4 +1,18 @@
-# MF + Priors
+# PriorBand: Hyperband + Human Expert Knowledge
+
+This branch of the repo contains the code and setup for *reproducing experiments* in [the paper](https://openreview.net/forum?id=ds21dwfBBH) published at the *6th Workshop on Meta-Learning* at **NeurIPS 2022**.
+
+To cite the paper or code:
+```bibtex
+@inproceedings{mallik2022priorband,
+  title={PriorBand: HyperBand + Human Expert Knowledge},
+  author={N. Mallik and C. Hvarfner and D. Stoll and M. Janowski and E. Bergman and M. Lindauer and L. Nardi and F. Hutter},
+  booktitle={Sixth Workshop on Meta-Learning at the Conference on Neural Information Processing Systems},
+  year={2022},
+  url={https://openreview.net/forum?id=ds21dwfBBH}
+}
+```
+
 Experiments for the paper `PriorBand`.
 TODO: include Link once published
 
