@@ -13,10 +13,6 @@ To cite the paper or code:
 }
 ```
 
-Experiments for the paper `PriorBand`.
-TODO: include Link once published
-
-
 ## Installation
 
 ### 1. Clone the repository
