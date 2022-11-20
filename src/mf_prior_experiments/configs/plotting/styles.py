@@ -101,6 +101,8 @@ ALGORITHMS = {
     "hb_priorband_noprior": "PB-prior",
     "asha_priorband": "ASHA-PriorBand",
     "asha_hb_priorband": "AsyncHB-PriorBand",
+    "async_priorband": "AsyncPriorBand",
+    "async_priorband_dyna": "AsyncPriorBandDyna",
 }
 
 DATASETS = {
@@ -201,6 +203,8 @@ COLOR_MARKER_DICT = {
     "hb_priorband_noinc_random": "tan",
     "hb_priorband_hypo": "slateblue",
     "hb_priorband_noprior": "black",
+    "async_priorband": "slateblue",
+    "async_priorband_dyna": "firebrick",
     "pibo": "firebrick",
     "pibo-default-first": "firebrick",
     "raceband": "indigo",
