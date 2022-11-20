@@ -103,6 +103,7 @@ ALGORITHMS = {
     "asha_hb_priorband": "AsyncHB-PriorBand",
     "async_priorband": "AsyncPriorBand",
     "async_priorband_dyna": "AsyncPriorBandDyna",
+    "truly_async_hb": "Truly AsyncHB",
 }
 
 DATASETS = {
@@ -205,6 +206,7 @@ COLOR_MARKER_DICT = {
     "hb_priorband_noprior": "black",
     "async_priorband": "slateblue",
     "async_priorband_dyna": "firebrick",
+    "truly_async_hb": "orange",
     "pibo": "firebrick",
     "pibo-default-first": "firebrick",
     "raceband": "indigo",
