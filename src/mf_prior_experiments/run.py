@@ -149,7 +149,7 @@ def run_neps(args):
         result = benchmark.query(config, at=fidelity)
         if args.n_workers > 1:
             # essential step to simulate speed-up
-            time.sleep(fidelity + 2)  #MIN_SLEEP_TIME)
+            time.sleep(fidelity + MIN_SLEEP_TIME)
         end = time.time()
         return {
             "loss": result.error,
