@@ -110,7 +110,7 @@ def plot_incumbent(
     y_mean = df.mean(axis=1).values
     std_error = stats.sem(df.values, axis=1)
 
-    ax.plot(
+    ax.step(
         x,
         y_mean,
         label=ALGORITHMS[algorithm],
@@ -118,6 +118,7 @@ def plot_incumbent(
         color=COLOR_MARKER_DICT[algorithm],
         linestyle="-" if "prior" in algorithm else "--",
         linewidth=0.7,
+        where="post",
     )
     if force_prior_line or (plot_default is not None and plot_default < y_mean[0]):
         # plot only if the default score is better than the first incumbent plotted
@@ -165,6 +166,7 @@ def plot_incumbent(
         y_mean + std_error,
         color=COLOR_MARKER_DICT[algorithm],
         alpha=0.2,
+        step="post",
     )
 
     ax.set_xlim(auto=True)
