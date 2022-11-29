@@ -116,8 +116,8 @@ def plot_incumbent(
         label=ALGORITHMS[algorithm],
         **plot_kwargs,
         color=COLOR_MARKER_DICT[algorithm],
-        linestyle="-" if "prior" in algorithm else "--",
-        linewidth=0.7,
+        linestyle="-" if "prior" in algorithm else "-",
+        linewidth=1,
         where="post",
     )
     if force_prior_line or (plot_default is not None and plot_default < y_mean[0]):
@@ -165,7 +165,7 @@ def plot_incumbent(
         y_mean - std_error,
         y_mean + std_error,
         color=COLOR_MARKER_DICT[algorithm],
-        alpha=0.2,
+        alpha=0.1,
         step="post",
     )
 
