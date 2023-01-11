@@ -1,0 +1,15 @@
+name: mfh3_bad_prior-really_good-noisy0.125
+api:
+  name: mfh3_bad
+  prior: really_good
+  _target_: mfpbench.get
+  seed: ${seed}
+  preload: true
+  noisy_prior: true
+  prior_noise_scale: 0.25
+prior_highest_fidelity_error: -0.5136892242685122
+prior_lowest_error: -0.5136892242685122
+best_10_error: -2.8148838865505303
+best_25_error: -3.074671772391016
+best_100_error: -3.6837107098578445
+optimum: -3.8627797869493365

@@ -1,0 +1,13 @@
+name: lm1b_transformer_2048_prior-really_bad
+api:
+  name: lm1b_transformer_2048
+  prior: really_bad
+  datadir: ${hydra:runtime.cwd}/data/pd1-data
+  _target_: mfpbench.get
+  seed: ${seed}
+  preload: true
+prior_highest_fidelity_error: 0.769835889339447
+prior_lowest_error: 0.7696932554244995
+best_10_error: 0.6739583015441895
+best_25_error: 0.6692440509796143
+best_100_error: 0.6326472163200378

@@ -1,0 +1,13 @@
+name: mfh6_good_prior-really_good
+api:
+  name: mfh6_good
+  prior: really_good
+  _target_: mfpbench.get
+  seed: ${seed}
+  preload: true
+prior_highest_fidelity_error: -1.7051776742272085
+prior_lowest_error: -1.7051776742272085
+best_10_error: -2.0727165348337575
+best_25_error: -2.0727165348337575
+best_100_error: -3.057309337570425
+optimum: -3.322368011391339

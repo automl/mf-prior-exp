@@ -1,0 +1,13 @@
+name: jahs_fashion_mnist_prior-really_bad
+api:
+  name: jahs_fashion_mnist
+  datadir: ${hydra:runtime.cwd}/data/jahs-bench-data
+  prior: really_bad
+  _target_: mfpbench.get
+  seed: ${seed}
+  preload: true
+prior_highest_fidelity_error: 14.711929321289062
+prior_lowest_error: 10.210380554199219
+best_10_error: 5.115966796875
+best_25_error: 5.115966796875
+best_100_error: 4.999847412109375

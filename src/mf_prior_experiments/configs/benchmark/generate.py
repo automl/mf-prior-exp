@@ -20,7 +20,7 @@ CONDITONAL_HP_SPACES = False
 
 # @carl, change them here as you need
 HARTMANN_NOISY_PRIOR_VALUES = [0.250]
-AVAILABLE_PRIORS = ["good", "medium", "bad"]
+AVAILABLE_PRIORS = ["really_bad", "bad", "good", "really_good"]
 
 
 def hartmann_configs() -> Iterator[tuple[str, dict[str, Any]]]:
