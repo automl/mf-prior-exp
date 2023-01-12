@@ -2,7 +2,7 @@
 @list:
   just --list
 # Run local experiment:
-@run algorithm="random_search" benchmark="mfh3_bad" experiment_group="debug" seed="2" n_workers="1" :
+@run algorithm="random_search" benchmark="mfh3_bad" experiment_group="debug" seed="200" n_workers="1" :
   HYDRA_FULL_ERROR=1 python -m mf_prior_experiments.run \
     algorithm={{algorithm}} \
     benchmark={{benchmark}} \
@@ -32,7 +32,7 @@
     --filename {{filename}} \
     --base_path {{base_path}} \
     --ext {{ext}} \
-    --x_range 1 12 \
+    --x_range 0 20 \
     --plot_default
 
 # Table job
