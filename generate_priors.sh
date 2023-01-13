@@ -16,6 +16,6 @@ prior_directory="$(pwd)/src/mf-prior-bench/priors"
 echo "Running:"
 python -m mfpbench generate-priors \
     --to "${prior_directory}" \
-    --seed 8080 \
+    --seed 1330777 \
     --nsamples 100 \
     --clean
