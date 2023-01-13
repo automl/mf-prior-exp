@@ -132,13 +132,9 @@ def configs() -> Iterator[tuple[Path, dict[str, Any]]]:
             configs = b.sample(100)
             results = [b.query(c) for c in configs]
 
-            best_10 = min(results[:10], key=lambda r: r.error)
-            best_25 = min(results[:25], key=lambda r: r.error)
-            best_100 = min(results[:100], key=lambda r: r.error)
-
-            config["best_10_error"] = float(best_10.error)
-            config["best_25_error"] = float(best_25.error)
-            config["best_100_error"] = float(best_100.error)
+            for i in (10, 25, 50, 90, 100):
+                best = min(results[:i], key=lambda r: r.error)
+                config[f"best_{i}_error"] = float(best.error)
 
             if isinstance(b, MFHartmannBenchmark):
                 optimum = b.Config.from_dict(
