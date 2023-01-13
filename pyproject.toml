@@ -28,7 +28,7 @@ python-git-info = "^0.7.1"
 neural-pipeline-search = { path = "src/neps", develop = true }
 mf-prior-bench = { path = "src/mf-prior-bench", develop = true }
 attrdict = "^2.0.1"
-seaborn = "^0.12.1"
+seaborn = "^0"
 hpbandster = "^0.7.4"
 tabulate = "^0.8.10"
 

@@ -7,58 +7,50 @@ from typing import Any, Iterator
 
 import mfpbench
 import yaml
-from mfpbench import JAHSBenchmark, MFHartmannBenchmark, PD1Benchmark, YAHPOBenchmark
+from mfpbench import MFHartmannBenchmark, YAHPOBenchmark
 
 HERE = Path(__file__).parent.resolve()
 
-SEED = 1
-EXCLUDE = ["rbv2", "iaml"]
-LCBENCH_TASKS = ["189862", "189862", "189866"]
+CONFIGSPACE_SEED = 133_077
 
-# Whether to generate configs for condtional spaces
-CONDITONAL_HP_SPACES = False
+JAHS_BENCHMARKS = ["jahs_cifar10", "jahs_colorectal_histology", "jahs_fashion_mnist"]
+JAHS_PRIORS = ["bad", "good"]
 
-# @carl, change them here as you need
-HARTMANN_NOISY_PRIOR_VALUES = [0.250]
-AVAILABLE_PRIORS = ["good", "medium", "bad"]
+PD1_DATASETS = [
+    "lm1b_transformer_2048",
+    "uniref50_transformer_128",
+    "translatewmt_xformer_64",
+]
+PD1_PRIORS = ["bad", "good"]
+
+LCBENCH_TASKS = ["126026", "167190", "168910", "168330", "189906"]
+LCBENCH_PRIORS = ["bad", "good"]
+
+HARTMANN_BENCHMARKS = [
+    f"mfh{i}_{corr}" for i, corr in product([3, 6], ["terrible", "good"])
+]
+HARTMANN_PRIORS = [("bad", None), ("perfect", 0.250)]
 
 
 def hartmann_configs() -> Iterator[tuple[str, dict[str, Any]]]:
-    names = [
-        f"mfh{i}_{corr}"
-        for i, corr in product([3, 6], ["terrible", "bad", "moderate", "good"])
-    ]
 
-    for name, prior in product(names, AVAILABLE_PRIORS + ["perfect"]):
+    for name, (prior, noise) in product(HARTMANN_BENCHMARKS, HARTMANN_PRIORS):
+        api: dict = {
+            "name": name,
+            "prior": prior,
+        }
+
         config_name = f"{name}_prior-{prior}"
-        api = {"name": name, "prior": prior}
+        if noise:
+            config_name = f"{config_name}-noisy{noise}"
+            api.update({"noisy_prior": True, "prior_noise_scale": noise})
 
         yield config_name, api
-
-        # We also give a noisy prior version for each
-        for noise_scale in HARTMANN_NOISY_PRIOR_VALUES:
-            # TODO: This is a last minute fix
-            if noise_scale == 0.250:
-                noise_scale_str = "0.125"
-            else:
-                noise_scale_str = str(noise_scale)
-            config_name = f"{config_name}-noisy{noise_scale_str}"
-            yield config_name, {
-                **api,
-                "noisy_prior": True,
-                "prior_noise_scale": noise_scale,
-            }
 
 
 def pd1_configs() -> Iterator[tuple[str, dict[str, Any]]]:
     datadir = "pd1-data"
-    names = [
-        "lm1b_transformer_2048",
-        "uniref50_transformer_128",
-        "translatewmt_xformer_64",
-    ]
-
-    for name, prior in product(names, AVAILABLE_PRIORS):
+    for name, prior in product(PD1_DATASETS, PD1_PRIORS):
         config_name = f"{name}_prior-{prior}"
         api = {
             "name": name,
@@ -69,44 +61,28 @@ def pd1_configs() -> Iterator[tuple[str, dict[str, Any]]]:
         yield config_name, api
 
 
-def yahpo_configs() -> Iterator[tuple[str, dict[str, Any]]]:
+def lcbench_configs() -> Iterator[tuple[str, dict[str, Any]]]:
     datadir = "yahpo-gym-data"
 
-    rbv2_names = [
-        f"rbv2_{x}"
-        for x in ("super", "aknn", "glmnet", "ranger", "rpart", "svm", "xgboost")
-    ]
-    iaml_names = [f"rbv2_{x}" for x in ("super", "glmnet", "ranger", "rpart", "xgboost")]
-    names = ["lcbench", "nb301"] + rbv2_names + iaml_names
+    for task_id, prior in product(LCBENCH_TASKS, LCBENCH_PRIORS):
+        bench = mfpbench._mapping["lcbench"]
 
-    for name, prior in product(names, AVAILABLE_PRIORS):
-        bench = mfpbench._mapping[name]
         assert issubclass(bench, YAHPOBenchmark)
 
-        # Skip conditional spaces if we must
-        if bench.has_conditionals and not CONDITONAL_HP_SPACES:
-            continue
-
         api = {
-            "name": name,
+            "name": "lcbench",
             "prior": prior,
             "datadir": "${hydra:runtime.cwd}/data/" + datadir,
+            "task_id": task_id,
         }
-        if bench.instances is None:
-            config_name = f"{name}_prior-{prior}"
-            yield config_name, api
-        else:
-            for task_id in bench.instances:
-                config_name = f"{name}-{task_id}_prior-{prior}"
-                yield config_name, {**api, "task_id": task_id}
+        config_name = f"lcbench-{task_id}_prior-{prior}"
+        yield config_name, api
 
 
 def jahs_configs() -> Iterator[tuple[str, dict[str, Any]]]:
     datadir = "jahs-bench-data"
 
-    names = ["jahs_cifar10", "jahs_colorectal_histology", "jahs_fashion_mnist"]
-
-    for name, prior in product(names, AVAILABLE_PRIORS):
+    for name, prior in product(JAHS_BENCHMARKS, JAHS_PRIORS):
         config_name = f"{name}_prior-{prior}"
         api = {
             "name": name,
@@ -118,23 +94,9 @@ def jahs_configs() -> Iterator[tuple[str, dict[str, Any]]]:
 
 def configs() -> Iterator[tuple[Path, dict[str, Any]]]:
     """Generate all configs we might care about for the benchmark."""
-    mapping = {
-        YAHPOBenchmark: yahpo_configs,
-        JAHSBenchmark: jahs_configs,
-        MFHartmannBenchmark: hartmann_configs,
-        PD1Benchmark: pd1_configs,
-    }
-    generators = [generator for cls, generator in mapping.items()]
+    for generator in [lcbench_configs, jahs_configs, hartmann_configs, pd1_configs]:
 
-    for generator in generators:
         for config_name, api in generator():
-            if any(config_name.startswith(e) for e in EXCLUDE):
-                continue
-
-            if config_name.startswith("lcbench"):
-                if not any(i in config_name for i in LCBENCH_TASKS):
-                    continue
-
             # Put in defaults for each config
             api.update({"_target_": "mfpbench.get", "seed": "${seed}", "preload": True})
 
@@ -144,9 +106,13 @@ def configs() -> Iterator[tuple[Path, dict[str, Any]]]:
             path = HERE / filename
 
             # Get the scores for the prior
-            # Seed isnt need as prior is deterministic
-            kwargs = {k: v for k, v in config["api"].items() if k not in ["datadir", "_target_", "seed"]}
-            b = mfpbench.get(seed=SEED, **kwargs)
+            kwargs = {
+                k: v
+                for k, v in config["api"].items()
+                if k not in ["datadir", "_target_", "seed"]  # We pass a real seed
+            }
+
+            b = mfpbench.get(seed=CONFIGSPACE_SEED, **kwargs)
             if b.prior:
                 results = b.trajectory(b.prior)
                 highest_fidelity_error = results[-1].error
@@ -156,16 +122,19 @@ def configs() -> Iterator[tuple[Path, dict[str, Any]]]:
                 config["prior_lowest_error"] = float(lowest_error)
 
             # We also give the best score of RS for 10, 25, 100
+            # We remove information about the priors to keep it random
+            kwargs = {
+                k: v
+                for k, v in kwargs.items()
+                if k not in ["prior", "noisy_prior", "prior_noise_scale"]
+            }
+            b = mfpbench.get(seed=CONFIGSPACE_SEED, **kwargs)
             configs = b.sample(100)
             results = [b.query(c) for c in configs]
 
-            best_10 = min(results[:10], key=lambda r: r.error)
-            best_25 = min(results[:25], key=lambda r: r.error)
-            best_100 = min(results[:100], key=lambda r: r.error)
-
-            config["best_10_error"] = float(best_10.error)
-            config["best_25_error"] = float(best_25.error)
-            config["best_100_error"] = float(best_100.error)
+            for i in (10, 25, 50, 90, 100):
+                best = min(results[:i], key=lambda r: r.error)
+                config[f"best_{i}_error"] = float(best.error)
 
             if isinstance(b, MFHartmannBenchmark):
                 optimum = b.Config.from_dict(

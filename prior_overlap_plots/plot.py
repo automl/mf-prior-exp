@@ -5,7 +5,6 @@ from dataclasses import dataclass
 from itertools import chain
 from pathlib import Path
 from warnings import warn
-from scipy import stats
 
 import matplotlib.pyplot as plt
 import pandas as pd
@@ -16,34 +15,44 @@ BENCHMARK_DIR = HERE.parent / "src" / "mf_prior_experiments" / "configs" / "benc
 BASEPATH = HERE.parent
 RESULTS_DIR = BASEPATH / "results"
 PLOT_DIR = BASEPATH / "plots"
+FAILED_TXT_FILE = HERE / "failed.txt"
 
 
 @dataclass
 class PlotData:
     benchmark: str
-    good: list[float]
-    bad: list[float]
+    # The left side of the violin
+    left: tuple[str, list[float]]
+    # The right side of the violin
+    right: tuple[str, list[float]]
 
     def __post_init__(self) -> None:
-        l_good = len(self.good)
-        l_bad = len(self.bad)
-        if not l_good == l_bad:
+        left_name, left_values = self.left
+        right_name, right_values = self.right
 
-            if l_good > l_bad:
-                self.good = self.good[: len(self.bad)]
-            else:
-                self.bad = self.bad[: len(self.good)]
+        if len(left_values) != len(right_values):
+            shortest = min(len(left_values), len(right_values))
+            self.left = (left_name, left_values[:shortest])
+            self.right = (right_name, right_values[:shortest])
 
             warn(
-                f"Length mismatch, good={l_good} | bad={l_bad})."
-                f"  Pruned to good={len(self.good)} | bad = {len(self.bad)}"
+                f"Length mismatchs,"
+                f" left={len(left_values)} | right={len(right_values)})."
+                f" Pruned to shortest={shortest}"
             )
 
     def df(self) -> pd.DataFrame:
-        priors = ["good"] * len(self.good) + ["bad"] * len(self.bad)
-        error = self.good + self.bad
+        left_name, left_values = self.left
+        right_name, right_values = self.right
+        l_left = len(left_values)
+        l_right = len(right_values)
+
         return pd.DataFrame(
-            {"benchmark": self.benchmark, "prior": priors, "error": error}
+            {
+                "benchmark": self.benchmark,
+                "prior": [left_name] * l_left + [right_name] * l_right,
+                "error": left_values + right_values,
+            }
         )
 
     def min_max_normalized_df(self) -> pd.DataFrame:
@@ -54,6 +63,8 @@ class PlotData:
         return df
 
     def standard_normalized_df(self) -> pd.DataFrame:
+        from scipy import stats
+
         df = self.df()
         df["error"] = stats.zscore(df["error"])
         return df
@@ -66,9 +77,6 @@ def load_losses(
     seed: int,
     group: str,
 ) -> list[float]:
-    if benchmark.startswith("mfh"):
-        prior = {"good": "perfect-noisy0.125", "bad": "bad-noisy0.125"}[prior]
-
     path = (
         RESULTS_DIR
         / group
@@ -78,6 +86,9 @@ def load_losses(
         / "neps_root_directory"
         / "all_losses_and_configs.txt"
     )
+    if not path.exists():
+        print(f"{benchmark}_prior-{prior} {seed}")
+        return []
 
     with path.open(mode="r", encoding="UTF-8") as f:
         data = f.readlines()
@@ -85,16 +96,30 @@ def load_losses(
     return [float(e.strip().split("Loss: ")[1]) for e in data if "Loss: " in e]
 
 
-def results(benchmark: str, algo: str, seeds: list[int], group: str) -> PlotData:
-    get = lambda p, s: load_losses(benchmark, algo=algo, prior=p, seed=s, group=group)  # noqa
+def results(
+    benchmark: str,
+    algo: str,
+    seeds: list[int],
+    group: str,
+    left_prior: str,
+    right_prior: str,
+) -> PlotData:
+    def get(p, s):
+        return load_losses(benchmark, algo=algo, prior=p, seed=s, group=group)  # noqa
 
-    good = chain.from_iterable(get("good", s) for s in seeds)
-    bad = chain.from_iterable(get("bad", s) for s in seeds)
+    left_values = list(chain.from_iterable(get(left_prior, s) for s in seeds))
+    right_values = list(chain.from_iterable(get(right_prior, s) for s in seeds))
 
-    return PlotData(benchmark=benchmark, good=list(good), bad=list(bad))
+    return PlotData(
+        benchmark=benchmark,
+        left=(left_prior, left_values),
+        right=(right_prior, right_values),
+    )
 
 
-def plot(ax: plt.axes.Axes, data: list[PlotData], normalization: str | None = None) -> None:
+def plot(
+    ax: plt.axes.Axes, data: list[PlotData], normalization: str | None = None
+) -> None:
     if normalization == "standard":
         df = pd.concat([d.standard_normalized_df() for d in data])
         ylabel = "Error (zscore normalized)"
@@ -113,46 +138,59 @@ def plot(ax: plt.axes.Axes, data: list[PlotData], normalization: str | None = No
         ax=ax,
         split=True,
         cut=0,
-        inner="quartile"
+        inner="quartile",
     )
     # https://stackoverflow.com/q/60638344
-    for l in ax.lines:
-        l.set_linestyle('--')
-        l.set_linewidth(0.6)
-        l.set_color('red')
-        l.set_alpha(0.8)
+    for line in ax.lines:
+        line.set_linestyle("--")
+        line.set_linewidth(1.2)
+        line.set_color("white")
 
-    for l in ax.lines[1::3]:
-        l.set_linestyle('-')
-        l.set_linewidth(1.2)
-        l.set_color('black')
-        l.set_alpha(0.8)
+    for line in ax.lines[1::3]:
+        line.set_linestyle("-")
+        line.set_linewidth(1.8)
+        line.set_color("black")
 
     ax.set_ylabel(ylabel, fontsize=18, color=(0, 0, 0, 0.69))
     # ax.set_xlabel("Benchmark", fontsize=18, color=(0, 0, 0, 0.69))
     ax.xaxis.label.set_visible(False)
     ax.legend(fontsize=15)
 
-
     ax.tick_params(axis="both", which="major", labelsize=15, labelcolor=(0, 0, 0, 0.69))
     for tick in ax.xaxis.get_major_ticks()[1::2]:
         tick.set_pad(18)
 
 
-
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="mf-prior-exp plotting for priors")
-    parser.add_argument("--benchmarks", nargs="+", type=str)
-    parser.add_argument("--seeds", nargs="+", type=int)
-    parser.add_argument("--group", type=str)
-    parser.add_argument("--algo", type=str)
+    parser.add_argument("--benchmarks", nargs="+", type=str, required=True)
+    parser.add_argument("--left-prior", type=str, required=True)
+    parser.add_argument("--right-prior", type=str, required=True)
+    parser.add_argument("--seeds", nargs="+", type=int, required=True)
+    parser.add_argument("--group", type=str, required=True)
+    parser.add_argument("--algo", type=str, required=True)
     parser.add_argument("--filename", type=str, default="prior_plot")
     parser.add_argument("--dpi", type=int, default=200)
     parser.add_argument("--ext", type=str, choices=["pdf", "png"], default="pdf")
-    parser.add_argument("--normalization", type=str, choices=["standard", "min-max", "None"], default="None")
+    parser.add_argument(
+        "--normalization",
+        type=str,
+        choices=["standard", "min-max", "None"],
+        default="None",
+    )
     args = parser.parse_args()
 
-    data = [results(b, algo=args.algo, seeds=args.seeds, group=args.group) for b in args.benchmarks]
+    data = [
+        results(
+            b,
+            algo=args.algo,
+            seeds=args.seeds,
+            group=args.group,
+            left_prior=args.left_prior,
+            right_prior=args.right_prior,
+        )
+        for b in args.benchmarks
+    ]
     normalization = None if args.normalization == "None" else args.normalization
 
     fig, ax = plt.subplots()
