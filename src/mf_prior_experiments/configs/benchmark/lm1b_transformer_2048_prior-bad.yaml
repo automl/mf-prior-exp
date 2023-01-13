@@ -6,8 +6,8 @@ api:
   _target_: mfpbench.get
   seed: ${seed}
   preload: true
-prior_highest_fidelity_error: 0.733551561832428
-prior_lowest_error: 0.7292934060096741
-best_10_error: 0.6739583015441895
-best_25_error: 0.6692440509796143
-best_100_error: 0.6326472163200378
+prior_highest_fidelity_error: 0.7495747804641724
+prior_lowest_error: 0.7494186758995056
+best_10_error: 0.6371834874153137
+best_25_error: 0.6371834874153137
+best_100_error: 0.6371834874153137

@@ -1,12 +1,14 @@
-name: mfh3_terrible_prior-bad
+name: mfh3_terrible_prior-perfect-noisy0.25
 api:
   name: mfh3_terrible
-  prior: bad
+  prior: perfect
+  noisy_prior: true
+  prior_noise_scale: 0.25
   _target_: mfpbench.get
   seed: ${seed}
   preload: true
-prior_highest_fidelity_error: -0.04357728193081433
-prior_lowest_error: -0.04357728193081433
+prior_highest_fidelity_error: -3.2898530323707105
+prior_lowest_error: -3.2898530323707105
 best_10_error: -2.387332793243451
 best_25_error: -3.5329301584153674
 best_100_error: -3.606943119653449
