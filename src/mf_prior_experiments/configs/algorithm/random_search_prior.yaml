@@ -5,3 +5,4 @@ run_function:
 searcher:
   _partial_: true  # To not instantiate the class directly as required by neps
   _target_: mf_prior_algorithms.random_search.RandomSearchWithPriors
+  sample_default_first: True

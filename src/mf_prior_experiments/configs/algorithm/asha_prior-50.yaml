@@ -5,4 +5,5 @@ run_function:
 searcher:
   _partial_: true  # To not instantiate the class directly as required by neps
   _target_: neps.optimizers.multi_fidelity.successive_halving.AsynchronousSuccessiveHalvingWithPriors
+  sample_default_first: True
   random_interleave_prob: 0.5
