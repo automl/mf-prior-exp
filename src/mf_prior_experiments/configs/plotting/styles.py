@@ -47,85 +47,50 @@ ALGORITHMS = {
 
 DATASETS = {
     # jahs cifar10
-    "jahs_cifar10_prior-default": "CIFAR-10",
     "jahs_cifar10_prior-good": "CIFAR-10 (good)",
     "jahs_cifar10_prior-bad": "CIFAR-10 (bad)",
     # jahs colorectal histology
-    "jahs_colorectal_histology_prior-default": "Colorectal-Histology",
     "jahs_colorectal_histology_prior-good": "Colorectal-Histology (good)",
     "jahs_colorectal_histology_prior-bad": "Colorectal-Histology (bad)",
     # jahs fashion_mnist
-    "jahs_fashion_mnist_prior-default": "Fashion-MNIST",
     "jahs_fashion_mnist_prior-good": "Fashion-MNIST (good)",
     "jahs_fashion_mnist_prior-bad": "Fashion-MNIST (bad)",
     # mfh3 good
-    "mfh3_good_prior-default": "Hartmann 3 (good)",
-    "mfh3_good_prior-good": "H3d (good corr-good prior)",
+    "mfh3_good_prior-perfect-noisy0.25": "H3d (good corr-good prior)",
     "mfh3_good_prior-bad": "H3d (good corr-bad prior)",
-    "mfh3_good_prior-perfect-noisy0.125": "H3d (good corr-good prior)",
-    "mfh3_good_prior-bad-noisy0.125": "H3d (good corr-bad prior)",
-    # mfh3 moderate
-    "mfh3_moderate_prior-default": "Hartmann 3 (moderate)",
-    "mfh3_moderate_prior-good": "H3d (moderate corr-good prior)",
-    "mfh3_moderate_prior-bad": "H3d (moderate corr-bad prior)",
-    "mfh3_moderate_prior-perfect-noisy0.125": "H3d (moderate corr-perfect prior - Noise 0.125)",
-    "mfh3_moderate_prior-bad-noisy0.125": "H3d (moderate corr-perfect prior - Noise 0.125)",
-    # mfh3 bad
-    "mfh3_bad_rate_prior-default": "Hartmann 3 (bad)",
-    "mfh3_bad_rate_prior-good": "H3d (bad corr-good prior)",
-    "mfh3_bad_rate_prior-bad": "H3d (bad corr-bad prior)",
-    "mfh3_bad_rate_prior-perfect-noisy0.125": "H3d (bad corr-perfect prior - Noise 0.125)",
-    "mfh3_bad_rate_prior-bad-noisy0.125": "H3d (bad corr-perfect prior - Noise 0.125)",
     # mfh3 terrible
-    "mfh3_terrible_prior-default": "Hartmann 3 (terrible)",
-    "mfh3_terrible_prior-good": "H3d (terrible corr-good prior)",
+    "mfh3_terrible_prior-perfect-noisy0.25": "H3d (bad corr-good prior)",
     "mfh3_terrible_prior-bad": "H3d (terrible corr-bad prior)",
-    "mfh3_terrible_prior-perfect-noisy0.125": "H3d (bad corr-good prior)",
-    "mfh3_terrible_prior-bad-noisy0.125": "H3d (bad corr-bad prior)",
     # mfh6 good
-    "mfh6_good_prior-default": "Hartmann 6 (good)",
-    "mfh6_good_prior-good": "H6d (good corr-good prior)",
+    "mfh6_good_prior-perfect-noisy0.25": "H6d (good corr-good prior)",
     "mfh6_good_prior-bad": "H6d (good corr-bad prior)",
-    "mfh6_good_prior-perfect-noisy0.125": "H6d (good corr-good prior)",
-    "mfh6_good_prior-bad-noisy0.125": "H6d (good corr-bad prior)",
-    # mfh6 moderate
-    "mfh6_moderate_prior-default": "Hartmann 6 (moderate)",
-    "mfh6_moderate_prior-good": "H6d (moderate corr-good prior)",
-    "mfh6_moderate_prior-bad": "H6d (moderate corr-bad prior)",
-    "mfh6_moderate_prior-perfect-noisy0.125": "H6d (moderate corr-perfect prior - Noise 0.125)",
-    "mfh6_moderate_prior-bad-noisy0.125": "H6d (moderate corr-perfect prior - Noise 0.125)",
-    # mfh6 bad
-    "mfh6_bad_prior-default": "Hartmann 6 (bad)",
-    "mfh6_bad_prior-good": "H6d (bad corr-good prior)",
-    "mfh6_bad_prior-bad": "H6d (bad corr-bad prior)",
-    "mfh6_bad_prior-perfect-noisy0.125": "H6d (bad corr-perfect prior - Noise 0.125)",
-    "mfh6_bad_prior-bad-noisy0.125": "H6d (bad corr-perfect prior - Noise 0.125)",
-    # mfh6 terribleG
-    "mfh6_terrible_prior-default": "Hartmann 6 (terrible)",
-    "mfh6_terrible_prior-good": "H6d (terrible corr-good prior)",
+    # mfh6 terrible
+    "mfh6_terrible_prior-perfect-noisy0.25": "H6d (bad corr-good prior)",
     "mfh6_terrible_prior-bad": "H6d (terrible corr-bad prior)",
-    "mfh6_terrible_prior-perfect-noisy0.125": "H6d (bad corr-good prior)",
-    "mfh6_terrible_prior-bad-noisy0.125": "H6d (bad corr-bad prior)",
-    # lcbench-189862
-    "lcbench-189862_prior-bad": "LCBench-189862 (bad)",
-    "lcbench-189862_prior-good": "LCBench-189862 (good)",
-    "lcbench-189862_prior-medium": "LCBench-189862 (moderate)",
-    # lcbench-189866
-    "lcbench-189866_prior-bad": "LCBench-189866 (bad)",
-    "lcbench-189866_prior-good": "LCBench-189866 (good)",
-    "lcbench-189866_prior-medium": "LCBench-189866 (moderate)",
+    # lcbench-126026
+    "lcbench-126026_prior-bad": "LCBench-126026 (bad)",
+    "lcbench-126026_prior-good": "LCBench-126026 (good)",
+    # lcbench-167190
+    "lcbench-167190_prior-bad": "LCBench-167190 (bad)",
+    "lcbench-167190_prior-good": "LCBench-167190 (good)",
+    # lcbench-168330
+    "lcbench-168330_prior-bad": "LCBench-168330 (bad)",
+    "lcbench-168330_prior-good": "LCBench-168330 (good)",
+    # lcbench-168910
+    "lcbench-168910_prior-bad": "LCBench-168910 (bad)",
+    "lcbench-168910_prior-good": "LCBench-168910 (good)",
+    # lcbench-189906
+    "lcbench-189906_prior-bad": "LCBench-189906 (bad)",
+    "lcbench-189906_prior-good": "LCBench-189906 (good)",
     # translate wmt
     "translatewmt_xformer_64_prior-bad": "PD1-WMT (bad)",
     "translatewmt_xformer_64_prior-good": "PD1-WMT (good)",
-    "translatewmt_xformer_64_prior-medium": "PD1-WMT (moderate)",
     # lm1b
     "lm1b_transformer_2048_prior-bad": "PD1-Lm1b (bad)",
     "lm1b_transformer_2048_prior-good": "PD1-Lm1b (good)",
-    "lm1b_transformer_2048_prior-medium": "PD1-Lm1b (moderate)",
     # uniref
     "uniref50_transformer_prior-bad": "PD1-Uniref50 (bad)",
     "uniref50_transformer_prior-good": "PD1-Uniref50 (good)",
-    "uniref50_transformer_prior-medium": "PD1-Uniref50 (moderate)",
 }
 
 # https://matplotlib.org/stable/gallery/color/named_colors.html
