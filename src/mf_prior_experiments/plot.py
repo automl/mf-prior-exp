@@ -72,9 +72,10 @@ def plot(args):
     if args.research_question == 1:
         ncols = 1 if len(args.benchmarks) == 1 else 2
         ncol_map = lambda n: 1 if n == 1 else (2 if n == 2 else int(np.ceil(n / 2)))
-        ncol = len(args.algorithms)
-        ncol += 1 if args.plot_default is not None else 0
-        ncol += 1 if args.plot_optimum is not None else 0
+
+        legend_ncol = len(args.algorithms)
+        legend_ncol += 1 if args.plot_default is not None else 0
+        legend_ncol += 1 if args.plot_optimum is not None else 0
     elif args.research_question == 2:
         if args.benchmarks is None:
             args.benchmarks = [
@@ -88,9 +89,9 @@ def plot(args):
                 #               f"uniref50_transformer_prior-{args.which_prior}",
             ]
         ncols = 4
-        ncol = len(args.algorithms)
-        ncol += 1 if args.plot_default is not None else 0
-        ncol += 1 if args.plot_optimum is not None else 0
+        legend_ncol = len(args.algorithms)
+        legend_ncol += 1 if args.plot_default is not None else 0
+        legend_ncol += 1 if args.plot_optimum is not None else 0
     else:
         raise ValueError("Plotting works only for RQ1 and RQ2.")
     nrows = np.ceil(len(args.benchmarks) / ncols).astype(int)
@@ -376,7 +377,7 @@ def plot(args):
         fontsize="xx-large",
         loc="lower center",
         bbox_to_anchor=bbox_to_anchor,
-        ncol=ncol,
+        ncol=legend_ncol,
         frameon=True,
     )
 
