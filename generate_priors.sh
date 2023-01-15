@@ -18,4 +18,13 @@ python -m mfpbench generate-priors \
     --to "${prior_directory}" \
     --seed 133077 \
     --nsamples 100 \
+    --exclude "mfh" \
     --clean
+
+python -m mfpbench generate-priors \
+    --to "${prior_directory}" \
+    --seed 133077 \
+    --nsamples 100 \
+    --only "mfh" \
+    --hartmann-perfect-with-noise "good_0.250:.250" \
+    --hartmann-perfect 

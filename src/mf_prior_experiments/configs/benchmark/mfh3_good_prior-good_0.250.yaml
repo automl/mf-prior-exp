@@ -1,9 +1,7 @@
-name: mfh3_terrible_prior-perfect-noisy0.25
+name: mfh3_good_prior-good_0.250
 api:
-  name: mfh3_terrible
-  prior: perfect
-  noisy_prior: true
-  prior_noise_scale: 0.25
+  name: mfh3_good
+  prior: good_0.250
   _target_: mfpbench.get
   seed: ${seed}
   preload: true

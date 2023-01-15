@@ -29,22 +29,18 @@ LCBENCH_PRIORS = ["bad", "good"]
 HARTMANN_BENCHMARKS = [
     f"mfh{i}_{corr}" for i, corr in product([3, 6], ["terrible", "good"])
 ]
-HARTMANN_PRIORS = [("bad", None), ("perfect", 0.250)]
+HARTMANN_PRIORS = ["bad", "good_0.250"]
 
 
 def hartmann_configs() -> Iterator[tuple[str, dict[str, Any]]]:
 
-    for name, (prior, noise) in product(HARTMANN_BENCHMARKS, HARTMANN_PRIORS):
+    for name, prior in product(HARTMANN_BENCHMARKS, HARTMANN_PRIORS):
         api: dict = {
             "name": name,
             "prior": prior,
         }
 
         config_name = f"{name}_prior-{prior}"
-        if noise:
-            config_name = f"{config_name}-noisy{noise}"
-            api.update({"noisy_prior": True, "prior_noise_scale": noise})
-
         yield config_name, api
 
 
@@ -94,7 +90,13 @@ def jahs_configs() -> Iterator[tuple[str, dict[str, Any]]]:
 
 def configs() -> Iterator[tuple[Path, dict[str, Any]]]:
     """Generate all configs we might care about for the benchmark."""
-    for generator in [lcbench_configs, jahs_configs, hartmann_configs, pd1_configs]:
+    generators = [
+        lcbench_configs,
+        jahs_configs,
+        hartmann_configs,
+        pd1_configs
+    ]
+    for generator in generators:
 
         for config_name, api in generator():
             # Put in defaults for each config
@@ -123,11 +125,8 @@ def configs() -> Iterator[tuple[Path, dict[str, Any]]]:
 
             # We also give the best score of RS for 10, 25, 100
             # We remove information about the priors to keep it random
-            kwargs = {
-                k: v
-                for k, v in kwargs.items()
-                if k not in ["prior", "noisy_prior", "prior_noise_scale"]
-            }
+            del kwargs["prior"]
+
             b = mfpbench.get(seed=CONFIGSPACE_SEED, **kwargs)
             configs = b.sample(100)
             results = [b.query(c) for c in configs]
