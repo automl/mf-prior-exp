@@ -6,7 +6,6 @@
 #SBATCH --partition=bosch_cpu-cascadelake
 
 #SBATCH --job-name=priors-mfpbench
-#
 if [[ -z "${SLURM_JOB_USER}" ]]; then
     echo "Use sbatch to call this file"
     exit
@@ -26,5 +25,5 @@ python -m mfpbench generate-priors \
     --seed 133077 \
     --nsamples 100 \
     --only "mfh" \
-    --hartmann-perfect-with-noise "good_0.250:.250" \
+    --hartmann-perfect-with-noise "perfect-noisy0.25:0.25" \
     --hartmann-perfect 
