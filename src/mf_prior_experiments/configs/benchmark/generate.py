@@ -29,7 +29,7 @@ LCBENCH_PRIORS = ["bad", "good"]
 HARTMANN_BENCHMARKS = [
     f"mfh{i}_{corr}" for i, corr in product([3, 6], ["terrible", "good"])
 ]
-HARTMANN_PRIORS = ["bad", "good_0.250"]
+HARTMANN_PRIORS = ["bad", "perfect-noisy0.25"]
 
 
 def hartmann_configs() -> Iterator[tuple[str, dict[str, Any]]]:
@@ -91,10 +91,10 @@ def jahs_configs() -> Iterator[tuple[str, dict[str, Any]]]:
 def configs() -> Iterator[tuple[Path, dict[str, Any]]]:
     """Generate all configs we might care about for the benchmark."""
     generators = [
-        lcbench_configs,
-        jahs_configs,
+        #lcbench_configs,
+        #jahs_configs,
         hartmann_configs,
-        pd1_configs
+        #pd1_configs
     ]
     for generator in generators:
 

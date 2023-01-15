@@ -1,7 +1,7 @@
-name: mfh6_good_prior-good_0.250
+name: mfh6_good_prior-perfect-noisy0.25
 api:
   name: mfh6_good
-  prior: good_0.250
+  prior: perfect-noisy0.25
   _target_: mfpbench.get
   seed: ${seed}
   preload: true
