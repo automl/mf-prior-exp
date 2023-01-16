@@ -7,3 +7,4 @@ searcher:
   _target_: neps.optimizers.multi_fidelity_prior.priorband.PriorBandNoPriorToInc
   inc_sample_type: hypersphere
   inc_style: constant
+  sample_default_first: False

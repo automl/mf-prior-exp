@@ -97,7 +97,7 @@ DATASETS = {
 COLOR_MARKER_DICT = {
     "random_search": "palevioletred",
     "random_search_prior": "magenta",
-    "random_search_prior-50": "palevioletred",
+    "random_search_prior-50": "indigo",
     "bo": "darkgoldenrod",
     "bohb": "darkcyan",
     # "successive_halving": "SH",
@@ -106,7 +106,7 @@ COLOR_MARKER_DICT = {
     # "hpbandster": "HpBandSter",
     "hyperband": "limegreen",
     "hyperband_prior": "darkgreen",
-    "hyperband_prior-50": "limegreen",
+    "hyperband_prior-50": "olive",
     "asha": "pink",
     "asha_prior": "magenta",
     "asha_prior-50": "pink",
