@@ -60,7 +60,7 @@ DATASETS = {
     "mfh3_good_prior-bad": "H3d (good corr-bad prior)",
     # mfh3 terrible
     "mfh3_terrible_prior-perfect-noisy0.25": "H3d (bad corr-good prior)",
-    "mfh3_terrible_prior-bad": "H3d (terrible corr-bad prior)",
+    "mfh3_terrible_prior-bad": "H3d (bad corr-bad prior)",
     # mfh6 good
     "mfh6_good_prior-perfect-noisy0.25": "H6d (good corr-good prior)",
     "mfh6_good_prior-bad": "H6d (good corr-bad prior)",

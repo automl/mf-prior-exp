@@ -1,6 +1,7 @@
 import contextlib
 import logging
 import random
+import os
 import sys
 import time
 from pathlib import Path
@@ -13,6 +14,9 @@ from omegaconf import OmegaConf
 
 logger = logging.getLogger("mf_prior_experiments.run")
 MIN_SLEEP_TIME = 10  # 10s hopefully is enough to simulate wait times for metahyper
+
+# Use this environment variable to force overwrite when running
+OVERWRITE = os.environ.get("MF_EXP_OVERWRITE", False)
 
 
 def _set_seeds(seed):
@@ -204,7 +208,7 @@ def run_neps(args):
         # **budget_args,
         max_evaluations_total=max_evaluations_total,
         searcher=hydra.utils.instantiate(args.algorithm.searcher, _partial_=True),
-        # overwrite_working_directory=True,   # MAKE SURE COMMENTED WHEN PUSHING
+        overwrite_working_directory=OVERWRITE,
     )
 
 
