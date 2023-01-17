@@ -16,7 +16,9 @@ logger = logging.getLogger("mf_prior_experiments.run")
 MIN_SLEEP_TIME = 10  # 10s hopefully is enough to simulate wait times for metahyper
 
 # Use this environment variable to force overwrite when running
-OVERWRITE = os.environ.get("MF_EXP_OVERWRITE", False)
+OVERWRITE = bool(os.environ.get("MF_EXP_OVERWRITE", False))
+
+print(f"{'='*50}\noverwrite={OVERWRITE}\n{'='*50}")
 
 
 def _set_seeds(seed):
