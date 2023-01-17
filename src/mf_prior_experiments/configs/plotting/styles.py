@@ -35,7 +35,7 @@ ALGORITHMS = {
     "priorband": "PriorBand",
     "priorband_crossover_constant": "PB(Cr+const.)",
     "priorband_crossover_decay": "PB(Cr+decay)",
-    "priorband_crossover_dynamic": "PB(Cr+const.)",
+    "priorband_crossover_dynamic": "PB(Cr+dyna)",
     "priorband_hypersphere_constant": "PB(HS+const.)",
     "priorband_hypersphere_decay": "PB(HS+decay)",
     "priorband_hypersphere_dynamic": "PB(HS+dyna)",
