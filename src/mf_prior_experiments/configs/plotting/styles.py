@@ -67,7 +67,7 @@ DATASETS = {
     "mfh6_good_prior-bad": "H6d (good corr-bad prior)",
     # mfh6 terrible
     "mfh6_terrible_prior-perfect-noisy0.25": "H6d (bad corr-good prior)",
-    "mfh6_terrible_prior-bad": "H6d (terrible corr-bad prior)",
+    "mfh6_terrible_prior-bad": "H6d (bad corr-bad prior)",
     # lcbench-126026
     "lcbench-126026_prior-bad": "LCBench-126026 (bad)",
     "lcbench-126026_prior-good": "LCBench-126026 (good)",
