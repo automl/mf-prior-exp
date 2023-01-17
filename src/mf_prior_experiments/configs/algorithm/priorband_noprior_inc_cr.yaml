@@ -1,4 +1,4 @@
-name: hb_priorband_noprior_inc_cr
+name: priorband_noprior_inc_cr
 mf: true
 run_function:
   _target_: mf_prior_experiments.run.run_neps
