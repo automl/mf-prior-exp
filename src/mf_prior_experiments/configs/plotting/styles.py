@@ -124,7 +124,7 @@ COLOR_MARKER_DICT = {
     "asha_hb_priorband": "darkmagenta",
     # PriorBand
     "priorband": "blue",
-    "priorband_bo": "teal",
+    "priorband_bo": "gray",
     "priorband_crossover_constant": "olivedrab",
     "priorband_crossover_decay": "blue",
     "priorband_crossover_dynamic": "brown",
