@@ -49,7 +49,7 @@ def construct_script(args, cluster_oe_dir):
     script.append(f"#SBATCH --array 0-{num_tasks - 1}%{args.max_tasks}")
     script.append(f"#SBATCH --error {cluster_oe_dir}/%N_%A_%x_%a.oe")
     script.append(f"#SBATCH --output {cluster_oe_dir}/%N_%A_%x_%a.oe")
-    script.append(f"#SBATCH --mem {args.memory}")
+    script.append(f"#SBATCH --mem-per-cpu {args.memory}")
     if args.n_worker > 1:
         script.append(f"#SBATCH -c {args.n_worker}")
     if args.exclude:
