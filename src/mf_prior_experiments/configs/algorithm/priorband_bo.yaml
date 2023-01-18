@@ -1,4 +1,4 @@
-name: priorband
+name: priorband_bo
 mf: true
 run_function:
   _target_: mf_prior_experiments.run.run_neps
@@ -7,4 +7,4 @@ searcher:
   _target_: neps.optimizers.multi_fidelity_prior.priorband.PriorBand
   inc_sample_type: hypersphere
   inc_style: dynamic
-  model_based: False
+  model_based: True

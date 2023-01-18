@@ -36,6 +36,7 @@ ALGORITHMS = {
     "asha_hb_priorband": "AsyncHB-PriorBand",
     # PriorBand
     "priorband": "PriorBand",
+    "priorband_bo": "PriorBand+BO",
     "priorband_crossover_constant": "PB(Cr+const.)",
     "priorband_crossover_decay": "PB(Cr+decay)",
     "priorband_crossover_dynamic": "PB(Cr+dyna)",
@@ -123,6 +124,7 @@ COLOR_MARKER_DICT = {
     "asha_hb_priorband": "darkmagenta",
     # PriorBand
     "priorband": "blue",
+    "priorband_bo": "teal",
     "priorband_crossover_constant": "olivedrab",
     "priorband_crossover_decay": "blue",
     "priorband_crossover_dynamic": "brown",
