@@ -1,6 +1,10 @@
 # Python
 __pycache__
 correlation_plots/logs/
+surrogate_training/dehb_output*
+surrogate_training/logs/
+.eddie-venv
+
 
 # Log files
 *.out

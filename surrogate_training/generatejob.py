@@ -3,10 +3,16 @@ from __future__ import annotations
 from itertools import product
 from pathlib import Path
 
-ALLOWED_DATASETS = ["lm1b-transformer-2048", "uniref50-transformer-128", "translate_wmt-xformer_translate-64"]
+ALLOWED_DATASETS = [
+    "imagenet-resnet-512",
+    "cifar100-wide_resnet-2048",
+    "lm1b-transformer-2048",
+    "uniref50-transformer-128",
+    "translatewmt-xformer-64",
+]
 
 SEED = 1
-OPT_TIME_SECONDS = 4 * 60 * 60
+OPT_TIME_SECONDS = int(4 * 60 * 60)
 CV_FOLDS = 5
 DEHB_WORKERS = 8
 
@@ -17,7 +23,7 @@ PD1DATA_DIR = DATADIR / "pd1-data"
 SURROGATE_DIR = PD1DATA_DIR / "surrogates"
 
 JOBFILE = Path("submit.sh")
-PARTITION = "gki_cpu-cascadelake"
+PARTITION = "bosch_cpu-cascadelake"
 JOB_TIME = (OPT_TIME_SECONDS * 2) + (5 * 60)  # Double time with 5 min extra
 MEMORY = 32_000
 

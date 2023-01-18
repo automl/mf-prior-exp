@@ -27,3 +27,9 @@ python -m mfpbench generate-priors \
     --only "mfh" \
     --hartmann-perfect-with-noise "perfect-noisy0.25:0.25" \
     --hartmann-perfect 
+
+python -m mfpbench generate-priors \
+    --to "${prior_directory}" \
+    --seed 133077 \
+    --nsamples 100 \
+    --only "imagenet" "cifar100"

@@ -20,6 +20,8 @@ PD1_DATASETS = [
     "lm1b_transformer_2048",
     "uniref50_transformer_128",
     "translatewmt_xformer_64",
+    "imagenet_resnet_512",
+    "cifar100_wideresnet_2048",
 ]
 PD1_PRIORS = ["bad", "good"]
 
@@ -91,10 +93,10 @@ def jahs_configs() -> Iterator[tuple[str, dict[str, Any]]]:
 def configs() -> Iterator[tuple[Path, dict[str, Any]]]:
     """Generate all configs we might care about for the benchmark."""
     generators = [
-        #lcbench_configs,
-        #jahs_configs,
+        lcbench_configs,
+        jahs_configs,
         hartmann_configs,
-        #pd1_configs
+        pd1_configs
     ]
     for generator in generators:
 
