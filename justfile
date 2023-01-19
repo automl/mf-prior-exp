@@ -21,7 +21,6 @@
     --memory {{memory}} \
     --n_worker {{n_worker}} \
     --arguments algorithm={{algorithms}} benchmark={{benchmarks}} n_workers={{n_worker}} seed="{{seeds}}" hydra/job_logging=only_file \
-    --exclude "kisexe20,kisexe28,kisexe34"
 
 # Plot job
 @plot experiment_group benchmarks algorithms filename ext="pdf" base_path=justfile_directory() :
