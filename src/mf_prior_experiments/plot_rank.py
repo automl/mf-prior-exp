@@ -206,7 +206,7 @@ def plot(args):
     for benchmark, benchmark_results in new_results.items():
         dfs = []
         for _, results in benchmark_results.items():
-            df = pd.DataFrame.from_dict(results).rank(axis=1, ascending=False)
+            df = pd.DataFrame.from_dict(results).rank(axis=1, ascending=True)
             # df.index = [0]
             df.loc[df.index == 0] = initial_mean_rank
             dfs.append(df.to_numpy())
