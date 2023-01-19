@@ -45,8 +45,10 @@ if __name__ == "__main__":
             " and ranked at `z`% along it's correlation curve"
         )
     )
-    parser.add_argument("-z", type=float, required=True)
-    parser.add_argument("--quantiles", nargs="+", type=float, required=True)
+    parser.add_argument("-z", type=float, default=0.1)
+    parser.add_argument(
+        "--quantiles", nargs="+", type=float, default=[0, 0.25, 0.5, 0.75, 1]
+    )
     parser.add_argument("--results-dir", type=Path, default=RESULTS_DIR)
 
     args = parser.parse_args()
