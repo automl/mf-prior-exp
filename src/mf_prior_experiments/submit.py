@@ -40,6 +40,10 @@ def parse_argument_string(args):
 
 def construct_script(args, cluster_oe_dir):
     argument_string, num_tasks = parse_argument_string(args)
+    cmd =  (
+        f"python -m mf_prior_experiments.run experiment_group={args.experiment_group} "
+        f"${{ARGS[@]:{len(args.arguments)}*$SLURM_ARRAY_TASK_ID:{len(args.arguments)}}}"
+    )
 
     script = list()
     script.append("#!/bin/bash")
@@ -49,25 +53,28 @@ def construct_script(args, cluster_oe_dir):
     script.append(f"#SBATCH --array 0-{num_tasks - 1}%{args.max_tasks}")
     script.append(f"#SBATCH --error {cluster_oe_dir}/%N_%A_%x_%a.oe")
     script.append(f"#SBATCH --output {cluster_oe_dir}/%N_%A_%x_%a.oe")
-    script.append(f"#SBATCH --mem-per-cpu {args.memory}")
-    script.append(f"#SBATCH -c {args.n_worker}")
 
     if args.exclude:
         script.append(f"#SBATCH --exclude {args.exclude}")
+
+    if args.n_worker == 1:
+        # Explicitly state 1 cpu and it's total memory
+        script.append(f"#SBATCH -c {1}")
+        script.append(f"#SBATCH --mem {args.memory}")
+    else:
+        # Each worker will need this much memory as they each
+        # load the benchmark individually
+        script.append(f"#SBATCH -c {args.n_worker}")
+        script.append(f"#SBATCH --mem-per-cpu {args.memory}")
+
+        # Pre-prend the cmd with srun to enable it to run multiple times
+        cmd = f"srun --ntasks {args.n_worker} --cpus-per-task 1 {cmd}"
+
     script.append("")
     script.append(argument_string)
     script.append("")
-    if args.n_worker > 1:
-        script.append(
-            f"srun --ntasks {args.n_worker} --cpus-per-task 1 "
-            f"python -m mf_prior_experiments.run experiment_group={args.experiment_group} "
-            f"${{ARGS[@]:{len(args.arguments)}*$SLURM_ARRAY_TASK_ID:{len(args.arguments)}}}"
-        )
-    else:
-        script.append(
-            f"python -m mf_prior_experiments.run experiment_group={args.experiment_group} "
-            f"${{ARGS[@]:{len(args.arguments)}*$SLURM_ARRAY_TASK_ID:{len(args.arguments)}}}"
-        )
+    script.append(cmd)
+
     return "\n".join(script) + "\n"  # type: ignore[assignment]
 
 
