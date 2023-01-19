@@ -1,10 +1,12 @@
 from __future__ import annotations
 
+import sys
 import argparse
 from dataclasses import dataclass
-from itertools import chain
+from itertools import chain, tee
 from pathlib import Path
 from warnings import warn
+from typing import TypeVar, Callable, Iterator, Iterable
 
 import matplotlib.pyplot as plt
 import pandas as pd
@@ -15,7 +17,17 @@ BENCHMARK_DIR = HERE.parent / "src" / "mf_prior_experiments" / "configs" / "benc
 BASEPATH = HERE.parent
 RESULTS_DIR = BASEPATH / "results"
 PLOT_DIR = BASEPATH / "plots"
-FAILED_TXT_FILE = HERE / "failed.txt"
+
+T = TypeVar("T")
+
+
+def partition(
+    xs: Iterable[T],
+    key: Callable[[T], bool],
+) -> tuple[Iterator[T], Iterator[T]]:
+    conditioned_xs = ((item, key(item)) for item in xs)
+    _l, _r = tee(conditioned_xs)
+    return (x for x, pred in _l if pred), (x for x, pred in _r if not pred)
 
 
 @dataclass
@@ -40,6 +52,10 @@ class PlotData:
                 f" left={len(left_values)} | right={len(right_values)})."
                 f" Pruned to shortest={shortest}"
             )
+
+    @property
+    def empty(self) -> bool:
+        return not any(self.left) or not any(self.right)
 
     def df(self) -> pd.DataFrame:
         left_name, left_values = self.left
@@ -118,7 +134,9 @@ def results(
 
 
 def plot(
-    ax: plt.axes.Axes, data: list[PlotData], normalization: str | None = None
+    ax: plt.axes.Axes,
+    data: list[PlotData],
+    normalization: str | None = None,
 ) -> None:
     if normalization == "standard":
         df = pd.concat([d.standard_normalized_df() for d in data])
@@ -179,6 +197,7 @@ if __name__ == "__main__":
         default="None",
     )
     args = parser.parse_args()
+    print(args)
 
     data = [
         results(
@@ -191,10 +210,20 @@ if __name__ == "__main__":
         )
         for b in args.benchmarks
     ]
+    success, failed = partition(data, lambda d: not d.empty)
+    success, failed = list(success), list(failed)
+
+    print(f"SUCCESS - {[d.benchmark for d in success]}")
+    print(f"FAILED - {[d.benchmark for d in failed]}")
+
+    if not any(success):
+        print("No successes")
+        sys.exit()
+
     normalization = None if args.normalization == "None" else args.normalization
 
     fig, ax = plt.subplots()
-    plot(ax, data, normalization=normalization)
+    plot(ax, success, normalization=normalization)
 
     output_path = PLOT_DIR / args.group / f"{args.filename}.{args.ext}"
     fig.savefig(output_path, bbox_inches="tight", dpi=args.dpi)
