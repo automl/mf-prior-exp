@@ -60,16 +60,20 @@ DATASETS = {
     "jahs_fashion_mnist_prior-good": "Fashion-MNIST (good)",
     "jahs_fashion_mnist_prior-bad": "Fashion-MNIST (bad)",
     # mfh3 good
-    "mfh3_good_prior-perfect-noisy0.25": "H3d (good corr-good prior)",
+    #"mfh3_good_prior-perfect-noisy0.25": "H3d (good corr-good prior)",
+    "mfh3_good_prior-good": "H3d (good corr-good prior)",
     "mfh3_good_prior-bad": "H3d (good corr-bad prior)",
     # mfh3 terrible
-    "mfh3_terrible_prior-perfect-noisy0.25": "H3d (bad corr-good prior)",
+    #"mfh3_terrible_prior-perfect-noisy0.25": "H3d (bad corr-good prior)",
+    "mfh3_terrible_prior-good": "H3d (bad corr-good prior)",
     "mfh3_terrible_prior-bad": "H3d (bad corr-bad prior)",
     # mfh6 good
-    "mfh6_good_prior-perfect-noisy0.25": "H6d (good corr-good prior)",
+    #"mfh6_good_prior-perfect-noisy0.25": "H6d (good corr-good prior)",
+    "mfh6_good_prior-good": "H6d (good corr-good prior)",
     "mfh6_good_prior-bad": "H6d (good corr-bad prior)",
     # mfh6 terrible
-    "mfh6_terrible_prior-perfect-noisy0.25": "H6d (bad corr-good prior)",
+    #"mfh6_terrible_prior-perfect-noisy0.25": "H6d (bad corr-good prior)",
+    "mfh6_terrible_prior-good": "H6d (bad corr-good prior)",
     "mfh6_terrible_prior-bad": "H6d (bad corr-bad prior)",
     # lcbench-126026
     "lcbench-126026_prior-bad": "LCBench-126026 (bad)",
@@ -108,7 +112,7 @@ COLOR_MARKER_DICT = {
     # "successive_halving": "SH",
     # "successive_halving_prior": "SH+Prior",
     # "successive_halving_prior-50": "SH+Prior(50%)",
-    # "hpbandster": "HpBandSter",
+    "hpbandster": "darkgreen",
     "hyperband": "limegreen",
     "hyperband_prior": "darkgreen",
     "hyperband_prior-50": "olive",

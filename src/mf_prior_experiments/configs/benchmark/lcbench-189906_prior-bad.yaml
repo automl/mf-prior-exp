@@ -1,4 +1,5 @@
 name: lcbench-189906_prior-bad
+epsilon: 0.0
 api:
   name: lcbench
   prior: bad
@@ -7,8 +8,8 @@ api:
   _target_: mfpbench.get
   seed: ${seed}
   preload: true
-prior_highest_fidelity_error: 0.8170135617256165
-prior_lowest_error: 0.8170135617256165
+prior_highest_fidelity_error: 0.8911923840641975
+prior_lowest_error: 0.8822445049881935
 best_10_error: 0.1518094539642334
 best_25_error: 0.1518094539642334
 best_50_error: 0.11257266998291016

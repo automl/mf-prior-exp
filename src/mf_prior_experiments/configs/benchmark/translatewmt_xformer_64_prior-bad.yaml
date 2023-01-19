@@ -1,4 +1,5 @@
 name: translatewmt_xformer_64_prior-bad
+epsilon: 0.0
 api:
   name: translatewmt_xformer_64
   prior: bad
@@ -6,8 +7,8 @@ api:
   _target_: mfpbench.get
   seed: ${seed}
   preload: true
-prior_highest_fidelity_error: 0.658003032207489
-prior_lowest_error: 0.658003032207489
+prior_highest_fidelity_error: 0.8968379497528076
+prior_lowest_error: 0.8964040875434875
 best_10_error: 0.368562787771225
 best_25_error: 0.3647257387638092
 best_50_error: 0.3647257387638092

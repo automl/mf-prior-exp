@@ -1,4 +1,5 @@
 name: jahs_colorectal_histology_prior-bad
+epsilon: 0.0
 api:
   name: jahs_colorectal_histology
   datadir: ${hydra:runtime.cwd}/data/jahs-bench-data
@@ -6,8 +7,8 @@ api:
   _target_: mfpbench.get
   seed: ${seed}
   preload: true
-prior_highest_fidelity_error: 20.242897033691406
-prior_lowest_error: 20.203781127929688
+prior_highest_fidelity_error: 90.43802070617676
+prior_lowest_error: 88.0078239440918
 best_10_error: 5.36956787109375
 best_25_error: 5.2310333251953125
 best_50_error: 5.2310333251953125

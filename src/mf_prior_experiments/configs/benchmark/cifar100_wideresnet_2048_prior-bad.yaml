@@ -1,4 +1,5 @@
 name: cifar100_wideresnet_2048_prior-bad
+epsilon: 0.0
 api:
   name: cifar100_wideresnet_2048
   prior: bad
@@ -6,8 +7,8 @@ api:
   _target_: mfpbench.get
   seed: ${seed}
   preload: true
-prior_highest_fidelity_error: 0.70489102602005
-prior_lowest_error: 0.7033082246780396
+prior_highest_fidelity_error: 0.9996833801269531
+prior_lowest_error: 0.9996833801269531
 best_10_error: 0.24055302143096924
 best_25_error: 0.24055302143096924
 best_50_error: 0.19266563653945923
