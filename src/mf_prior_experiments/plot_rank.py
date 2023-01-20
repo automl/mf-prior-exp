@@ -277,9 +277,9 @@ if __name__ == "__main__":
         description="mf-prior-exp plotting",
     )
     parser.add_argument(
-        "--base_path", type=str, default=None, help="path where `results/` exists"
+        "--base_path", type=str, required=True, help="path where `results/` exists"
     )
-    parser.add_argument("--experiment_group", type=str, default="")
+    parser.add_argument("--experiment_group", type=str, required=True)
     parser.add_argument(
         "--n_workers",
         type=int,
@@ -287,15 +287,14 @@ if __name__ == "__main__":
         help="for multiple workers we plot based on end timestamps on "
         "x-axis (no continuation considered); any value > 1 is adequate",
     )
-    parser.add_argument("--benchmarks", nargs="+", default=None)
-    parser.add_argument("--algorithms", nargs="+", default=None)
+    parser.add_argument("--benchmarks", type=str, nargs="+", required=True)
+    parser.add_argument("--algorithms", type=str, nargs="+", required=True)
     parser.add_argument("--plot_id", type=str, default="1")
     parser.add_argument("--research_question", type=int, default=1)
     parser.add_argument(
         "--which_prior",
         type=str,
         choices=["good", "bad"],
-        default="bad",
         help="for RQ2 choose whether to plot good or bad",
     )
     parser.add_argument("--x_range", nargs="+", default=None, type=float)
