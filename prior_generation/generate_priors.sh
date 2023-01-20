@@ -30,6 +30,13 @@ GOOD_CATEGORICAL_CHANGE_CHANCE="None"
 
 GOOD_PRIOR="${GOOD_NAME}:${GOOD_INDEX}:${GOOD_EPSILON}:${GOOD_CATEGORICAL_CHANGE_CHANCE}"
 
+MEDIUM_NAME="medium"
+MEDIUM_INDEX="0"
+MEDIUM_EPSILON="0.125"
+MEDIUM_CATEGORICAL_CHANGE_CHANCE="None"
+
+MEDIUM_PRIOR="${MEDIUM_NAME}:${MEDIUM_INDEX}:${MEDIUM_EPSILON}:${MEDIUM_CATEGORICAL_CHANGE_CHANCE}"
+
 BAD_NAME="bad"
 BAD_INDEX="-1"
 BAD_EPSILON="None"
@@ -76,13 +83,13 @@ if [[ $selection == "mfh"* ]]; then
         --seed "${SEED}" \
         --nsamples "${NSAMPLES}" \
         --only "${selection}" \
-        --priors "${GOOD_PRIOR}" "${BAD_PRIOR}" \
-        --use-hartmann-optimum "${GOOD_NAME}"
+        --priors "${GOOD_PRIOR}" "${MEDIUM_PRIOR}" "${BAD_PRIOR}" \
+        --use-hartmann-optimum "${GOOD_NAME}" "${MEDIUM_NAME}"
 else
     python -m mfpbench generate-priors \
         --to "${PRIORDIR}" \
         --seed "${SEED}" \
         --nsamples "${NSAMPLES}" \
         --only "${selection}" \
-        --priors "${GOOD_PRIOR}" "${BAD_PRIOR}"
+        --priors "${GOOD_PRIOR}" "${MEDIUM_PRIOR}" "${BAD_PRIOR}"
 fi

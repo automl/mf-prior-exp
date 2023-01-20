@@ -61,54 +61,77 @@ ALGORITHMS = {
 
 DATASETS = {
     # jahs cifar10
-    "jahs_cifar10_prior-good": "CIFAR-10 (good)",
+    "jahs_cifar10_prior-good": "CIFAR-10 (strong)",
+    "jahs_cifar10_prior-medium": "CIFAR-10 (weak)",
     "jahs_cifar10_prior-bad": "CIFAR-10 (bad)",
     # jahs colorectal histology
-    "jahs_colorectal_histology_prior-good": "Colorectal-Histology (good)",
+    "jahs_colorectal_histology_prior-good": "Colorectal-Histology (strong)",
+    "jahs_colorectal_histology_prior-medium": "Colorectal-Histology (weak)",
     "jahs_colorectal_histology_prior-bad": "Colorectal-Histology (bad)",
     # jahs fashion_mnist
-    "jahs_fashion_mnist_prior-good": "Fashion-MNIST (good)",
+    "jahs_fashion_mnist_prior-good": "Fashion-MNIST (strong)",
+    "jahs_fashion_mnist_prior-medium": "Fashion-MNIST (weak)",
     "jahs_fashion_mnist_prior-bad": "Fashion-MNIST (bad)",
     # mfh3 good
     #"mfh3_good_prior-perfect-noisy0.25": "H3d (good corr-good prior)",
-    "mfh3_good_prior-good": "H3d (good corr-good prior)",
+    "mfh3_good_prior-good": "H3d (good corr-strong prior)",
+    "mfh3_good_prior-medium": "H3d (good corr-weak prior)",
     "mfh3_good_prior-bad": "H3d (good corr-bad prior)",
     # mfh3 terrible
     #"mfh3_terrible_prior-perfect-noisy0.25": "H3d (bad corr-good prior)",
-    "mfh3_terrible_prior-good": "H3d (bad corr-good prior)",
+    "mfh3_terrible_prior-good": "H3d (bad corr-strong prior)",
+    "mfh3_terrible_prior-medium": "H3d (bad corr-weak prior)",
     "mfh3_terrible_prior-bad": "H3d (bad corr-bad prior)",
     # mfh6 good
     #"mfh6_good_prior-perfect-noisy0.25": "H6d (good corr-good prior)",
-    "mfh6_good_prior-good": "H6d (good corr-good prior)",
+    "mfh6_good_prior-good": "H6d (good corr-strong prior)",
+    "mfh6_good_prior-medium": "H6d (good corr-weak prior)",
     "mfh6_good_prior-bad": "H6d (good corr-bad prior)",
     # mfh6 terrible
     #"mfh6_terrible_prior-perfect-noisy0.25": "H6d (bad corr-good prior)",
-    "mfh6_terrible_prior-good": "H6d (bad corr-good prior)",
+    "mfh6_terrible_prior-good": "H6d (bad corr-strong prior)",
+    "mfh6_terrible_prior-medium": "H6d (bad corr-weak prior)",
     "mfh6_terrible_prior-bad": "H6d (bad corr-bad prior)",
     # lcbench-126026
     "lcbench-126026_prior-bad": "LCBench-126026 (bad)",
-    "lcbench-126026_prior-good": "LCBench-126026 (good)",
+    "lcbench-126026_prior-medium": "LCBench-126026 (weak)",
+    "lcbench-126026_prior-good": "LCBench-126026 (strong)",
     # lcbench-167190
     "lcbench-167190_prior-bad": "LCBench-167190 (bad)",
-    "lcbench-167190_prior-good": "LCBench-167190 (good)",
+    "lcbench-167190_prior-medium": "LCBench-167190 (weak)",
+    "lcbench-167190_prior-good": "LCBench-167190 (strong)",
     # lcbench-168330
     "lcbench-168330_prior-bad": "LCBench-168330 (bad)",
-    "lcbench-168330_prior-good": "LCBench-168330 (good)",
+    "lcbench-168330_prior-medium": "LCBench-168330 (weak)",
+    "lcbench-168330_prior-good": "LCBench-168330 (strong)",
     # lcbench-168910
     "lcbench-168910_prior-bad": "LCBench-168910 (bad)",
-    "lcbench-168910_prior-good": "LCBench-168910 (good)",
+    "lcbench-168910_prior-medium": "LCBench-168910 (weak)",
+    "lcbench-168910_prior-good": "LCBench-168910 (strong)",
     # lcbench-189906
     "lcbench-189906_prior-bad": "LCBench-189906 (bad)",
-    "lcbench-189906_prior-good": "LCBench-189906 (good)",
+    "lcbench-189906_prior-medium": "LCBench-189906 (weak)",
+    "lcbench-189906_prior-good": "LCBench-189906 (strong)",
     # translate wmt
     "translatewmt_xformer_64_prior-bad": "PD1-WMT (bad)",
-    "translatewmt_xformer_64_prior-good": "PD1-WMT (good)",
+    "translatewmt_xformer_64_prior-medium": "PD1-WMT (weak)",
+    "translatewmt_xformer_64_prior-good": "PD1-WMT (strong)",
     # lm1b
     "lm1b_transformer_2048_prior-bad": "PD1-Lm1b (bad)",
-    "lm1b_transformer_2048_prior-good": "PD1-Lm1b (good)",
+    "lm1b_transformer_2048_prior-medium": "PD1-Lm1b (weak)",
+    "lm1b_transformer_2048_prior-good": "PD1-Lm1b (strong)",
     # uniref
     "uniref50_transformer_prior-bad": "PD1-Uniref50 (bad)",
-    "uniref50_transformer_prior-good": "PD1-Uniref50 (good)",
+    "uniref50_transformer_prior-medium": "PD1-Uniref50 (weak)",
+    "uniref50_transformer_prior-good": "PD1-Uniref50 (strong)",
+    # imagenet
+    "imagenet_resnet_512_prior-bad": "Imagenet (bad)",
+    "imagenet_resnet_512_prior-medium": "Imagenet (weak)",
+    "imagenet_resnet_512_prior-good": "Imagenet (strong)",
+    # cifar100
+    "cifar100_wideresnet_2048_prior-bad": "CIFAR100 (bad)",
+    "cifar100_wideresnet_2048_prior-medium": "CIFAR100 (weak)",
+    "cifar100_wideresnet_2048_prior-good": "CIFAR100 (strong)",
 }
 
 # https://matplotlib.org/stable/gallery/color/named_colors.html

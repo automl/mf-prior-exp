@@ -1,0 +1,16 @@
+name: imagenet_resnet_512_prior-medium
+epsilon: 0.125
+api:
+  name: imagenet_resnet_512
+  prior: medium
+  datadir: ${hydra:runtime.cwd}/data/pd1-data
+  _target_: mfpbench.get
+  seed: ${seed}
+  preload: true
+prior_highest_fidelity_error: 0.1771874576807022
+prior_lowest_error: 0.1771874576807022
+best_10_error: 0.2628989517688751
+best_25_error: 0.21568429470062256
+best_50_error: 0.21568429470062256
+best_90_error: 0.21568429470062256
+best_100_error: 0.21568429470062256

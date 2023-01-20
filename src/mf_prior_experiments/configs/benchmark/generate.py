@@ -13,9 +13,9 @@ HERE = Path(__file__).parent.resolve()
 
 CONFIGSPACE_SEED = 133_077
 
-JAHS_BENCHMARKS = ["jahs_cifar10", "jahs_colorectal_histology", "jahs_fashion_mnist"]
-JAHS_PRIORS = [("bad", 0.00), ("good", 0.01)]
+PRIORS = [("bad", 0.00), ("medium", 0.125), ("good", 0.01)]
 
+JAHS_BENCHMARKS = ["jahs_cifar10", "jahs_colorectal_histology", "jahs_fashion_mnist"]
 PD1_DATASETS = [
     "lm1b_transformer_2048",
     "uniref50_transformer_128",
@@ -23,20 +23,15 @@ PD1_DATASETS = [
     "imagenet_resnet_512",
     "cifar100_wideresnet_2048",
 ]
-PD1_PRIORS = [("bad", 0.00), ("good", 0.01)]
-
 LCBENCH_TASKS = ["126026", "167190", "168910", "168330", "189906"]
-LCBENCH_PRIORS = [("bad", 0.00), ("good", 0.01)]
-
 HARTMANN_BENCHMARKS = [
     f"mfh{i}_{corr}" for i, corr in product([3, 6], ["terrible", "good"])
 ]
-HARTMANN_PRIORS = [("bad", 0.00), ("good", 0.01)]
 
 
 def hartmann_configs() -> Iterator[tuple[str, dict[str, Any], float]]:
 
-    for name, (prior, epsilon) in product(HARTMANN_BENCHMARKS, HARTMANN_PRIORS):
+    for name, (prior, epsilon) in product(HARTMANN_BENCHMARKS, PRIORS):
         api: dict = {
             "name": name,
             "prior": prior,
@@ -48,7 +43,7 @@ def hartmann_configs() -> Iterator[tuple[str, dict[str, Any], float]]:
 
 def pd1_configs() -> Iterator[tuple[str, dict[str, Any], float]]:
     datadir = "pd1-data"
-    for name, (prior, epsilon) in product(PD1_DATASETS, PD1_PRIORS):
+    for name, (prior, epsilon) in product(PD1_DATASETS, PRIORS):
         config_name = f"{name}_prior-{prior}"
         api = {
             "name": name,
@@ -62,7 +57,7 @@ def pd1_configs() -> Iterator[tuple[str, dict[str, Any], float]]:
 def lcbench_configs() -> Iterator[tuple[str, dict[str, Any], float]]:
     datadir = "yahpo-gym-data"
 
-    for task_id, (prior, epsilon) in product(LCBENCH_TASKS, LCBENCH_PRIORS):
+    for task_id, (prior, epsilon) in product(LCBENCH_TASKS, PRIORS):
         bench = mfpbench._mapping["lcbench"]
 
         assert issubclass(bench, YAHPOBenchmark)
@@ -80,7 +75,7 @@ def lcbench_configs() -> Iterator[tuple[str, dict[str, Any], float]]:
 def jahs_configs() -> Iterator[tuple[str, dict[str, Any], float]]:
     datadir = "jahs-bench-data"
 
-    for name, (prior, epsilon) in product(JAHS_BENCHMARKS, JAHS_PRIORS):
+    for name, (prior, epsilon) in product(JAHS_BENCHMARKS, PRIORS):
         config_name = f"{name}_prior-{prior}"
         api = {
             "name": name,
@@ -137,12 +132,14 @@ def configs() -> Iterator[tuple[Path, dict[str, Any]]]:
                 config["prior_highest_fidelity_error"] = float(highest_fidelity_error)
                 config["prior_lowest_error"] = float(lowest_error)
                 print(f"   - error {highest_fidelity_error}")
+                del b
+
+                # Reload it without the prior
+                del kwargs["prior"]
+                b = mfpbench.get(seed=CONFIGSPACE_SEED, **kwargs)
 
             # We also give the best score of RS for 10, 25, 100
             # We remove information about the priors to keep it random
-            del kwargs["prior"]
-
-            b = mfpbench.get(seed=CONFIGSPACE_SEED, **kwargs)
             print("  - sampling")
             configs = b.sample(100)
             print("  - querying")
