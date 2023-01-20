@@ -1,5 +1,5 @@
 name: lm1b_transformer_2048_prior-medium
-epsilon: 0.125
+epsilon: 0.25
 api:
   name: lm1b_transformer_2048
   prior: medium
@@ -7,8 +7,8 @@ api:
   _target_: mfpbench.get
   seed: ${seed}
   preload: true
-prior_highest_fidelity_error: 0.6048744916915894
-prior_lowest_error: 0.6048744916915894
+prior_highest_fidelity_error: 0.6060377359390259
+prior_lowest_error: 0.6060377359390259
 best_10_error: 0.6371834874153137
 best_25_error: 0.6371834874153137
 best_50_error: 0.6371834874153137

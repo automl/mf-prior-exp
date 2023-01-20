@@ -1,5 +1,5 @@
 name: translatewmt_xformer_64_prior-medium
-epsilon: 0.125
+epsilon: 0.25
 api:
   name: translatewmt_xformer_64
   prior: medium
@@ -7,8 +7,8 @@ api:
   _target_: mfpbench.get
   seed: ${seed}
   preload: true
-prior_highest_fidelity_error: 0.29153281450271606
-prior_lowest_error: 0.29135823249816895
+prior_highest_fidelity_error: 0.3596803843975067
+prior_lowest_error: 0.35967305302619934
 best_10_error: 0.368562787771225
 best_25_error: 0.3647257387638092
 best_50_error: 0.3647257387638092

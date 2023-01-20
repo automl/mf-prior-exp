@@ -1,5 +1,5 @@
 name: jahs_cifar10_prior-medium
-epsilon: 0.125
+epsilon: 0.25
 api:
   name: jahs_cifar10
   datadir: ${hydra:runtime.cwd}/data/jahs-bench-data
@@ -7,8 +7,8 @@ api:
   _target_: mfpbench.get
   seed: ${seed}
   preload: true
-prior_highest_fidelity_error: 8.049324035644531
-prior_lowest_error: 8.049263000488281
+prior_highest_fidelity_error: 8.05224609375
+prior_lowest_error: 8.052154541015625
 best_10_error: 10.771697998046875
 best_25_error: 9.080703735351562
 best_50_error: 9.080703735351562

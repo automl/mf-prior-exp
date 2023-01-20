@@ -13,7 +13,7 @@ HERE = Path(__file__).parent.resolve()
 
 CONFIGSPACE_SEED = 133_077
 
-PRIORS = [("bad", 0.00), ("medium", 0.125), ("good", 0.01)]
+PRIORS = [("bad", 0.00), ("medium", 0.250), ("good", 0.01)]
 
 JAHS_BENCHMARKS = ["jahs_cifar10", "jahs_colorectal_histology", "jahs_fashion_mnist"]
 PD1_DATASETS = [

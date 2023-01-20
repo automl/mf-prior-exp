@@ -1,5 +1,5 @@
 name: jahs_fashion_mnist_prior-medium
-epsilon: 0.125
+epsilon: 0.25
 api:
   name: jahs_fashion_mnist
   datadir: ${hydra:runtime.cwd}/data/jahs-bench-data
@@ -7,8 +7,8 @@ api:
   _target_: mfpbench.get
   seed: ${seed}
   preload: true
-prior_highest_fidelity_error: 4.70977783203125
-prior_lowest_error: 4.6824951171875
+prior_highest_fidelity_error: 4.7021636962890625
+prior_lowest_error: 4.679107666015625
 best_10_error: 5.281394958496094
 best_25_error: 5.281394958496094
 best_50_error: 4.976997375488281

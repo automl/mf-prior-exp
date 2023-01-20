@@ -1,5 +1,5 @@
 name: lcbench-168330_prior-medium
-epsilon: 0.125
+epsilon: 0.25
 api:
   name: lcbench
   prior: medium
@@ -8,8 +8,8 @@ api:
   _target_: mfpbench.get
   seed: ${seed}
   preload: true
-prior_highest_fidelity_error: 0.25929421186447144
-prior_lowest_error: 0.25929421186447144
+prior_highest_fidelity_error: 0.2670057415962219
+prior_lowest_error: 0.2670057415962219
 best_10_error: 0.4125204086303711
 best_25_error: 0.3594663739204407
 best_50_error: 0.34903186559677124
