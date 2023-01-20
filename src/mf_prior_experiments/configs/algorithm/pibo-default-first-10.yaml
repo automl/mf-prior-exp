@@ -1,4 +1,4 @@
-name: pibo-default-first
+name: pibo-default-first-10
 mf: false
 run_function:
   _target_: mf_prior_experiments.run.run_neps
