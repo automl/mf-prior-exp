@@ -32,7 +32,8 @@
     --base_path {{base_path}} \
     --ext {{ext}} \
     --x_range 0 20 \
-    --plot_default
+    --plot_default \
+    --plot_optimum
 
 # Table job
 @table experiment_group benchmarks algorithms filename budget base_path=justfile_directory() :
