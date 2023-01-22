@@ -20,7 +20,7 @@
     --partition {{partition}} \
     --memory {{memory}} \
     --n_worker {{n_worker}} \
-    --arguments algorithm={{algorithms}} benchmark={{benchmarks}} n_workers={{n_worker}} seed="{{seeds}}" hydra/job_logging=only_file \
+    --arguments algorithm={{algorithms}} benchmark={{benchmarks}} n_workers={{n_worker}} seed="{{seeds}}" hydra/job_logging=full \
 
 # Plot job
 @plot experiment_group benchmarks algorithms filename ext="pdf" base_path=justfile_directory() :
