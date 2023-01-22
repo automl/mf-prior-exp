@@ -1,4 +1,4 @@
-name: priorband_bo_hs_decay
+name: priorband_bo_cr_dyna
 mf: true
 run_function:
   _target_: mf_prior_experiments.run.run_neps
