@@ -19,7 +19,7 @@ JOB_TIME = ITERATIONS_MAX + (5 * 60)  # Max iteration count with 5 min extra
 MEMORY = 25_000
 
 HERE = Path(__file__).absolute().resolve().parent
-SCRIPT_PATH = HERE.parent / "src" / "mf-prior-bench" / "correlations.py"
+SCRIPT_PATH = HERE.parent / "src" / "mf-prior-bench" / "mfpbench" / "correlations.py"
 DATADIR = HERE.parent / "data"
 LOGDIR = HERE / "logs"
 RESULTSDIR = HERE / "results"
