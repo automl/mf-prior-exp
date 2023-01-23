@@ -174,7 +174,7 @@ COLOR_MARKER_DICT = {
     "priorband_crossover_decay": "blue",
     "priorband_crossover_decay_linear": "skyblue",
     "priorband_crossover_dynamic": "brown",
-    "priorband_crossover_dynamic_linear": "gold",
+    "priorband_crossover_dynamic_linear": "magenta",
     "priorband_hypersphere_constant": "pink",
     "priorband_hypersphere_constant_linear": "orange",
     "priorband_hypersphere_decay": "turquoise",
