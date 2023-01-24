@@ -1,3 +1,5 @@
+import argparse
+
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
@@ -5,6 +7,109 @@ from path import Path
 from scipy import stats
 
 from .styles import ALGORITHMS, COLOR_MARKER_DICT, DATASETS
+
+
+def get_parser():
+    parser = argparse.ArgumentParser(
+        description="mf-prior-exp plotting",
+    )
+    parser.add_argument(
+        "--base_path", type=str, default=None, help="path where `results/` exists"
+    )
+    parser.add_argument("--experiment_group", type=str, default="")
+    parser.add_argument(
+        "--n_workers",
+        type=int,
+        default=1,
+        help="for multiple workers we plot based on end timestamps on "
+        "x-axis (no continuation considered); any value > 1 is adequate",
+    )
+    parser.add_argument("--benchmarks", nargs="+", default=None)
+    parser.add_argument("--algorithms", nargs="+", default=None)
+    parser.add_argument("--plot_id", type=str, default="1")
+    parser.add_argument("--research_question", type=int, default=1)
+    parser.add_argument(
+        "--which_prior",
+        type=str,
+        choices=["good", "bad"],
+        default="bad",
+        help="for RQ2 choose whether to plot good or bad",
+    )
+    parser.add_argument("--budget", nargs="+", default=None, type=float)
+    parser.add_argument("--x_range", nargs="+", default=None, type=float)
+    parser.add_argument("--log_x", action="store_true")
+    parser.add_argument("--log_y", action="store_true")
+    parser.add_argument(
+        "--filename", type=str, default=None, help="name out pdf file generated"
+    )
+    parser.add_argument("--dpi", type=int, default=200)
+    parser.add_argument(
+        "--ext",
+        type=str,
+        choices=["pdf", "png"],
+        default="pdf",
+        help="the file extension or the plot file type",
+    )
+    parser.add_argument(
+        "--cost_as_runtime",
+        default=False,
+        action="store_true",
+        help="Default behaviour to use fidelities on the x-axis. "
+        "This parameter uses the training cost/runtime on the x-axis",
+    )
+    parser.add_argument(
+        "--plot_default",
+        default=False,
+        action="store_true",
+        help="plots a horizontal line for the prior score if available",
+    )
+    parser.add_argument(
+        "--plot_optimum",
+        default=False,
+        action="store_true",
+        help="plots a horizontal line for the optimum score if available",
+    )
+    parser.add_argument(
+        "--plot_rs_10",
+        default=False,
+        action="store_true",
+        help="plots a horizontal line for RS at 10x",
+    )
+    parser.add_argument(
+        "--plot_rs_25",
+        default=False,
+        action="store_true",
+        help="plots a horizontal line for RS at 25x",
+    )
+    parser.add_argument(
+        "--plot_rs_100",
+        default=False,
+        action="store_true",
+        help="plots a horizontal line for RS at 100x",
+    )
+    parser.add_argument(
+        "--dynamic_y_lim",
+        default=False,
+        action="store_true",
+        help="whether to set y_lim for plots to the worst performance of incumbents"
+        "of random_search and random_search_prior after 2 evals"
+        "(remember to run it first!)",
+    )
+    parser.add_argument(
+        "--parallel",
+        default=False,
+        action="store_true",
+        help="whether to process data in parallel or not",
+    )
+    parser.add_argument(
+        "--parallel_backend",
+        type=str,
+        choices=["multiprocessing", "threading"],
+        default="multiprocessing",
+        help="which backend use for parallel",
+    )
+
+    return parser
 
 
 def set_general_plot_style():

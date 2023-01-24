@@ -1,4 +1,3 @@
-import argparse
 import errno
 import math
 import operator
@@ -17,10 +16,8 @@ from path import Path
 from scipy.stats import friedmanchisquare, wilcoxon
 
 from .configs.plotting.read_results import get_seed_info
-from .configs.plotting.utils import interpolate_time, save_fig
-
-# from matplotlib.backends.backend_agg import FigureCanvasAgg
-
+from .configs.plotting.utils import ALGORITHMS, get_parser, interpolate_time, save_fig
+from .plot import map_axs
 
 benchmark_configs_path = os.path.join(os.path.dirname(__file__), "configs/benchmark/")
 
@@ -35,6 +32,7 @@ benchmark_configs_path = os.path.join(os.path.dirname(__file__), "configs/benchm
 
 ALGORITHM_COLUMN_NAME = "algorithm"
 TASK_COLUMN_NAME = "benchmark"
+METRIC_COLUMN_NAME = "loss"
 
 
 ### CD Graph utils
@@ -411,7 +409,7 @@ def get_classifiers(df_perf):
     return df_counts, max_nb_datasets, classifiers
 
 
-### calculate wilcoxon holm p-value
+# calculate wilcoxon holm p-value
 def wilcoxon_holm(df_perf, performance_metric_column_name="roc_auc", alpha=0.05):
     """
     Applies the wilcoxon signed rank test between each pair of algorithm and then use Holm
@@ -511,7 +509,6 @@ def _process_seed(_path, seed, algorithm, key_to_extract, cost_as_runtime, resul
 
 
 def plot(args):
-
     assert args.budget is not None, "Please input the budget for which CD is calculated"
 
     starttime = time.time()
@@ -524,46 +521,79 @@ def plot(args):
 
     KEY_TO_EXTRACT = "cost" if args.cost_as_runtime else "fidelity"
 
+    ncols = len(args.budget)
+    nrows = 1
+    figsize = (4 * ncols, 3 * nrows)
+
+    fig, axs = plt.subplots(
+        nrows=nrows,
+        ncols=ncols,
+        figsize=figsize,
+    )
+
     base_path = BASE_PATH / "results" / args.experiment_group
     output_dir = BASE_PATH / "plots" / args.experiment_group
 
-    print(
-        f"[{time.strftime('%H:%M:%S', time.localtime())}]"
-        f" Processing {len(args.benchmarks)} benchmarks "
-        f"and {len(args.algorithms)} algorithms..."
-    )
+    for budget_idx, budget in enumerate(args.budget):
 
-    for benchmark_idx, benchmark in enumerate(args.benchmarks):
-        df_perf = pd.DataFrame(columns=["benchmark", "loss", "algorithm"])
-        fig, ax = plt.subplots()
+        ax = map_axs(axs, budget_idx, len(args.budget), ncols)
 
         print(
-            f"[{time.strftime('%H:%M:%S', time.localtime())}] "
-            f"[{benchmark_idx}] Processing {benchmark} benchmark..."
+            f"[{time.strftime('%H:%M:%S', time.localtime())}]"
+            f" Processing {len(args.benchmarks)} benchmarks "
+            f"and {len(args.algorithms)} algorithms..."
         )
-        benchmark_starttime = time.time()
 
-        _base_path = os.path.join(base_path, f"benchmark={benchmark}")
-        if not os.path.isdir(_base_path):
-            raise FileNotFoundError(errno.ENOENT, os.strerror(errno.ENOENT), _base_path)
-        for algorithm in args.algorithms:
-            _path = os.path.join(_base_path, f"algorithm={algorithm}")
-            if not os.path.isdir(_path):
-                raise FileNotFoundError(errno.ENOENT, os.strerror(errno.ENOENT), _path)
+        df_perf = pd.DataFrame(
+            columns=[TASK_COLUMN_NAME, METRIC_COLUMN_NAME, ALGORITHM_COLUMN_NAME]
+        )
+        for benchmark_idx, benchmark in enumerate(args.benchmarks):
 
-            algorithm_starttime = time.time()
-            seeds = sorted(os.listdir(_path))
+            print(
+                f"[{time.strftime('%H:%M:%S', time.localtime())}] "
+                f"[{benchmark_idx}] Processing {benchmark} benchmark..."
+            )
+            benchmark_starttime = time.time()
 
-            if args.parallel:
-                manager = Manager()
-                results = manager.dict(
-                    incumbents=manager.list(),
-                    costs=manager.list(),
-                    max_costs=manager.list(),
+            _base_path = os.path.join(base_path, f"benchmark={benchmark}")
+            if not os.path.isdir(_base_path):
+                raise FileNotFoundError(
+                    errno.ENOENT, os.strerror(errno.ENOENT), _base_path
                 )
-                with parallel_backend(args.parallel_backend, n_jobs=-1):
-                    Parallel()(
-                        delayed(_process_seed)(
+            for algorithm in args.algorithms:
+                _path = os.path.join(_base_path, f"algorithm={algorithm}")
+                if not os.path.isdir(_path):
+                    raise FileNotFoundError(
+                        errno.ENOENT, os.strerror(errno.ENOENT), _path
+                    )
+
+                algorithm_starttime = time.time()
+                seeds = sorted(os.listdir(_path))
+
+                if args.parallel:
+                    manager = Manager()
+                    results = manager.dict(
+                        incumbents=manager.list(),
+                        costs=manager.list(),
+                        max_costs=manager.list(),
+                    )
+                    with parallel_backend(args.parallel_backend, n_jobs=-1):
+                        Parallel()(
+                            delayed(_process_seed)(
+                                _path,
+                                seed,
+                                algorithm,
+                                KEY_TO_EXTRACT,
+                                args.cost_as_runtime,
+                                results,
+                            )
+                            for seed in seeds
+                        )
+                else:
+                    results = dict(incumbents=[], costs=[], max_costs=[])
+                    # pylint: disable=expression-not-assigned
+                    [
+                        _process_seed(
                             _path,
                             seed,
                             algorithm,
@@ -572,44 +602,29 @@ def plot(args):
                             results,
                         )
                         for seed in seeds
-                    )
+                    ]
 
-            else:
-                results = dict(incumbents=[], costs=[], max_costs=[])
-                # pylint: disable=expression-not-assigned
-                [
-                    _process_seed(
-                        _path,
-                        seed,
-                        algorithm,
-                        KEY_TO_EXTRACT,
-                        args.cost_as_runtime,
-                        results,
-                    )
-                    for seed in seeds
-                ]
+                incumbents = np.array(results["incumbents"][:])
+                costs = np.array(results["costs"][:])
+                max_cost = None if args.cost_as_runtime else max(results["max_costs"][:])
 
-            incumbents = np.array(results["incumbents"][:])
-            costs = np.array(results["costs"][:])
-            max_cost = None if args.cost_as_runtime else max(results["max_costs"][:])
+                df = interpolate_time(incumbents, costs, scale_x=max_cost)
 
-            df = interpolate_time(incumbents, costs, scale_x=max_cost)
+                if budget is not None:
+                    df = df.query(f"index <= {budget}")
+                final_mean = df.mean(axis=1).values[-1]
 
-            if args.budget is not None:
-                df = df.query(f"index <= {args.budget}")
-            final_mean = df.mean(axis=1).values[-1]
+                df_perf.loc[len(df_perf)] = [benchmark, final_mean, ALGORITHMS[algorithm]]
 
-            df_perf.loc[len(df)] = [benchmark, final_mean, algorithm]
+                print(
+                    f"Time to process algorithm data: {time.time() - algorithm_starttime}"
+                )
+            print(f"Time to process benchmark data: {time.time() - benchmark_starttime}")
 
-            print(f"Time to process algorithm data: {time.time() - algorithm_starttime}")
-        print(f"Time to process benchmark data: {time.time() - benchmark_starttime}")
-
-        # calculate p values
         p_values, average_ranks, _ = wilcoxon_holm(
-            df_perf=df_perf, performance_metric_column_name="loss"
+            df_perf=df_perf, performance_metric_column_name=METRIC_COLUMN_NAME
         )
 
-        # plot on axes
         ax = graph_ranks(
             ax,
             [round(float(value), 2) for value in list(average_ranks.values)],
@@ -621,70 +636,27 @@ def plot(args):
             labels=False,
         )
 
-        filename = args.filename
-        if filename is None:
-            filename = f"{args.experiment_group}_{args.plot_id}_{benchmark}@{args.budget}"
+        ax.set_title(f"{args.plot_id}@{int(budget)}", fontsize=20)
 
-        output_dir = Path(output_dir)
-        output_dir.makedirs_p()
+    fig.tight_layout(pad=0, h_pad=0.5)
 
-        plt.suptitle(f"{benchmark}@{args.budget}")
+    filename = args.filename
+    if filename is None:
+        filename = f"{args.experiment_group}_{args.plot_id}_cd_diagram"
+    save_fig(
+        fig,
+        filename=filename,
+        output_dir=output_dir,
+        extension=args.ext,
+        dpi=args.dpi,
+    )
+    # output_dir = Path(output_dir)
+    # output_dir.makedirs_p()
 
-        save_fig(
-            fig,
-            filename=filename,
-            output_dir=output_dir,
-            extension=args.ext,
-            dpi=args.dpi,
-        )
-
-        print(f"Processing took {time.time() - starttime}")
+    print(f"Plotting took {time.time() - starttime}")
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(
-        description="mf-prior-exp plotting",
-    )
-    parser.add_argument(
-        "--base_path", type=str, default=None, help="path where `results/` exists"
-    )
-    parser.add_argument("--experiment_group", type=str, default="")
-    parser.add_argument("--caption", type=str, default="TODO")
-    parser.add_argument("--label", type=str, default="TODO")
-    parser.add_argument("--budget", type=float, default=None)
-    parser.add_argument("--benchmarks", nargs="+", default=None)
-    parser.add_argument("--algorithms", nargs="+", default=None)
-    parser.add_argument("--plot_id", type=str, default="1")
-    parser.add_argument(
-        "--filename", type=str, default=None, help="name out pdf file generated"
-    )
-    parser.add_argument(
-        "--cost_as_runtime",
-        default=False,
-        action="store_true",
-        help="Default behaviour to use fidelities on the x-axis. "
-        "This parameter uses the training cost/runtime on the x-axis",
-    )
-    parser.add_argument(
-        "--parallel",
-        default=False,
-        action="store_true",
-        help="whether to process data in parallel or not",
-    )
-    parser.add_argument(
-        "--parallel_backend",
-        type=str,
-        choices=["multiprocessing", "threading"],
-        default="multiprocessing",
-        help="which backend use for parallel",
-    )
-    parser.add_argument("--dpi", type=int, default=200)
-    parser.add_argument(
-        "--ext",
-        type=str,
-        choices=["pdf", "png"],
-        default="pdf",
-        help="the file extension or the plot file type",
-    )
+    parser = get_parser()
     args = AttrDict(parser.parse_args().__dict__)
     plot(args)  # pylint: disable=no-value-for-parameter
