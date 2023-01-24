@@ -1,7 +1,7 @@
 X_LABEL = dict(
     {
         False: "Full trainings",  # if `cost_as_runtime` is False
-        True: "Runtime [s]",
+        True: "Approx. full trainings",
     }
 )
 
@@ -78,22 +78,22 @@ DATASETS = {
     "jahs_fashion_mnist_prior-at25": "Fashion-MNIST (good)",
     "jahs_fashion_mnist_prior-bad": "Fashion-MNIST (bad)",
     # mfh3 good
-    #"mfh3_good_prior-perfect-noisy0.25": "H3d (good corr-good prior)",
+    # "mfh3_good_prior-perfect-noisy0.25": "H3d (good corr-good prior)",
     "mfh3_good_prior-good": "H3d (good corr-strong prior)",
     "mfh3_good_prior-medium": "H3d (good corr-weak prior)",
     "mfh3_good_prior-bad": "H3d (good corr-bad prior)",
     # mfh3 terrible
-    #"mfh3_terrible_prior-perfect-noisy0.25": "H3d (bad corr-good prior)",
+    # "mfh3_terrible_prior-perfect-noisy0.25": "H3d (bad corr-good prior)",
     "mfh3_terrible_prior-good": "H3d (bad corr-strong prior)",
     "mfh3_terrible_prior-medium": "H3d (bad corr-weak prior)",
     "mfh3_terrible_prior-bad": "H3d (bad corr-bad prior)",
     # mfh6 good
-    #"mfh6_good_prior-perfect-noisy0.25": "H6d (good corr-good prior)",
+    # "mfh6_good_prior-perfect-noisy0.25": "H6d (good corr-good prior)",
     "mfh6_good_prior-good": "H6d (good corr-strong prior)",
     "mfh6_good_prior-medium": "H6d (good corr-weak prior)",
     "mfh6_good_prior-bad": "H6d (good corr-bad prior)",
     # mfh6 terrible
-    #"mfh6_terrible_prior-perfect-noisy0.25": "H6d (bad corr-good prior)",
+    # "mfh6_terrible_prior-perfect-noisy0.25": "H6d (bad corr-good prior)",
     "mfh6_terrible_prior-good": "H6d (bad corr-strong prior)",
     "mfh6_terrible_prior-medium": "H6d (bad corr-weak prior)",
     "mfh6_terrible_prior-bad": "H6d (bad corr-bad prior)",
