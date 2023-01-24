@@ -13,8 +13,6 @@ HERE = Path(__file__).parent.resolve()
 
 CONFIGSPACE_SEED = 133_077
 
-PRIORS = [("bad", 0.00), ("medium", 0.250), ("good", 0.01)]
-
 JAHS_BENCHMARKS = ["jahs_cifar10", "jahs_colorectal_histology", "jahs_fashion_mnist"]
 PD1_DATASETS = [
     "lm1b_transformer_2048",
@@ -29,21 +27,27 @@ HARTMANN_BENCHMARKS = [
 ]
 
 
-def hartmann_configs() -> Iterator[tuple[str, dict[str, Any], float]]:
+def hartmann_configs() -> Iterator[tuple[str, dict[str, Any]]]:
 
-    for name, (prior, epsilon) in product(HARTMANN_BENCHMARKS, PRIORS):
+    # TODO: EDIT AS REQUIRED
+    PRIORS_TO_DO = ["good", "at25"]
+    for name, prior in product(HARTMANN_BENCHMARKS, PRIORS_TO_DO):
         api: dict = {
             "name": name,
             "prior": prior,
         }
 
+        if prior == "good":
+            api.update({"noisy_prior": True, "prior_noise_scale": 0.250 })
+
         config_name = f"{name}_prior-{prior}"
-        yield config_name, api, epsilon
+        yield config_name, api
 
 
-def pd1_configs() -> Iterator[tuple[str, dict[str, Any], float]]:
+def pd1_configs() -> Iterator[tuple[str, dict[str, Any]]]:
     datadir = "pd1-data"
-    for name, (prior, epsilon) in product(PD1_DATASETS, PRIORS):
+    PRIORS_TO_DO = ["at25"]
+    for name, prior in product(PD1_DATASETS, PRIORS_TO_DO):
         config_name = f"{name}_prior-{prior}"
         api = {
             "name": name,
@@ -51,13 +55,14 @@ def pd1_configs() -> Iterator[tuple[str, dict[str, Any], float]]:
             "datadir": "${hydra:runtime.cwd}/data/" + datadir,
         }
 
-        yield config_name, api, epsilon
+        yield config_name, api
 
 
-def lcbench_configs() -> Iterator[tuple[str, dict[str, Any], float]]:
+def lcbench_configs() -> Iterator[tuple[str, dict[str, Any]]]:
     datadir = "yahpo-gym-data"
+    PRIORS_TO_DO = ["at25"]
 
-    for task_id, (prior, epsilon) in product(LCBENCH_TASKS, PRIORS):
+    for task_id, prior in product(LCBENCH_TASKS, PRIORS_TO_DO):
         bench = mfpbench._mapping["lcbench"]
 
         assert issubclass(bench, YAHPOBenchmark)
@@ -69,25 +74,26 @@ def lcbench_configs() -> Iterator[tuple[str, dict[str, Any], float]]:
             "task_id": task_id,
         }
         config_name = f"lcbench-{task_id}_prior-{prior}"
-        yield config_name, api, epsilon
+        yield config_name, api
 
 
-def jahs_configs() -> Iterator[tuple[str, dict[str, Any], float]]:
+def jahs_configs() -> Iterator[tuple[str, dict[str, Any]]]:
     datadir = "jahs-bench-data"
+    PRIORS_TO_DO = ["at25"]
 
-    for name, (prior, epsilon) in product(JAHS_BENCHMARKS, PRIORS):
+    for name, prior in product(JAHS_BENCHMARKS, PRIORS_TO_DO):
         config_name = f"{name}_prior-{prior}"
         api = {
             "name": name,
             "datadir": "${hydra:runtime.cwd}/data/" + datadir,
             "prior": prior,
         }
-        yield config_name, api, epsilon
+        yield config_name, api
 
 
 def configs() -> Iterator[tuple[Path, dict[str, Any]]]:
     """Generate all configs we might care about for the benchmark."""
-    generators: list[Callable[[], Iterator[tuple[str, dict[str, Any], float]]]] = [
+    generators: list[Callable[[], Iterator[tuple[str, dict[str, Any]]]]] = [
         lcbench_configs,
         jahs_configs,
         hartmann_configs,
@@ -95,7 +101,7 @@ def configs() -> Iterator[tuple[Path, dict[str, Any]]]:
     ]
     for generator in generators:
 
-        for config_name, api, epsilon in generator():
+        for config_name, api in generator():
             print(f"{config_name}")
             # Put in defaults for each config
             api.update(
@@ -109,7 +115,6 @@ def configs() -> Iterator[tuple[Path, dict[str, Any]]]:
             # Create the config and filename
             config: dict[str, Any] = {
                 "name": config_name,
-                "epsilon": epsilon,
                 "api": api,
             }
             filename = f"{config_name}.yaml"
@@ -134,21 +139,28 @@ def configs() -> Iterator[tuple[Path, dict[str, Any]]]:
                 print(f"   - error {highest_fidelity_error}")
                 del b
 
-                # Reload it without the prior
-                del kwargs["prior"]
-                b = mfpbench.get(seed=CONFIGSPACE_SEED, **kwargs)
+
 
             # We also give the best score of RS for 10, 25, 100
             # We remove information about the priors to keep it random
-            print("  - sampling")
-            configs = b.sample(100)
-            print("  - querying")
-            results = [b.query(c) for c in configs]
+            # We also reload the benchmark at each iteration just because
+            # sampling 100 and taking the first 25 is not the same
+            # as sampling just 25
+            for key in ["prior", "noisy_prior", "prior_noise_scale"]:
+                kwargs.pop(key, None)
 
             for i in (10, 25, 50, 90, 100):
-                best = min(results[:i], key=lambda r: r.error)
+                b = mfpbench.get(seed=CONFIGSPACE_SEED, **kwargs)
+
+                print(f"  - sampling {i}")
+                configs = b.sample(i)
+
+                print(f"  - querying {i}")
+                results = [b.query(c) for c in configs]
+                best = min(results, key=lambda r: r.error)
+
                 config[f"best_{i}_error"] = float(best.error)
-            print(f"  - config: {config}")
+                print(f"  - config: {config}")
 
             if isinstance(b, MFHartmannBenchmark):
                 result = b.query(b.optimum)

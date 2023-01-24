@@ -1,0 +1,15 @@
+name: imagenet_resnet_512_prior-at25
+api:
+  name: imagenet_resnet_512
+  prior: at25
+  datadir: ${hydra:runtime.cwd}/data/pd1-data
+  _target_: mfpbench.get
+  seed: ${seed}
+  preload: true
+prior_highest_fidelity_error: 0.2083745300769806
+prior_lowest_error: 0.2083745300769806
+best_10_error: 0.25550442934036255
+best_25_error: 0.2083745300769806
+best_50_error: 0.23736317455768585
+best_90_error: 0.20932887494564056
+best_100_error: 0.21568429470062256

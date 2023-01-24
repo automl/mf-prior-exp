@@ -1,14 +1,12 @@
-name: mfh3_good_prior-good
+name: mfh3_good_prior-at25
 api:
   name: mfh3_good
-  prior: good
-  noisy_prior: true
-  prior_noise_scale: 0.25
+  prior: at25
   _target_: mfpbench.get
   seed: ${seed}
   preload: true
-prior_highest_fidelity_error: -3.2898530323707105
-prior_lowest_error: -3.2898530323707105
+prior_highest_fidelity_error: -2.551854489630721
+prior_lowest_error: -2.551854489630721
 best_10_error: -2.1079401059025233
 best_25_error: -2.551854489630721
 best_50_error: -3.6249099716229067
