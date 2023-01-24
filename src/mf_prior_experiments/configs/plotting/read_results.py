@@ -242,7 +242,6 @@ def get_seed_info(
         for idx, (data_id, loss, info) in enumerate(data):
             info["cost"] = info["end_time"] - global_start
             max_cost = max(max_cost, info["cost"]) if max_cost is not None else None
-        max_cost += 10
 
     data = [(d[1], d[2]) for d in data]
     losses, infos = zip(*data)

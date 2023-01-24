@@ -16,7 +16,13 @@ from path import Path
 from scipy.stats import friedmanchisquare, wilcoxon
 
 from .configs.plotting.read_results import get_seed_info
-from .configs.plotting.utils import ALGORITHMS, get_parser, interpolate_time, save_fig
+from .configs.plotting.utils import (
+    ALGORITHMS,
+    get_max_fidelity,
+    get_parser,
+    interpolate_time,
+    save_fig,
+)
 from .plot import map_axs
 
 benchmark_configs_path = os.path.join(os.path.dirname(__file__), "configs/benchmark/")
@@ -616,6 +622,9 @@ def plot(args):
                 incumbents = np.array(results["incumbents"][:])
                 costs = np.array(results["costs"][:])
                 max_cost = None if args.cost_as_runtime else max(results["max_costs"][:])
+
+                if args.n_workers > 1 and max_cost is None:
+                    max_cost = get_max_fidelity(benchmark_name=benchmark)
 
                 df = interpolate_time(incumbents, costs, scale_x=max_cost)
 

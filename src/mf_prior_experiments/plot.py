@@ -13,6 +13,7 @@ from joblib import Parallel, delayed, parallel_backend
 from .configs.plotting.read_results import get_seed_info, load_yaml
 from .configs.plotting.styles import X_LABEL, Y_LABEL
 from .configs.plotting.utils import (
+    get_max_fidelity,
     get_parser,
     interpolate_time,
     plot_incumbent,
@@ -289,6 +290,9 @@ def plot(args):
                 x = np.array(x)
             if isinstance(y, list):
                 y = np.array(y)
+
+            if args.n_workers > 1 and max_cost is None:
+                max_cost = get_max_fidelity(benchmark_name=benchmark)
 
             df = interpolate_time(
                 incumbents=y, costs=x, x_range=args.x_range, scale_x=max_cost

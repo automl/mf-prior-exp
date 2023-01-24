@@ -1,12 +1,27 @@
 import argparse
 
 import matplotlib.pyplot as plt
+import mfpbench
 import numpy as np
 import pandas as pd
 from path import Path
 from scipy import stats
 
 from .styles import ALGORITHMS, COLOR_MARKER_DICT, DATASETS
+
+
+def get_max_fidelity(benchmark_name):
+    if "lcbench" in benchmark_name:
+        name, task_id, _ = benchmark_name.split("-")
+        task_id = task_id.replace("_prior", "")
+        bench = mfpbench.get(name, task_id=task_id)
+    else:
+        benchmark_name, _ = benchmark_name.split("-")
+        benchmark_name = benchmark_name.replace("_prior", "")
+        bench = mfpbench.get(benchmark_name)
+    _, upper, _ = bench.fidelity_range
+
+    return upper
 
 
 def get_parser():
