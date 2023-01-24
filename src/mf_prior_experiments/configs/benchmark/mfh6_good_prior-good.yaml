@@ -1,16 +1,17 @@
 name: mfh6_good_prior-good
-epsilon: 0.01
 api:
   name: mfh6_good
   prior: good
+  noisy_prior: true
+  prior_noise_scale: 0.25
   _target_: mfpbench.get
   seed: ${seed}
   preload: true
-prior_highest_fidelity_error: -3.3207059223919595
-prior_lowest_error: -3.3207059223919595
-best_10_error: -1.5781012647569632
-best_25_error: -1.5781012647569632
-best_50_error: -1.8919833038007152
-best_90_error: -1.8919833038007152
+prior_highest_fidelity_error: -1.9806939156406154
+prior_lowest_error: -1.9806939156406154
+best_10_error: -0.7304685066015468
+best_25_error: -1.3398344842753394
+best_50_error: -1.5438319278946235
+best_90_error: -1.9321242657301259
 best_100_error: -1.8919833038007152
 optimum: -3.322368011391339

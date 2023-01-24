@@ -5,5 +5,6 @@ run_function:
 searcher:
   _partial_: true  # To not instantiate the class directly as required by neps
   _target_: neps.optimizers.multi_fidelity_prior.priorband.PriorBand
+  prior_weight_type: geometric
   inc_sample_type: hypersphere
   inc_style: decay

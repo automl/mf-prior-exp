@@ -150,10 +150,19 @@ def graph_ranks(
 
     def rankpos(rank):
         if not reverse:
-            a = rank - lowv
+            _a = rank - lowv
         else:
-            a = highv - rank
-        return textspace + scalewidth / (highv - lowv) * a
+            _a = highv - rank
+
+        if highv - lowv == 0:
+            warnings.warn("divisor was 0, (highv - lowv)")
+            return textspace
+
+        if _a == 0:
+            warnings.warn("divisor was 0, (_a)")
+            return textspace
+
+        return textspace + scalewidth / (highv - lowv) * _a
 
     distanceh = 0.25
 

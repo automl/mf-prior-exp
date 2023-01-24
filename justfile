@@ -20,8 +20,7 @@
     --partition {{partition}} \
     --memory {{memory}} \
     --n_worker {{n_worker}} \
-    --arguments algorithm={{algorithms}} benchmark={{benchmarks}} n_workers={{n_worker}} seed="{{seeds}}" hydra/job_logging=only_file \
-    --exclude "kisexe20,kisexe28,kisexe34"
+    --arguments algorithm={{algorithms}} benchmark={{benchmarks}} n_workers={{n_worker}} seed="{{seeds}}" hydra/job_logging=full \
 
 # Plot job
 @plot experiment_group benchmarks algorithms filename ext="pdf" base_path=justfile_directory() :
@@ -33,7 +32,8 @@
     --base_path {{base_path}} \
     --ext {{ext}} \
     --x_range 0 20 \
-    --plot_default
+    --plot_default \
+    --plot_optimum
 
 # Table job
 @table experiment_group benchmarks algorithms filename budget base_path=justfile_directory() :
