@@ -11,7 +11,7 @@ from attrdict import AttrDict
 from joblib import Parallel, delayed, parallel_backend
 from scipy import stats
 
-from .configs.plotting.read_results import get_seed_info
+from .configs.plotting.read_results import get_seed_info, SINGLE_FIDELITY_ALGORITHMS
 from .configs.plotting.styles import ALGORITHMS, COLOR_MARKER_DICT, X_LABEL
 from .configs.plotting.utils import (
     get_max_fidelity,
@@ -33,7 +33,14 @@ experiment_group_titles = [
 
 
 def _process_seed(
-    _path, seed, algorithm, key_to_extract, cost_as_runtime, results, n_workers
+    _path,
+    seed,
+    algorithm,
+    key_to_extract,
+    cost_as_runtime,
+    results,
+    n_workers,
+    parallel_sleep_decrement,
 ):
     print(
         f"[{time.strftime('%H:%M:%S', time.localtime())}] "
@@ -47,7 +54,20 @@ def _process_seed(
             algorithm=algorithm,
             cost_as_runtime=cost_as_runtime,
             n_workers=n_workers,
+            parallel_sleep_decrement=parallel_sleep_decrement,
         )
+        if n_workers > 1:
+            # In parallel setup, we need to order them by cost, which
+            # is essentially the time at which they completed. This
+            # allow the incumbent traces to be correctly ordered to
+            # the x axis
+            losses, infos = zip(
+                *sorted(
+                    zip(losses, infos),
+                    key=lambda e: e[1][key_to_extract]
+                )
+            )
+
         incumbent = np.minimum.accumulate(losses)
         cost = [i[key_to_extract] for i in infos]
         results["incumbents"].append(incumbent)
@@ -136,6 +156,10 @@ def plot(args):
                 )
 
             for algorithm in args.algorithms:
+                print(
+                    f"[{time.strftime('%H:%M:%S', time.localtime())}] "
+                    f"[{benchmark_idx}] Processing algorithm {algorithm}..."
+                )
                 _path = os.path.join(_base_path, f"algorithm={algorithm}")
                 if not os.path.isdir(_path):
                     raise FileNotFoundError(
@@ -162,6 +186,7 @@ def plot(args):
                                 args.cost_as_runtime,
                                 results,
                                 args.n_workers,
+                                args.parallel_sleep_decrement,
                             )
                             for seed in seeds
                         )
@@ -178,6 +203,7 @@ def plot(args):
                             args.cost_as_runtime,
                             results,
                             args.n_workers,
+                            args.parallel_sleep_decrement,
                         )
                         for seed in seeds
                     ]
@@ -186,20 +212,20 @@ def plot(args):
                     f"Time to process algorithm data: {time.time() - algorithm_starttime}"
                 )
 
-                x = results["costs"][:]
-                y = results["incumbents"][:]
+                x = np.asarray(results["costs"][:])
+                y = np.asarray(results["incumbents"][:])
                 max_cost = None if args.cost_as_runtime else max(results["max_costs"][:])
-
-                if isinstance(x, list):
-                    x = np.array(x)
-                if isinstance(y, list):
-                    y = np.array(y)
 
                 if args.n_workers > 1 and max_cost is None:
                     max_cost = get_max_fidelity(benchmark_name=benchmark)
 
                 df = interpolate_time(
-                    incumbents=y, costs=x, x_range=args.x_range, scale_x=max_cost
+                    incumbents=y,
+                    costs=x,
+                    x_range=args.x_range,
+                    scale_x=max_cost,
+                    parallel_evaluations=(args.n_workers > 1),
+                    rounded_integer_costs_for_x_range=(algorithm in SINGLE_FIDELITY_ALGORITHMS)
                 )
 
                 import pandas as pd

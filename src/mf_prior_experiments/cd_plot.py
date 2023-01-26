@@ -15,7 +15,7 @@ from joblib import Parallel, delayed, parallel_backend
 from path import Path
 from scipy.stats import friedmanchisquare, wilcoxon
 
-from .configs.plotting.read_results import get_seed_info
+from .configs.plotting.read_results import get_seed_info, SINGLE_FIDELITY_ALGORITHMS
 from .configs.plotting.utils import (
     ALGORITHMS,
     get_max_fidelity,
@@ -506,7 +506,16 @@ def wilcoxon_holm(df_perf, performance_metric_column_name="roc_auc", alpha=0.05)
     return p_values, average_ranks, max_nb_datasets
 
 
-def _process_seed(_path, seed, algorithm, key_to_extract, cost_as_runtime, results):
+def _process_seed(
+    _path,
+    seed,
+    algorithm,
+    key_to_extract,
+    cost_as_runtime,
+    results,
+    n_workers,
+    parallel_sleep_decrement,  # Needed for parallel setups
+):
     print(
         f"[{time.strftime('%H:%M:%S', time.localtime())}] "
         f"[-] [{algorithm}] Processing seed {seed}..."
@@ -514,7 +523,12 @@ def _process_seed(_path, seed, algorithm, key_to_extract, cost_as_runtime, resul
 
     # `algorithm` is passed to calculate continuation costs
     losses, infos, max_cost = get_seed_info(
-        _path, seed, algorithm=algorithm, cost_as_runtime=cost_as_runtime
+        _path,
+        seed,
+        algorithm=algorithm,
+        cost_as_runtime=cost_as_runtime,
+        n_workers=n_workers,
+        parallel_sleep_decrement=parallel_sleep_decrement,
     )
     incumbent = np.minimum.accumulate(losses)
     cost = [i[key_to_extract] for i in infos]
@@ -601,6 +615,8 @@ def plot(args):
                                 KEY_TO_EXTRACT,
                                 args.cost_as_runtime,
                                 results,
+                                args.n_workers,
+                                args.parallel_sleep_decrement,
                             )
                             for seed in seeds
                         )
@@ -615,6 +631,8 @@ def plot(args):
                             KEY_TO_EXTRACT,
                             args.cost_as_runtime,
                             results,
+                            args.n_workers,
+                            args.parallel_sleep_decrement,
                         )
                         for seed in seeds
                     ]
@@ -626,10 +644,31 @@ def plot(args):
                 if args.n_workers > 1 and max_cost is None:
                     max_cost = get_max_fidelity(benchmark_name=benchmark)
 
-                df = interpolate_time(incumbents, costs, scale_x=max_cost)
+                df = interpolate_time(
+                    incumbents,
+                    costs,
+                    scale_x=max_cost,
+                    parallel_evaluations=(args.n_workers > 1),
+                    # Single fidelity runners may incur some slight machine overhead but
+                    # in practice and theory, this would be non-existent or neglible, they
+                    # will always have a unit cost of an epoch
+                    rounded_integer_costs_for_x_range=(algorithm in SINGLE_FIDELITY_ALGORITHMS)
+                )
 
                 if budget is not None:
+                    pre_index = df.index
+                    if algorithm in SINGLE_FIDELITY_ALGORITHMS:
+                        df.index = df.index.astype(int)
+
                     df = df.query(f"index <= {budget}")
+                    if len(df) == 0:
+                        raise ValueError(
+                            f"No values in dataframe index were below the budget: {budget}."
+                            f"\nalgorithm: {algorithm} | benchmark: {benchmark}"
+                            f"\nThe costs recorded in dataframe index are {pre_index}"
+                        )
+
+                # Take mean across seeds
                 final_mean = df.mean(axis=1).values[-1]
 
                 df_perf.loc[len(df_perf)] = [benchmark, final_mean, ALGORITHMS[algorithm]]

@@ -7,7 +7,7 @@ import pandas as pd
 from path import Path
 from scipy import stats
 
-from .styles import ALGORITHMS, COLOR_MARKER_DICT, DATASETS
+from .styles import ALGORITHMS, COLOR_MARKER_DICT, DATASETS, BENCHMARK_COLORS
 
 
 def get_max_fidelity(benchmark_name):
@@ -123,6 +123,12 @@ def get_parser():
         default="multiprocessing",
         help="which backend use for parallel",
     )
+    parser.add_argument(
+        "--parallel_sleep_decrement",
+        default=10,
+        type=int,
+        help="The sleep timer used during parallel runs"
+    )
 
     return parser
 
@@ -169,12 +175,22 @@ def save_fig(fig, filename, output_dir, extension="pdf", dpi: int = 100):
     print(f'Saved to "{output_dir}/{filename}.{extension}"')
 
 
-def interpolate_time(incumbents, costs, x_range=None, scale_x=None):
-    df_dict = {}
+def interpolate_time(
+    incumbents,
+    costs,
+    x_range=None,
+    scale_x=None,
+    parallel_evaluations: bool = False,
+    rounded_integer_costs_for_x_range: bool = False,
+):
+    df_dict = {
+        f"seed{i}": pd.Series(seed_incs, index=seed_costs)
+        for i, (seed_incs, seed_costs) in enumerate(zip(incumbents, costs))
+    }
+    if not parallel_evaluations:
+        for k, series in df_dict.items():
+            series.index = np.cumsum(series.index)
 
-    for i, _ in enumerate(incumbents):
-        _seed_info = pd.Series(incumbents[i], index=np.cumsum(costs[i]))
-        df_dict[f"seed{i}"] = _seed_info
     df = pd.DataFrame.from_dict(df_dict)
 
     # important step to plot func evals on x-axis
@@ -182,18 +198,28 @@ def interpolate_time(incumbents, costs, x_range=None, scale_x=None):
 
     if x_range is not None:
         min_b, max_b = x_range
+
         new_entry = {c: np.nan for c in df.columns}
         _df = pd.DataFrame.from_dict(new_entry, orient="index").T
         _df.index = [min_b]
         df = pd.concat((df, _df)).sort_index()
+
         new_entry = {c: np.nan for c in df.columns}
         _df = pd.DataFrame.from_dict(new_entry, orient="index").T
         _df.index = [max_b]
         df = pd.concat((df, _df)).sort_index()
 
     df = df.fillna(method="backfill", axis=0).fillna(method="ffill", axis=0)
+
     if x_range is not None:
-        df = df.query(f"{x_range[0]} <= index <= {x_range[1]}")
+        lower, upper = x_range
+
+        if rounded_integer_costs_for_x_range:
+            _index = df.index.astype(int)
+        else:
+            _index = df.index
+
+        df = df[(lower <= df.index) & (df.index <= upper)]
 
     return df
 
@@ -293,7 +319,7 @@ def plot_incumbent(
     # ax.set_ylim(auto=True)
 
     if title is not None:
-        ax.set_title(DATASETS[title], fontsize=20)
+        ax.set_title(DATASETS[title], fontsize=20, color=BENCHMARK_COLORS[title])
     if xlabel is not None:
         ax.set_xlabel(xlabel, fontsize=18, color=(0, 0, 0, 0.69))
     if ylabel is not None:

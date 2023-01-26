@@ -7,6 +7,44 @@ X_LABEL = dict(
 
 # "Runtime [s]"
 Y_LABEL = "Error"
+GOOD_CORR_COLOR = "green"
+BAD_CORR_COLOR = "red"
+BENCHMARK_COLORS = {
+    # good corr
+    "translatewmt_xformer_64_prior-at25": GOOD_CORR_COLOR,
+    "translatewmt_xformer_64_prior-bad": GOOD_CORR_COLOR,
+    "lm1b_transformer_2048_prior-at25": GOOD_CORR_COLOR,
+    "lm1b_transformer_2048_prior-bad": GOOD_CORR_COLOR,
+    "jahs_colorectal_histology_prior-at25": GOOD_CORR_COLOR,
+    "jahs_colorectal_histology_prior-bad": GOOD_CORR_COLOR,
+    "lcbench-167190_prior-at25": GOOD_CORR_COLOR,
+    "lcbench-167190_prior-bad": GOOD_CORR_COLOR,
+    "lcbench-168330_prior-at25": GOOD_CORR_COLOR,
+    "lcbench-168330_prior-bad": GOOD_CORR_COLOR,
+    "lcbench-168910_prior-at25": GOOD_CORR_COLOR,
+    "lcbench-168910_prior-bad": GOOD_CORR_COLOR,
+    "lcbench-189906_prior-at25": GOOD_CORR_COLOR,
+    "lcbench-189906_prior-bad": GOOD_CORR_COLOR,
+    "mfh3_good_prior-good": GOOD_CORR_COLOR,
+    "mfh3_good_prior-bad": GOOD_CORR_COLOR,
+    "mfh6_good_prior-good": GOOD_CORR_COLOR,
+    "mfh6_good_prior-bad": GOOD_CORR_COLOR,
+    # bad corr
+    "cifar100_wideresnet_2048_prior-at25": BAD_CORR_COLOR,
+    "cifar100_wideresnet_2048_prior-bad": BAD_CORR_COLOR,
+    "imagenet_resnet_512_prior-at25": BAD_CORR_COLOR,
+    "imagenet_resnet_512_prior-bad": BAD_CORR_COLOR,
+    "jahs_cifar10_prior-at25": BAD_CORR_COLOR,
+    "jahs_cifar10_prior-bad": BAD_CORR_COLOR,
+    "jahs_fashion_mnist_prior-at25": BAD_CORR_COLOR,
+    "jahs_fashion_mnist_prior-bad": BAD_CORR_COLOR,
+    "lcbench-126026_prior-at25": BAD_CORR_COLOR,
+    "lcbench-126026_prior-bad": BAD_CORR_COLOR,
+    "mfh3_terrible_prior-good": BAD_CORR_COLOR,
+    "mfh3_terrible_prior-bad": BAD_CORR_COLOR,
+    "mfh6_terrible_prior-good": BAD_CORR_COLOR,
+    "mfh6_terrible_prior-bad": BAD_CORR_COLOR,
+}
 
 ALGORITHMS = {
     "random_search": "RS",

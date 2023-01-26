@@ -136,8 +136,6 @@ def _get_info_neps(path, seed) -> List:
             )
         )
 
-    data = list(zip(config_ids, losses, info))  # type: ignore
-
     return data
 
 
@@ -185,7 +183,12 @@ def _get_info_smac(path, seed):
 
 
 def get_seed_info(
-    path, seed, cost_as_runtime=False, algorithm="random_search", n_workers=1
+    path,
+    seed,
+    cost_as_runtime=False,
+    algorithm="random_search",
+    n_workers=1,
+    parallel_sleep_decrement: int = 0,
 ):
     """Reads and processes data per seed.
 
@@ -194,8 +197,11 @@ def get_seed_info(
 
     if algorithm in OUTPUT_FORMAT["hpbandster"]:
         func = _get_info_hpbandster
+        use_parallel_sleep_decrement = False
     else:
         func = _get_info_neps
+        use_parallel_sleep_decrement = True
+
     data = func(path, seed)
 
     if n_workers == 1:
@@ -229,6 +235,7 @@ def get_seed_info(
                     info[key_to_extract] -= _info[key_to_extract]
                     data[idx] = (data_id, loss, info)
                     break
+
             data.reverse()
         else:
             for idx, (data_id, loss, info) in enumerate(data):
@@ -239,8 +246,20 @@ def get_seed_info(
     else:
         global_start = data[0][-1]["start_time"]
         max_cost = None if cost_as_runtime else 0
+
         for idx, (data_id, loss, info) in enumerate(data):
-            info["cost"] = info["end_time"] - global_start
+            time_since_start_of_opt = info["end_time"] - global_start 
+
+            # We used sleep in parallel runs, remove the effect of this
+            # sleep from the time recorded
+            if parallel_sleep_decrement and use_parallel_sleep_decrement:
+                # This is a HACK as it seems that each config has an extra
+                # 2 seconds per previous config evaluated
+                NEPS_WORKER_OFFSET = idx * 2 
+                time_since_start_of_opt -= NEPS_WORKER_OFFSET
+                pass
+
+            info["cost"] = time_since_start_of_opt
             max_cost = max(max_cost, info["cost"]) if max_cost is not None else None
 
     data = [(d[1], d[2]) for d in data]

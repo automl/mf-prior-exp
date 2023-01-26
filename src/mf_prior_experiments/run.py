@@ -13,6 +13,9 @@ from gitinfo import gitinfo
 from omegaconf import OmegaConf
 
 logger = logging.getLogger("mf_prior_experiments.run")
+
+# NOTE: If editing this, please look for MIN_SLEEP_TIME
+# in `read_results.py` and change it there too
 MIN_SLEEP_TIME = 10  # 10s hopefully is enough to simulate wait times for metahyper
 
 # Use this environment variable to force overwrite when running

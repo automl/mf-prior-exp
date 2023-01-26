@@ -10,7 +10,7 @@ import seaborn as sns
 from attrdict import AttrDict
 from joblib import Parallel, delayed, parallel_backend
 
-from .configs.plotting.read_results import get_seed_info, load_yaml
+from .configs.plotting.read_results import get_seed_info, load_yaml, SINGLE_FIDELITY_ALGORITHMS
 from .configs.plotting.styles import X_LABEL, Y_LABEL
 from .configs.plotting.utils import (
     get_max_fidelity,
@@ -31,7 +31,14 @@ map_axs = (
 
 
 def _process_seed(
-    _path, seed, algorithm, key_to_extract, cost_as_runtime, results, n_workers
+    _path,
+    seed,
+    algorithm,
+    key_to_extract,
+    cost_as_runtime,
+    results,
+    n_workers,
+    parallel_sleep_decrement,
 ):
     print(
         f"[{time.strftime('%H:%M:%S', time.localtime())}] "
@@ -45,6 +52,7 @@ def _process_seed(
             algorithm=algorithm,
             cost_as_runtime=cost_as_runtime,
             n_workers=n_workers,
+            parallel_sleep_decrement=parallel_sleep_decrement,
         )
         incumbent = np.minimum.accumulate(losses)
         cost = [i[key_to_extract] for i in infos]
@@ -211,6 +219,7 @@ def plot(args):
                                 args.cost_as_runtime,
                                 results,
                                 args.n_workers,
+                                args.parallel_sleep_decrement,
                             )
                             for seed in seeds
                         )
@@ -227,6 +236,7 @@ def plot(args):
                             args.cost_as_runtime,
                             results,
                             args.n_workers,
+                            args.parallel_sleep_decrement,
                         )
                         for seed in seeds
                     ]
@@ -259,6 +269,7 @@ def plot(args):
                             args.cost_as_runtime,
                             results,
                             args.n_workers,
+                            args.parallel_sleep_decrement
                         )
                         for seed in seeds
                     )
@@ -275,13 +286,17 @@ def plot(args):
                         args.cost_as_runtime,
                         results,
                         args.n_workers,
+                        args.parallel_sleep_decrement
                     )
                     for seed in seeds
                 ]
 
             print(f"Time to process algorithm data: {time.time() - algorithm_starttime}")
 
-            ax = map_axs(axs, benchmark_idx, len(args.benchmarks), ncols)
+            # If you got an error, fix it here
+            #ax = map_axs(axs, benchmark_idx, len(args.benchmarks), ncols)
+            ax = axs.flatten()[benchmark_idx]
+            # ax = map_axs(axs, benchmark_idx, nrows, ncols)
             x = results["costs"][:]
             y = results["incumbents"][:]
             max_cost = None if args.cost_as_runtime else max(results["max_costs"][:])
@@ -295,8 +310,14 @@ def plot(args):
                 max_cost = get_max_fidelity(benchmark_name=benchmark)
 
             df = interpolate_time(
-                incumbents=y, costs=x, x_range=args.x_range, scale_x=max_cost
+                incumbents=y,
+                costs=x,
+                x_range=args.x_range,
+                scale_x=max_cost, 
+                rounded_integer_costs_for_x_range=algorithm in SINGLE_FIDELITY_ALGORITHMS,
+                parallel_evaluations=(args.n_workers > 1)
             )
+
 
             import pandas as pd
 
@@ -360,9 +381,11 @@ def plot(args):
 
     sns.despine(fig)
 
-    handles, labels = map_axs(
-        axs, 0, len(args.benchmarks), ncols
-    ).get_legend_handles_labels()
+
+    handles, labels = axs.flatten()[0].get_legend_handles_labels()
+    #handles, labels = map_axs(
+    #    axs, 0, len(args.benchmarks), ncols
+    #).get_legend_handles_labels()
 
     handles_to_plot, labels_to_plot = [], []
     handles_default, labels_default = [], []
