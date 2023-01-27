@@ -58,6 +58,12 @@ def run_hpbandster(args):
                 config[hp_name] = hp.sequence[config[hp_name] - 1]
 
         result = benchmark.query(config, at=int(fidelity))
+
+        # This design only makes sense in the context of surrogate/tabular
+        # benchmarks, where we do not actually need to run the model being
+        # queried.
+        max_fidelity_result = benchmark.query(config, at=benchmark.end)
+
         # we need to cast to float here as serpent will break on np.floating that might
         # come from a benchmark (LCBench)
         return {
@@ -70,6 +76,8 @@ def run_hpbandster(args):
                 "fidelity": float(result.fidelity)
                 if isinstance(result.fidelity, np.floating)
                 else result.fidelity,
+                "max_fidelity_loss": float(max_fidelity_result.error),
+                "max_fidelity_cost": float(max_fidelity_result.cost),
                 # val_error: result.val_error
                 # test_error: result.test_error
             },
@@ -155,10 +163,18 @@ def run_neps(args):
             fidelity = config.pop(benchmark.fidelity_name)
         else:
             fidelity = benchmark.fidelity_range[1]
+
         result = benchmark.query(config, at=fidelity)
+
+        # This design only makes sense in the context of surrogate/tabular
+        # benchmarks, where we do not actually need to run the model being
+        # queried.
+        max_fidelity_result = benchmark.query(config, at=benchmark.end)
+
         if args.n_workers > 1:
             # essential step to simulate speed-up
             time.sleep(fidelity + MIN_SLEEP_TIME)
+
         end = time.time()
         return {
             "loss": result.error,
@@ -170,6 +186,8 @@ def run_neps(args):
                 "fidelity": result.fidelity,
                 "start_time": start,
                 "end_time": end,  # + fidelity,
+                "max_fidelity_loss": float(max_fidelity_result.error),
+                "max_fidelity_cost": float(max_fidelity_result.cost),
                 # val_error: result.val_error
                 # test_error: result.test_error
             },
