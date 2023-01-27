@@ -133,9 +133,12 @@ def _get_info_neps(path, seed) -> List:
                 start_time=start_time,
                 end_time=end_time,
                 config_id=config_id,
+                max_fidelity_loss=result_yaml.info_dict["max_fidelity_loss"],
+                max_fidelity_cost=result_yaml.info_dict["max_fidelity_cost"],
             )
         )
 
+    data = list(zip(config_ids, losses, info))
     return data
 
 
@@ -212,13 +215,20 @@ def get_seed_info(
             # calculates continuation costs for MF algorithms
             # NOTE: assumes that all recorded evaluations are black-box evaluations where
             #   continuations or freeze-thaw was not accounted for during optimization
-            data.reverse()
+            # The reversal of data is ESSENTIAL here for continuation cost computation
+            # Each config ID records the exact fidelity it was evaluated, if we traverse
+            # the config over highest to the lowest fidelity, the continuation cost of the
+            # higher fidelity evaluation can be calculated by subtracting the fidelity
+            # mapped in the immediately lower fidelity level
+            # If not reversed, and the processing happens from lower-to-higher fidelity,
+            # then the information can successfully flow across 2 levels of fidelity.
+            data.reverse()  # CRUCIAL STEP
             for idx, (data_id, loss, info) in enumerate(data):
                 # `max_cost` tracks the maximum fidelity used for evaluation
                 max_cost = (
                     max(max_cost, info[key_to_extract]) if max_cost is not None else None
                 )
-                for _id, _, _info in data[data.index((data_id, loss, info)) + 1 :]:
+                for _id, _, _info in data[data.index((data_id, loss, info)) + 1:]:
                     # if `_` is not found in the string, `split()` returns the original
                     # string and the 0-th element is the string itself, which fits the
                     # config ID format for non-NePS optimizers
@@ -248,16 +258,18 @@ def get_seed_info(
         max_cost = None if cost_as_runtime else 0
 
         for idx, (data_id, loss, info) in enumerate(data):
-            time_since_start_of_opt = info["end_time"] - global_start 
+            time_since_start_of_opt = info["end_time"] - global_start
 
             # We used sleep in parallel runs, remove the effect of this
             # sleep from the time recorded
-            if parallel_sleep_decrement and use_parallel_sleep_decrement:
-                # This is a HACK as it seems that each config has an extra
-                # 2 seconds per previous config evaluated
-                NEPS_WORKER_OFFSET = idx * 2 
-                time_since_start_of_opt -= NEPS_WORKER_OFFSET
-                pass
+            # TODO: verify this with DANNY
+            ## could otherwise give advantage to MF over SF algorithms
+            # if parallel_sleep_decrement and use_parallel_sleep_decrement:
+            #     # This is a HACK as it seems that each config has an extra
+            #     # 2 seconds per previous config evaluated
+            #     NEPS_WORKER_OFFSET = idx * 2
+            #     time_since_start_of_opt -= NEPS_WORKER_OFFSET
+            #     pass
 
             info["cost"] = time_since_start_of_opt
             max_cost = max(max_cost, info["cost"]) if max_cost is not None else None

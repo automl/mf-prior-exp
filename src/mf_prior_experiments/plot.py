@@ -59,6 +59,7 @@ def _process_seed(
         results["incumbents"].append(incumbent)
         results["costs"].append(cost)
         results["max_costs"].append(max_cost)
+        results["infos"].append(infos)
     except Exception as e:
         print(repr(e))
         print(f"Seed {seed} did not work from {_path}/{algorithm}")
@@ -208,6 +209,7 @@ def plot(args):
                         incumbents=manager.list(),
                         costs=manager.list(),
                         max_costs=manager.list(),
+                        infos=manager.list(),
                     )
                     with parallel_backend(args.parallel_backend, n_jobs=-1):
                         Parallel()(
@@ -225,7 +227,7 @@ def plot(args):
                         )
 
                 else:
-                    results = dict(incumbents=[], costs=[], max_costs=[])
+                    results = dict(incumbents=[], costs=[], max_costs=[], infos=[])
                     # pylint: disable=expression-not-assigned
                     [
                         _process_seed(
@@ -258,6 +260,7 @@ def plot(args):
                     incumbents=manager.list(),
                     costs=manager.list(),
                     max_costs=manager.list(),
+                    infos=manager.list(),
                 )
                 with parallel_backend(args.parallel_backend, n_jobs=-1):
                     Parallel()(
@@ -275,7 +278,7 @@ def plot(args):
                     )
 
             else:
-                results = dict(incumbents=[], costs=[], max_costs=[])
+                results = dict(incumbents=[], costs=[], max_costs=[], infos=[])
                 # pylint: disable=expression-not-assigned
                 [
                     _process_seed(
@@ -299,48 +302,69 @@ def plot(args):
             # ax = map_axs(axs, benchmark_idx, nrows, ncols)
             x = results["costs"][:]
             y = results["incumbents"][:]
+            infos = [[r["max_fidelity_loss"] for r in results["infos"][0]]]  # results["infos"][:]
             max_cost = None if args.cost_as_runtime else max(results["max_costs"][:])
 
             if isinstance(x, list):
                 x = np.array(x)
             if isinstance(y, list):
                 y = np.array(y)
+            if isinstance(infos, list):
+                infos = np.array(infos)
 
-            if args.n_workers > 1 and max_cost is None:
-                max_cost = get_max_fidelity(benchmark_name=benchmark)
+            if args.n_workers > 1:
+                if max_cost is None:
+                    max_cost = get_max_fidelity(benchmark_name=benchmark)
+                # for parallel runs, the timestamps may not be in order
+                _ids = np.argsort(x)
+                y[0] = y[0][_ids]
+                x[0] = x[0][_ids]
+                infos[0] = infos[0][_ids]
+                # need to recalculate incumbents when reordering timestamps
+                y[0] = np.minimum.accumulate(y[0])
+
+            ### Choose evaluation protocol before interpolating time
+            if args.plot_max_fidelity_loss:
+                y_at_max = [infos[0][0]]
+                for i in range(1, len(x[0])):
+                    _y = np.nan
+                    if y[0][i] != y[0][i-1]:
+                        _y = infos[0][i]
+                    y_at_max.append(_y)
+                y[0] = y_at_max
 
             df = interpolate_time(
                 incumbents=y,
                 costs=x,
                 x_range=args.x_range,
-                scale_x=max_cost, 
+                scale_x=max_cost,
                 rounded_integer_costs_for_x_range=algorithm in SINGLE_FIDELITY_ALGORITHMS,
                 parallel_evaluations=(args.n_workers > 1)
             )
 
 
-            import pandas as pd
-
-            x_max = np.inf if args.x_range is None else int(args.x_range[-1])
-            new_entry = {c: np.nan for c in df.columns}
-            _df = pd.DataFrame.from_dict(new_entry, orient="index").T
-            _df.index = [x_max]
-            df = pd.concat((df, _df)).sort_index()
-            df = df.fillna(method="backfill", axis=0).fillna(method="ffill", axis=0)
-
-            y_min = min(
-                list(
-                    filter(
-                        None,
-                        [
-                            np.mean(df.query(f"index <= {x_max}").values[-1]),
-                            y_min,
-                            plot_default,
-                            plot_optimum,
-                        ],
-                    )
-                )
-            )
+            # import pandas as pd
+            #
+            # x_max = np.inf if args.x_range is None else int(args.x_range[-1])
+            # new_entry = {c: np.nan for c in df.columns}
+            # _df = pd.DataFrame.from_dict(new_entry, orient="index").T
+            # _df.index = [x_max]
+            # df = pd.concat((df, _df)).sort_index()
+            # df = df.fillna(method="backfill", axis=0).fillna(method="ffill", axis=0)
+            #
+            # y_min = min(
+            #     list(
+            #         filter(
+            #             None,
+            #             [
+            #                 np.mean(df.query(f"index <= {x_max}").values[-1]),
+            #                 y_min,
+            #                 plot_default,
+            #                 plot_optimum,
+            #             ],
+            #         )
+            #     )
+            # )
             is_last_row = lambda idx: idx >= (nrows - 1) * ncols
             # pylint: disable=cell-var-from-loop
             is_first_column = lambda idx: benchmark_idx % ncols == 0

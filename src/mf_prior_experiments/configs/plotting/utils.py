@@ -129,6 +129,14 @@ def get_parser():
         type=int,
         help="The sleep timer used during parallel runs"
     )
+    parser.add_argument(
+        "--plot_max_fidelity_loss",
+        default=False,
+        action="store_true",
+        help="If set (to True), the incumbent trace is modified such that the loss of "
+             "the current incumbent at the max fidelity is plotted instead of the actual "
+             "score of the current incumbent."
+    )
 
     return parser
 
@@ -192,6 +200,7 @@ def interpolate_time(
             series.index = np.cumsum(series.index)
 
     df = pd.DataFrame.from_dict(df_dict)
+    df = df.sort_index(ascending=True)
 
     # important step to plot func evals on x-axis
     df.index = df.index if scale_x is None else df.index.values / scale_x
