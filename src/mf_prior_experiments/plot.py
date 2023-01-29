@@ -443,6 +443,8 @@ def plot(args):
     filename = args.filename
     if filename is None:
         filename = f"{args.experiment_group}_{args.plot_id}"
+    if args.plot_max_fidelity_loss:
+        output_dir = f"{output_dir}/max_fidelity_loss/"
     save_fig(
         fig,
         filename=filename,
