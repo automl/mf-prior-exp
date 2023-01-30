@@ -78,6 +78,7 @@ def run_hpbandster(args):
                 else result.fidelity,
                 "max_fidelity_loss": float(max_fidelity_result.error),
                 "max_fidelity_cost": float(max_fidelity_result.cost),
+                "process_id": os.getpid(),
                 # val_error: result.val_error
                 # test_error: result.test_error
             },
@@ -188,6 +189,7 @@ def run_neps(args):
                 "end_time": end,  # + fidelity,
                 "max_fidelity_loss": float(max_fidelity_result.error),
                 "max_fidelity_cost": float(max_fidelity_result.cost),
+                "process_id": os.getpid(),
                 # val_error: result.val_error
                 # test_error: result.test_error
             },
