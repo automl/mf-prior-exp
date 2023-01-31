@@ -1,17 +1,25 @@
-import errno
-import os
+from __future__ import annotations
+
 import time
-from multiprocessing import Manager
+from itertools import chain, groupby, product, starmap
+from multiprocessing import Pool
 from pathlib import Path
 
 import matplotlib.pyplot as plt
 import numpy as np
+import pandas as pd
 import seaborn as sns
 from attrdict import AttrDict
 from joblib import Parallel, delayed, parallel_backend
+from more_itertools import all_equal, first
 
-from .configs.plotting.read_results import get_seed_info, load_yaml, SINGLE_FIDELITY_ALGORITHMS
+from .configs.plotting.read_results import (
+    SINGLE_FIDELITY_ALGORITHMS,
+    get_seed_info,
+    load_yaml,
+)
 from .configs.plotting.styles import X_LABEL, Y_LABEL
+from .configs.plotting.types import Algorithm, Benchmark, Trace
 from .configs.plotting.utils import (
     get_max_fidelity,
     get_parser,
@@ -21,395 +29,142 @@ from .configs.plotting.utils import (
     set_general_plot_style,
 )
 
-benchmark_configs_path = os.path.join(os.path.dirname(__file__), "configs/benchmark/")
-
-map_axs = (
-    lambda axs, idx, length, ncols: axs
-    if length == 1
-    else (axs[idx] if length == ncols else axs[idx // ncols][idx % ncols])
-)
+HERE = Path(__file__).parent.absolute()
+DEFAULT_BASE_PATH = HERE.parent.parent
+BENCHMARK_CONFIGS_DIR = HERE / "configs" / "benchmark"
 
 
-def _process_seed(
-    _path,
-    seed,
-    algorithm,
-    key_to_extract,
-    cost_as_runtime,
-    results,
-    n_workers,
-    parallel_sleep_decrement,
-):
-    print(
-        f"[{time.strftime('%H:%M:%S', time.localtime())}] "
-        f"[-] [{algorithm}] Processing seed {seed}..."
-    )
-    try:
-        # `algorithm` is passed to calculate continuation costs
-        losses, infos, max_cost = get_seed_info(
-            _path,
-            seed,
-            algorithm=algorithm,
-            cost_as_runtime=cost_as_runtime,
-            n_workers=n_workers,
-            parallel_sleep_decrement=parallel_sleep_decrement,
-        )
-        incumbent = np.minimum.accumulate(losses)
-        cost = [i[key_to_extract] for i in infos]
-        results["incumbents"].append(incumbent)
-        results["costs"].append(cost)
-        results["max_costs"].append(max_cost)
-        results["infos"].append(infos)
-    except Exception as e:
-        print(repr(e))
-        print(f"Seed {seed} did not work from {_path}/{algorithm}")
+def now() -> str:
+    return time.strftime("%H:%M:%S", time.localtime())
 
 
 def plot(args):
+    BASE_PATH: Path = DEFAULT_BASE_PATH if args.base_path is None else args.base_path
+    BENCHMARK_CONFIG_DIR = BASE_PATH / "configs" / "benchmark"
 
-    starttime = time.time()
-
-    BASE_PATH = (
-        Path(__file__).parent / "../.."
-        if args.base_path is None
-        else Path(args.base_path)
-    )
-
-    KEY_TO_EXTRACT = "cost" if args.cost_as_runtime else "fidelity"
+    experiment_group: str = args.experiment_group
+    plot_dir = BASE_PATH / "plots" / experiment_group
 
     set_general_plot_style()
+    xrange = args.x_range
 
     if args.research_question == 1:
         ncols = 1 if len(args.benchmarks) == 1 else 2
-        # ncol_map = lambda n: 1 if n == 1 else (2 if n == 2 else int(np.ceil(n / 2)))
-
         legend_ncol = len(args.algorithms)
         legend_ncol += 1 if args.plot_default is not None else 0
         legend_ncol += 1 if args.plot_optimum is not None else 0
     elif args.research_question == 2:
-        if args.benchmarks is None:
-            args.benchmarks = [
-                f"jahs_cifar10_prior-{args.which_prior}",
-                f"jahs_fashion_mnist_prior-{args.which_prior}",
-                #                f"jahs_colorectal_histology_prior-{args.which_prior}",
-                f"lcbench-189862_prior-{args.which_prior}",
-                f"lcbench-189866_prior-{args.which_prior}",
-                f"translatewmt_xformer_64_prior-{args.which_prior}",
-                f"lm1b_transformer_2048_prior-{args.which_prior}",
-                #               f"uniref50_transformer_prior-{args.which_prior}",
-            ]
         ncols = 4
         legend_ncol = len(args.algorithms)
         legend_ncol += 1 if args.plot_default is not None else 0
         legend_ncol += 1 if args.plot_optimum is not None else 0
     else:
         raise ValueError("Plotting works only for RQ1 and RQ2.")
+
     nrows = np.ceil(len(args.benchmarks) / ncols).astype(int)
-    print("===============")
-    print(nrows)
-    print("===============")
-    bbox_y_mapping = {
-        1: -0.20,
-        2: -0.11,
-        3: -0.07,
-        4: -0.05,
-        5: -0.04,
-    }
+    bbox_y_mapping = {1: -0.20, 2: -0.11, 3: -0.07, 4: -0.05, 5: -0.04}
     bbox_to_anchor = (0.5, bbox_y_mapping[nrows])
     figsize = (4 * ncols, 3 * nrows)
 
-    fig, axs = plt.subplots(
-        nrows=nrows,
-        ncols=ncols,
-        figsize=figsize,
+    fig, axs = plt.subplots(nrows=nrows, ncols=ncols, figsize=figsize)
+    axs = axs.flatten() if isinstance(axs, np.ndarray) else [axs]
+
+    algorithms = [Algorithm(a) for a in args.algorithms]
+    benchmarks = [
+        Benchmark.from_name(
+            benchmark,
+            config_dir=BENCHMARK_CONFIG_DIR,
+        )
+        for benchmark in args.benchmarks
+    ]
+
+    print(f"[{now()}] Processing ...")
+    starttime = time.time()
+
+    traces = Trace.load_all(
+        base_path=BASE_PATH,
+        experiment_group=experiment_group,
+        benchmarks=benchmarks,
+        algorithms=algorithms,
+        parallel=args.parallel,
     )
 
-    base_path = BASE_PATH / "results" / args.experiment_group
-    output_dir = BASE_PATH / "plots" / args.experiment_group
-    print(
-        f"[{time.strftime('%H:%M:%S', time.localtime())}]"
-        f" Processing {len(args.benchmarks)} benchmarks "
-        f"and {len(args.algorithms)} algorithms..."
-    )
+    print(f"[{now()}] Done! Duration {time.time() - starttime:.3f}...")
 
-    for benchmark_idx, benchmark in enumerate(args.benchmarks):
-        print(
-            f"[{time.strftime('%H:%M:%S', time.localtime())}] "
-            f"[{benchmark_idx}] Processing {benchmark} benchmark..."
+    traces = [trace.with_continuations() for trace in traces]
+    if args.n_workers <= 1:
+        # fidelities: [1, 1, 3, 1, 9] -> [1, 2, 5, 6, 15]
+        traces = [trace.with_cumulative_fidelity() for trace in traces]
+
+    # TODO: We may want to change this with the new "continuation fidelity"
+    # for parallel setup
+    xaxis = "fidelity" if args.n_workers <= 1 else "end_time_since_global_start"
+    yaxis = "max_fidelity_loss" if args.max_fidelity_loss else "loss"
+    traces = [trace.incumbent_trace(xaxis=xaxis, yaxis=yaxis) for trace in traces]
+
+    all_results: dict[tuple[Benchmark, Algorithm], list[Trace]] = {
+        (bench, algo): sorted(trs, key=lambda r: r.seed)
+        for (bench, algo), trs in groupby(
+            traces, key=lambda t: (t.benchmark, t.algorithm)
         )
-        benchmark_starttime = time.time()
-        # loading the benchmark yaml
-        _bench_spec_path = (
-            BASE_PATH
-            / "src"
-            / "mf_prior_experiments"
-            / "configs"
-            / "benchmark"
-            / f"{benchmark}.yaml"
-        )
-        plot_default = None
-        if args.plot_default and os.path.isfile(_bench_spec_path):
-            try:
-                plot_default = load_yaml(_bench_spec_path).prior_highest_fidelity_error
-            except Exception as e:
-                print(repr(e))
+    }
 
-                print(f"Could not load error for benchmark yaml {_bench_spec_path}")
+    for i, (benchmark, ax) in enumerate(zip(benchmarks, axs)):
 
-        plot_optimum = None
-        if args.plot_optimum and os.path.isfile(_bench_spec_path):
-            try:
-                plot_optimum = load_yaml(_bench_spec_path).optimum
-            except Exception as e:
-                print(repr(e))
-                print(f"Could not load optimum for benchmark yaml {_bench_spec_path}")
+        for algorithm in algorithms:
+            seed_traces: list[Trace] = all_results[(benchmark, algorithm)]
 
-        plot_rs_10 = None
-        if args.plot_rs_10 and os.path.isfile(_bench_spec_path):
-            try:
-                plot_rs_10 = load_yaml(_bench_spec_path).best_10_error
-            except Exception as e:
-                print(repr(e))
-                print(f"Could not load optimum for benchmark yaml {_bench_spec_path}")
+            df: pd.DataFrame = Trace.combine(seed_traces, xaxis=xaxis, yaxis=yaxis)
 
-        plot_rs_25 = None
-        if args.plot_rs_25 and os.path.isfile(_bench_spec_path):
-            try:
-                plot_rs_25 = load_yaml(_bench_spec_path).best_25_error
-            except Exception as e:
-                print(repr(e))
-                print(f"Could not load optimum for benchmark yaml {_bench_spec_path}")
+            # TODO: We should move to the new continuation fidelity metric.
+            if xaxis == "end_time_since_global_start":
+                df.index = df.index / benchmark.max_fidelity
 
-        plot_rs_100 = None
-        if args.plot_rs_100 and os.path.isfile(_bench_spec_path):
-            try:
-                plot_rs_100 = load_yaml(_bench_spec_path).best_100_error
-            except Exception as e:
-                print(repr(e))
-                print(f"Could not load optimum for benchmark yaml {_bench_spec_path}")
+            if xrange is not None:
+                lower, upper = xrange
+                df = df[(df.index >= lower) & (df.index <= upper)]  # type: ignore
 
-        _base_path = os.path.join(base_path, f"benchmark={benchmark}")
-        if not os.path.isdir(_base_path):
-            raise FileNotFoundError(errno.ENOENT, os.strerror(errno.ENOENT), _base_path)
-
-        y_max = []
-        y_min = None
-        if args.dynamic_y_lim:
-            for algorithm in ["random_search", "random_search_prior-default-first"]:
-                _path = os.path.join(_base_path, f"algorithm={algorithm}")
-                if not os.path.isdir(_path):
-                    raise FileNotFoundError(
-                        errno.ENOENT, os.strerror(errno.ENOENT), _path
-                    )
-                seeds = sorted(os.listdir(_path))
-
-                if args.parallel:
-                    manager = Manager()
-                    results = manager.dict(
-                        incumbents=manager.list(),
-                        costs=manager.list(),
-                        max_costs=manager.list(),
-                        infos=manager.list(),
-                    )
-                    with parallel_backend(args.parallel_backend, n_jobs=-1):
-                        Parallel()(
-                            delayed(_process_seed)(
-                                _path,
-                                seed,
-                                algorithm,
-                                KEY_TO_EXTRACT,
-                                args.cost_as_runtime,
-                                results,
-                                args.n_workers,
-                                args.parallel_sleep_decrement,
-                            )
-                            for seed in seeds
-                        )
-
-                else:
-                    results = dict(incumbents=[], costs=[], max_costs=[], infos=[])
-                    # pylint: disable=expression-not-assigned
-                    [
-                        _process_seed(
-                            _path,
-                            seed,
-                            algorithm,
-                            KEY_TO_EXTRACT,
-                            args.cost_as_runtime,
-                            results,
-                            args.n_workers,
-                            args.parallel_sleep_decrement,
-                        )
-                        for seed in seeds
-                    ]
-
-                y_max.extend([min(r[:2]) for r in results["incumbents"][:]])
-            y_max = np.mean(y_max)
-
-        for algorithm in args.algorithms:
-            _path = os.path.join(_base_path, f"algorithm={algorithm}")
-            if not os.path.isdir(_path):
-                raise FileNotFoundError(errno.ENOENT, os.strerror(errno.ENOENT), _path)
-
-            algorithm_starttime = time.time()
-            seeds = sorted(os.listdir(_path))
-
-            if args.parallel:
-                manager = Manager()
-                results = manager.dict(
-                    incumbents=manager.list(),
-                    costs=manager.list(),
-                    max_costs=manager.list(),
-                    infos=manager.list(),
-                )
-                with parallel_backend(args.parallel_backend, n_jobs=-1):
-                    Parallel()(
-                        delayed(_process_seed)(
-                            _path,
-                            seed,
-                            algorithm,
-                            KEY_TO_EXTRACT,
-                            args.cost_as_runtime,
-                            results,
-                            args.n_workers,
-                            args.parallel_sleep_decrement
-                        )
-                        for seed in seeds
-                    )
-
-            else:
-                results = dict(incumbents=[], costs=[], max_costs=[], infos=[])
-                # pylint: disable=expression-not-assigned
-                [
-                    _process_seed(
-                        _path,
-                        seed,
-                        algorithm,
-                        KEY_TO_EXTRACT,
-                        args.cost_as_runtime,
-                        results,
-                        args.n_workers,
-                        args.parallel_sleep_decrement
-                    )
-                    for seed in seeds
-                ]
-
-            print(f"Time to process algorithm data: {time.time() - algorithm_starttime}")
-
-            # If you got an error, fix it here
-            #ax = map_axs(axs, benchmark_idx, len(args.benchmarks), ncols)
-            ax = axs.flatten()[benchmark_idx]
-            # ax = map_axs(axs, benchmark_idx, nrows, ncols)
-            x = results["costs"][:]
-            y = results["incumbents"][:]
-            infos = [[r["max_fidelity_loss"] for r in results["infos"][0]]]  # results["infos"][:]
-            max_cost = None if args.cost_as_runtime else max(results["max_costs"][:])
-
-            if isinstance(x, list):
-                x = np.array(x)
-            if isinstance(y, list):
-                y = np.array(y)
-            if isinstance(infos, list):
-                infos = np.array(infos)
-
-            if args.n_workers > 1:
-                if max_cost is None:
-                    max_cost = get_max_fidelity(benchmark_name=benchmark)
-                # for parallel runs, the timestamps may not be in order
-                _ids = np.argsort(x)
-                y[0] = y[0][_ids]
-                x[0] = x[0][_ids]
-                infos[0] = infos[0][_ids]
-                # need to recalculate incumbents when reordering timestamps
-                y[0] = np.minimum.accumulate(y[0])
-
-            ### Choose evaluation protocol before interpolating time
-            if args.plot_max_fidelity_loss:
-                y_at_max = [infos[0][0]]
-                for i in range(1, len(x[0])):
-                    _y = np.nan
-                    if y[0][i] != y[0][i-1]:
-                        _y = infos[0][i]
-                    y_at_max.append(_y)
-                y[0] = y_at_max
-
-            df = interpolate_time(
-                incumbents=y,
-                costs=x,
-                x_range=args.x_range,
-                scale_x=max_cost,
-                rounded_integer_costs_for_x_range=algorithm in SINGLE_FIDELITY_ALGORITHMS,
-                parallel_evaluations=(args.n_workers > 1)
-            )
-
-
-            # import pandas as pd
-            #
-            # x_max = np.inf if args.x_range is None else int(args.x_range[-1])
-            # new_entry = {c: np.nan for c in df.columns}
-            # _df = pd.DataFrame.from_dict(new_entry, orient="index").T
-            # _df.index = [x_max]
-            # df = pd.concat((df, _df)).sort_index()
-            # df = df.fillna(method="backfill", axis=0).fillna(method="ffill", axis=0)
-            #
-            # y_min = min(
-            #     list(
-            #         filter(
-            #             None,
-            #             [
-            #                 np.mean(df.query(f"index <= {x_max}").values[-1]),
-            #                 y_min,
-            #                 plot_default,
-            #                 plot_optimum,
-            #             ],
-            #         )
-            #     )
-            # )
             is_last_row = lambda idx: idx >= (nrows - 1) * ncols
-            # pylint: disable=cell-var-from-loop
-            is_first_column = lambda idx: benchmark_idx % ncols == 0
+            is_first_column = lambda idx: idx % ncols == 0
+
             plot_incumbent(
                 ax=ax,
-                # x=x,
-                # y=y,
                 df=df,
                 title=benchmark,
-                xlabel=X_LABEL[args.cost_as_runtime]
-                if is_last_row(benchmark_idx)
-                else None,
-                ylabel=Y_LABEL if is_first_column(benchmark_idx) else None,
+                xlabel=X_LABEL[xaxis] if is_last_row(i) else None,
+                ylabel=Y_LABEL if is_first_column(i) else None,
                 algorithm=algorithm,
                 log_x=args.log_x,
                 log_y=args.log_y,
                 x_range=args.x_range,
-                # max_cost=max_cost,
-                plot_default=plot_default,
-                plot_optimum=plot_optimum,
-                plot_rs_10=plot_rs_10,
-                plot_rs_25=plot_rs_25,
-                plot_rs_100=plot_rs_100,
-                force_prior_line="good" in benchmark,
+                plot_default=benchmark.prior_error if args.plot_default else None,
+                plot_optimum=benchmark.optimum if args.plot_optimum else None,
+                plot_rs_10=benchmark.best_10_error if args.plot_rs_10 else None,
+                plot_rs_25=benchmark.best_25_error if args.plot_rs_25 else None,
+                plot_rs_100=benchmark.best_100_error if args.plot_rs_100 else None,
+                force_prior_line="good" in benchmark.name,
             )
-            if args.dynamic_y_lim:
-                plot_offset = 0.15
-                dy = abs(y_max - y_min)
-                ax.set_ylim(y_min - dy * plot_offset, y_max + dy * plot_offset)
-            elif "jahs_colorectal_histology" in benchmark:
-                # EDIT THIS IF JAHS COLORECTAL CHANGES
-                ax.set_ylim(bottom=4.5, top=8)
-            else:
-                ax.set_ylim(auto=True)
 
-            print(f"Time to plot algorithm data: {time.time() - algorithm_starttime}")
-        print(f"Time to process benchmark data: {time.time() - benchmark_starttime}")
+        if args.dynamic_y_lim:
+            traces_ = chain.from_iterable(
+                all_results[(benchmark, algo)] for algo in algorithms
+            )
+            results_ = chain.from_iterable(trace.results for trace in traces_)
+            y_values = list(chain.from_iterable(getattr(r, yaxis) for r in results_))
+            y_min = min(y_values)
+            y_max = max(y_values)
+
+            plot_offset = 0.15
+            dy = abs(y_max - y_min)
+            ax.set_ylim(y_min - dy * plot_offset, y_max + dy * plot_offset)
+        elif "jahs_colorectal_histology" in benchmark.name:
+            ax.set_ylim(bottom=4.5, top=8)  # EDIT THIS IF JAHS COLORECTAL CHANGES
+        else:
+            ax.set_ylim(auto=True)
 
     sns.despine(fig)
 
-
-    handles, labels = axs.flatten()[0].get_legend_handles_labels()
-    #handles, labels = map_axs(
-    #    axs, 0, len(args.benchmarks), ncols
-    #).get_legend_handles_labels()
+    handles, labels = axs[0].get_legend_handles_labels()
 
     handles_to_plot, labels_to_plot = [], []
     handles_default, labels_default = [], []
@@ -444,11 +199,12 @@ def plot(args):
     if filename is None:
         filename = f"{args.experiment_group}_{args.plot_id}"
     if args.plot_max_fidelity_loss:
-        output_dir = f"{output_dir}/max_fidelity_loss/"
+        plot_dir = f"{plot_dir}/max_fidelity_loss/"
+
     save_fig(
         fig,
         filename=filename,
-        output_dir=output_dir,
+        output_dir=plot_dir,
         extension=args.ext,
         dpi=args.dpi,
     )
@@ -464,16 +220,4 @@ if __name__ == "__main__":
     if args.x_range is not None:
         assert len(args.x_range) == 2
 
-    # budget = None
-    # # reading benchmark budget if only one benchmark is being plotted
-    # if len(args.benchmarks) == 1:
-    #     with open(
-    #         os.path.join(benchmark_configs_path, f"{args.benchmarks[0]}.yaml"),
-    #         encoding="utf-8",
-    #     ) as f:
-    #         _args = AttrDict(yaml.load(f, yaml.Loader))
-    #         if "budget" in _args:
-    #             budget = _args.budget
-    # # TODO: make log scaling of plots also a feature of the benchmark
-    # args.update({"budget": budget})
-    plot(args)  # pylint: disable=no-value-for-parameter
+    plot(args)

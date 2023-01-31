@@ -188,7 +188,6 @@ def _get_info_smac(path, seed):
 def get_seed_info(
     path,
     seed,
-    cost_as_runtime=False,
     algorithm="random_search",
     n_workers=1,
     parallel_sleep_decrement: int = 0,
@@ -206,11 +205,12 @@ def get_seed_info(
         use_parallel_sleep_decrement = True
 
     data = func(path, seed)
+    key_to_extract = "fidelity"
+    max_cost = 0
 
     if n_workers == 1:
-        key_to_extract = "cost" if cost_as_runtime else "fidelity"
         # max_cost only relevant for scaling x-axis when using fidelity on the x-axis
-        max_cost = None if cost_as_runtime else 0
+
         if algorithm not in SINGLE_FIDELITY_ALGORITHMS:
             # calculates continuation costs for MF algorithms
             # NOTE: assumes that all recorded evaluations are black-box evaluations where
@@ -255,7 +255,6 @@ def get_seed_info(
                 )
     else:
         global_start = data[0][-1]["start_time"]
-        max_cost = None if cost_as_runtime else 0
 
         for idx, (data_id, loss, info) in enumerate(data):
             time_since_start_of_opt = info["end_time"] - global_start

@@ -1,9 +1,7 @@
-X_LABEL = dict(
-    {
-        False: "Full trainings",  # if `cost_as_runtime` is False
-        True: "Approx. full trainings",
-    }
-)
+X_LABEL = {
+    "fidelity": "Full trainings",
+    "end_time_since_global_start": "Approx. full trainings",
+}
 
 # "Runtime [s]"
 Y_LABEL = "Error"

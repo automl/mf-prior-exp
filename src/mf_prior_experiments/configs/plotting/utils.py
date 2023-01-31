@@ -7,8 +7,7 @@ import pandas as pd
 from path import Path
 from scipy import stats
 
-from .styles import ALGORITHMS, COLOR_MARKER_DICT, DATASETS, BENCHMARK_COLORS
-
+from .styles import ALGORITHMS, BENCHMARK_COLORS, COLOR_MARKER_DICT, DATASETS
 
 def get_max_fidelity(benchmark_name):
     if "lcbench" in benchmark_name:
@@ -29,7 +28,10 @@ def get_parser():
         description="mf-prior-exp plotting",
     )
     parser.add_argument(
-        "--base_path", type=str, default=None, help="path where `results/` exists"
+        "--base_path",
+        type=Path,
+        default=None,
+        help="path where `results/` exists",
     )
     parser.add_argument("--experiment_group", type=str, default="")
     parser.add_argument(
@@ -64,13 +66,6 @@ def get_parser():
         choices=["pdf", "png"],
         default="pdf",
         help="the file extension or the plot file type",
-    )
-    parser.add_argument(
-        "--cost_as_runtime",
-        default=False,
-        action="store_true",
-        help="Default behaviour to use fidelities on the x-axis. "
-        "This parameter uses the training cost/runtime on the x-axis",
     )
     parser.add_argument(
         "--plot_default",
@@ -127,15 +122,15 @@ def get_parser():
         "--parallel_sleep_decrement",
         default=10,
         type=int,
-        help="The sleep timer used during parallel runs"
+        help="The sleep timer used during parallel runs",
     )
     parser.add_argument(
         "--plot_max_fidelity_loss",
         default=False,
         action="store_true",
         help="If set (to True), the incumbent trace is modified such that the loss of "
-             "the current incumbent at the max fidelity is plotted instead of the actual "
-             "score of the current incumbent."
+        "the current incumbent at the max fidelity is plotted instead of the actual "
+        "score of the current incumbent.",
     )
 
     return parser

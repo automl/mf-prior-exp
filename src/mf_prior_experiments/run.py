@@ -1,7 +1,7 @@
 import contextlib
 import logging
-import random
 import os
+import random
 import sys
 import time
 from pathlib import Path
@@ -9,6 +9,7 @@ from typing import Any
 
 import hydra
 import numpy as np
+import yaml
 from gitinfo import gitinfo
 from omegaconf import OmegaConf
 
@@ -19,7 +20,7 @@ logger = logging.getLogger("mf_prior_experiments.run")
 MIN_SLEEP_TIME = 10  # 10s hopefully is enough to simulate wait times for metahyper
 
 # Use this environment variable to force overwrite when running
-OVERWRITE = False # bool(os.environ.get("MF_EXP_OVERWRITE", False))
+OVERWRITE = False  # bool(os.environ.get("MF_EXP_OVERWRITE", False))
 
 print(f"{'='*50}\noverwrite={OVERWRITE}\n{'='*50}")
 
@@ -158,7 +159,7 @@ def run_neps(args):
     # Added the type here just for editors to be able to get a quick view
     benchmark: Benchmark = hydra.utils.instantiate(args.benchmark.api)
 
-    def run_pipeline(**config: Any) -> dict:
+    def run_pipeline(previous_pipeline_directory: Path, **config: Any) -> dict:
         start = time.time()
         if benchmark.fidelity_name in config:
             fidelity = config.pop(benchmark.fidelity_name)
@@ -173,6 +174,25 @@ def run_neps(args):
         max_fidelity_result = benchmark.query(config, at=benchmark.end)
 
         if args.n_workers > 1:
+
+            continuation_fidelity = result.fidelity
+
+            # To account for continuations of previous configs in the parallel setting,
+            # we use the `previous_pipeline_directory` which indicates if there has been
+            # a prior, lower fidelity evaluation of this config. If that's the case we
+            # then subtract the previous fidelity off of this current one to compute
+            # the `continuation_fidelity`. Otherwise, the `continuation_fidelity` is
+            # just the current one.
+            # In the single worker setting, this is accounted for manually as a post-processing
+            # step during our plotting.
+            if previous_pipeline_directory is not None:
+                previous_results_file = previous_pipeline_directory / "results.yaml"
+                with previous_results_file.open("r") as f:
+                    previous_results = yaml.load(f, Loader=yaml.FullLoader)
+
+                continuation_fidelity = previous_results["fidelity"]
+                assert continuation_fidelity is not None
+
             # essential step to simulate speed-up
             time.sleep(fidelity + MIN_SLEEP_TIME)
 
