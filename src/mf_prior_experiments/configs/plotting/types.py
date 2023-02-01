@@ -201,7 +201,7 @@ class Trace(Sequence[Result]):
                     "max_fidelity_cost": result.max_fidelity_cost,
                     "single_worker_cumulated_fidelity": result.single_worker_cumulated_fidelity,
                     "config_id": str(result.config.id),
-                    "continued_from": str(result.continued_from),
+                    "continued_from": None if  result.continued_from is None else str(result.continued_from.config),
                     "bracket": str(result.config.bracket),
                     "process_id": result.process_id,
                 }
