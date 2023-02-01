@@ -157,7 +157,7 @@ def save_fig(
 ) -> None:
     output_dir = Path(output_dir)
     output_dir.mkdir(exist_ok=True, parents=True)
-    filepath = output_dir / f"{filename}.{extension}",
+    filepath = output_dir / f"{filename}.{extension}"
     fig.savefig(filepath, bbox_inches="tight", dpi=dpi)
     print(f"Saved to {filepath}")
 
