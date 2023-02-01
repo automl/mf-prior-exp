@@ -1,26 +1,16 @@
+from __future__ import annotations
+
 import argparse
+from pathlib import Path
+from typing import Any
+from warnings import warn
 
 import matplotlib.pyplot as plt
-import mfpbench
 import numpy as np
 import pandas as pd
-from pathlib import Path
 from scipy import stats
 
 from .styles import ALGORITHMS, BENCHMARK_COLORS, COLOR_MARKER_DICT, DATASETS
-
-def get_max_fidelity(benchmark_name):
-    if "lcbench" in benchmark_name:
-        name, task_id, _ = benchmark_name.split("-")
-        task_id = task_id.replace("_prior", "")
-        bench = mfpbench.get(name, task_id=task_id)
-    else:
-        benchmark_name, _ = benchmark_name.split("-")
-        benchmark_name = benchmark_name.replace("_prior", "")
-        bench = mfpbench.get(benchmark_name)
-    _, upper, _ = bench.fidelity_range
-
-    return upper
 
 
 def get_parser():
@@ -158,11 +148,18 @@ def set_general_plot_style():
     )
 
 
-def save_fig(fig, filename, output_dir, extension="pdf", dpi: int = 100):
+def save_fig(
+    fig: plt.Figure,
+    filename: str,
+    output_dir: Path,
+    extension: str = "pdf",
+    dpi: int = 100,
+) -> None:
     output_dir = Path(output_dir)
-    output_dir.makedirs_p()
-    fig.savefig(output_dir / f"{filename}.{extension}", bbox_inches="tight", dpi=dpi)
-    print(f'Saved to "{output_dir}/{filename}.{extension}"')
+    output_dir.mkdir(exist_ok=True, parents=True)
+    filepath = output_dir / f"{filename}.{extension}",
+    fig.savefig(filepath, bbox_inches="tight", dpi=dpi)
+    print(f"Saved to {filepath}")
 
 
 def interpolate_time(
@@ -178,8 +175,8 @@ def interpolate_time(
         for i, (seed_incs, seed_costs) in enumerate(zip(incumbents, costs))
     }
     if not parallel_evaluations:
-        for k, series in df_dict.items():
-            series.index = np.cumsum(series.index)
+        for _, series in df_dict.items():
+            series.index = np.cumsum(series.index).tolist()
 
     df = pd.DataFrame.from_dict(df_dict)
     df = df.sort_index(ascending=True)
@@ -216,25 +213,25 @@ def interpolate_time(
 
 
 def plot_incumbent(
-    ax,
-    df,
+    ax: plt.Axes,
+    df: pd.DataFrame,
+    algorithm: str,
     # x,
     # y,
-    xlabel=None,
-    ylabel=None,
-    title=None,
-    algorithm=None,
-    log_x=False,
-    log_y=False,
-    x_range=None,
+    xlabel: str | None = None,
+    ylabel: str | None = None,
+    title: str | None = None,
+    log_x: bool = False,
+    log_y: bool = False,
+    x_range: tuple[float, float] | None = None,
     # max_cost=None,
-    plot_default=None,
-    plot_optimum=None,
-    plot_rs_10=None,
-    plot_rs_25=None,
-    plot_rs_100=None,
-    force_prior_line=False,
-    **plot_kwargs,
+    plot_default: float | None = None,
+    plot_optimum: float | None = None,
+    plot_rs_10: float | None = None,
+    plot_rs_25: float | None = None,
+    plot_rs_100: float | None = None,
+    force_prior_line: bool = False,
+    **plot_kwargs: Any,
 ):
     # if isinstance(x, list):
     #     x = np.array(x)
@@ -297,11 +294,17 @@ def plot_incumbent(
         ax.plot(x, [plot_rs_100] * len(x), color="grey", linestyle="--", label="RS@100")
         # ax.hlines(y=plot_rs_100, xmin=x[0], xmax=x[-1], color="grey", linestyle="--")
 
+    default_color_marker = "black"
+    if algorithm not in COLOR_MARKER_DICT:
+        warn(
+            f"Could not find color for algorithm {algorithm}, using {default_color_marker}"
+        )
+
     ax.fill_between(
         x,
         y_mean - std_error,
         y_mean + std_error,
-        color=COLOR_MARKER_DICT[algorithm],
+        color=COLOR_MARKER_DICT.get(algorithm, default_color_marker),
         alpha=0.1,
         step="post",
     )
@@ -310,7 +313,18 @@ def plot_incumbent(
     # ax.set_ylim(auto=True)
 
     if title is not None:
-        ax.set_title(DATASETS[title], fontsize=20, color=BENCHMARK_COLORS[title])
+        default_color = "black"
+        if title not in BENCHMARK_COLORS:
+            warn(f"Could not find color for benchmark {title}, using {default_color}")
+        if title not in DATASETS:
+            warn(f"Could not find title for benchmark {title}, using {title}")
+
+        ax.set_title(
+            DATASETS.get(title, title),
+            fontsize=20,
+            color=BENCHMARK_COLORS.get(title, default_color),
+        )
+
     if xlabel is not None:
         ax.set_xlabel(xlabel, fontsize=18, color=(0, 0, 0, 0.69))
     if ylabel is not None:
@@ -323,7 +337,7 @@ def plot_incumbent(
     if x_range is not None:
         ax.set_xlim(*x_range)
         if x_range == [1, 12]:
-            ax.set_xticks([1, 3, 5, 10, 12], [1, 3, 5, 10, 12])
+            ax.set_xticks([1, 3, 5, 10, 12], [1, 3, 5, 10, 12])  # type: ignore
 
     # Black with some alpha
     ax.tick_params(axis="both", which="major", labelsize=18, labelcolor=(0, 0, 0, 0.69))
