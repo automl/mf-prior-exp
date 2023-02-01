@@ -255,13 +255,16 @@ class Trace(Sequence[Result]):
         def _yaxis(r) -> float:
             return getattr(r, yaxis)
 
-        results: list[Result] = sorted(self.results, key=lambda r: getattr(r, xaxis))
+        if op is not operator.lt and xaxis not in ("max_fidelity_loss", "loss"):
+            raise NotImplementedError("Only supports lt with 'max_fidelity_loss' or 'loss'")
+
+        results: list[Result] = sorted(self.results, key=_xaxis)
         incumbent = results[0]
 
         incumbents = [incumbent]
         for result in results[1:]:
             # If the new result is better than the incumbent, replace the incumbent
-            if op(yaxis(result), yaxis(incumbent)):
+            if op(_yaxis(result), _yaxis(incumbent)):
                 incumbent = result
                 incumbents.append(incumbent)
 
