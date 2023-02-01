@@ -1,29 +1,19 @@
 from __future__ import annotations
 
 import time
-from itertools import chain, groupby, product, starmap
+from contextlib import nullcontext
 from multiprocessing import Pool
 from pathlib import Path
 
 import matplotlib.pyplot as plt
 import numpy as np
-import pandas as pd
 import seaborn as sns
 from attrdict import AttrDict
-from joblib import Parallel, delayed, parallel_backend
-from more_itertools import all_equal, first
 
-from .configs.plotting.read_results import (
-    SINGLE_FIDELITY_ALGORITHMS,
-    get_seed_info,
-    load_yaml,
-)
 from .configs.plotting.styles import X_LABEL, Y_LABEL
-from .configs.plotting.types import Algorithm, Benchmark, Trace
+from .configs.plotting.types import ExperimentResults
 from .configs.plotting.utils import (
-    get_max_fidelity,
     get_parser,
-    interpolate_time,
     plot_incumbent,
     save_fig,
     set_general_plot_style,
@@ -41,9 +31,9 @@ def now() -> str:
 def plot(args):
     BASE_PATH: Path = DEFAULT_BASE_PATH if args.base_path is None else args.base_path
     BENCHMARK_CONFIG_DIR = BASE_PATH / "configs" / "benchmark"
+    EXPERIMENT_PATH = BASE_PATH / args.experiment_group
 
-    experiment_group: str = args.experiment_group
-    plot_dir = BASE_PATH / "plots" / experiment_group
+    plot_dir = BASE_PATH / "plots" / args.experiment_group
 
     set_general_plot_style()
     xrange = args.x_range
@@ -69,60 +59,63 @@ def plot(args):
     fig, axs = plt.subplots(nrows=nrows, ncols=ncols, figsize=figsize)
     axs = axs.flatten() if isinstance(axs, np.ndarray) else [axs]
 
-    algorithms = [Algorithm(a) for a in args.algorithms]
-    benchmarks = [
-        Benchmark.from_name(
-            benchmark,
-            config_dir=BENCHMARK_CONFIG_DIR,
-        )
-        for benchmark in args.benchmarks
-    ]
-
-    print(f"[{now()}] Processing ...")
-    starttime = time.time()
-
-    traces = Trace.load_all(
-        base_path=BASE_PATH,
-        experiment_group=experiment_group,
-        benchmarks=benchmarks,
-        algorithms=algorithms,
-        parallel=args.parallel,
-    )
-
-    print(f"[{now()}] Done! Duration {time.time() - starttime:.3f}...")
-
-    traces = [trace.with_continuations() for trace in traces]
-    if args.n_workers <= 1:
-        # fidelities: [1, 1, 3, 1, 9] -> [1, 2, 5, 6, 15]
-        traces = [trace.with_cumulative_fidelity() for trace in traces]
-
     # TODO: We may want to change this with the new "continuation fidelity"
     # for parallel setup
     xaxis = "fidelity" if args.n_workers <= 1 else "end_time_since_global_start"
     yaxis = "max_fidelity_loss" if args.max_fidelity_loss else "loss"
-    traces = [trace.incumbent_trace(xaxis=xaxis, yaxis=yaxis) for trace in traces]
 
-    all_results: dict[tuple[Benchmark, Algorithm], list[Trace]] = {
-        (bench, algo): sorted(trs, key=lambda r: r.seed)
-        for (bench, algo), trs in groupby(
-            traces, key=lambda t: (t.benchmark, t.algorithm)
+    context = Pool() if args.parallel else nullcontext(None)  # noqa: consider-using-with
+
+    starttime = time.time()
+    print(f"[{now()}] Processing ...")
+    with context as pool:
+        experiment_results = ExperimentResults.load(
+            path=EXPERIMENT_PATH,
+            benchmarks=args.benchmarks,
+            algorithms=args.algorithms,
+            benchmark_config_dir=BENCHMARK_CONFIG_DIR,
+            pool=pool,
         )
-    }
 
-    for i, (benchmark, ax) in enumerate(zip(benchmarks, axs)):
+        experiment_results = experiment_results.with_continuations(pool=pool)
 
-        for algorithm in algorithms:
-            seed_traces: list[Trace] = all_results[(benchmark, algorithm)]
+        if args.n_workers <= 1:
+            # fidelities: [1, 1, 3, 1, 9] -> [1, 2, 5, 6, 15]
+            experiment_results = experiment_results.with_cumulative_fidelity(pool=pool)
 
-            df: pd.DataFrame = Trace.combine(seed_traces, xaxis=xaxis, yaxis=yaxis)
+        experiment_results = experiment_results.incumbent_trace(
+            pool=pool,
+            xaxis=xaxis,
+            yaxis=yaxis,
+        )
 
-            # TODO: We should move to the new continuation fidelity metric.
-            if xaxis == "end_time_since_global_start":
-                df.index = df.index / benchmark.max_fidelity
+        # TODO: We should move to the new continuation fidelity metric.
+        if xaxis == "end_time_since_global_start":
+            experiment_results = experiment_results.rescale(
+                xaxis=xaxis,
+                by="max_fidelity",
+                pool=pool,
+            )
 
-            if xrange is not None:
-                lower, upper = xrange
-                df = df[(df.index >= lower) & (df.index <= upper)]  # type: ignore
+        if xrange is not None:
+            experiment_results = experiment_results.in_range(
+                bounds=xrange, xaxis=xaxis, pool=pool
+            )
+
+    print(f"[{now()}] Done! Duration {time.time() - starttime:.3f}...")
+
+    for i, (benchmark, ax) in enumerate(zip(args.benchmarks, axs)):
+        benchmark_results = experiment_results[benchmark]
+
+        for algorithm in args.algorithms:
+            algorithm_results = benchmark_results[algorithm]
+
+            df = algorithm_results.df(index=xaxis, values=yaxis)
+
+            # We fill in nans with any results seen before a given timestamp with
+            # "ffill" and use "backfill" to fill in any NaNs that might occur at the
+            # very start.
+            df = df.fillna(method="ffill", axis=0).fillna(method="backfill", axis=0)
 
             is_last_row = lambda idx: idx >= (nrows - 1) * ncols
             is_first_column = lambda idx: idx % ncols == 0
@@ -146,11 +139,7 @@ def plot(args):
             )
 
         if args.dynamic_y_lim:
-            traces_ = chain.from_iterable(
-                all_results[(benchmark, algo)] for algo in algorithms
-            )
-            results_ = chain.from_iterable(trace.results for trace in traces_)
-            y_values = list(chain.from_iterable(getattr(r, yaxis) for r in results_))
+            y_values = [getattr(result, yaxis) for result in benchmark_results.values()]
             y_min = min(y_values)
             y_max = max(y_values)
 

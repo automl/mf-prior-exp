@@ -2,15 +2,16 @@ from __future__ import annotations
 
 import operator
 from dataclasses import dataclass, field, replace
-from itertools import accumulate, groupby, product, starmap
-from multiprocessing import Pool
+from itertools import accumulate, chain, groupby
+from multiprocessing.pool import Pool
 from pathlib import Path
-from typing import Any, Callable, Sequence, overload
+from typing import Any, Callable, Iterator, Mapping, Sequence, overload
 
 import mfpbench
 import pandas as pd
 import yaml  # type: ignore
-from more_itertools import all_equal, all_unique, first, pairwise
+from more_itertools import all_equal, pairwise
+from typing_extensions import Literal
 
 
 @dataclass
@@ -104,40 +105,17 @@ class Algorithm:
 
 @dataclass
 class Trace(Sequence[Result]):
-    experiment_group: str
-    algorithm: Algorithm
-    benchmark: Benchmark
-    seed: int
     results: list[Result] = field(repr=False)
 
     @classmethod
-    def load(
-        cls,
-        base_path: Path,
-        experiment_group: str,
-        algorithm: Algorithm,
-        benchmark: Benchmark,
-        seed: int,
-    ) -> Trace:
-        results_dir = (
-            base_path
-            / experiment_group
-            / f"benchmark={benchmark}"
-            / f"algorithm={algorithm}"
-            / f"seed={seed}"
-            / "neps_root_directory"
-            / "results"
-        )
+    def load(cls, path: Path, *, pool: Pool | None = None) -> Trace:
+        config_dirs = [p for p in path.iterdir() if p.is_dir()]
+        if pool:
+            results = list(pool.imap_unordered(Result.from_dir, config_dirs))
+        else:
+            results = list(map(Result.from_dir, config_dirs))
 
-        if not results_dir.exists():
-            raise ValueError(f"Results dir {results_dir} does not exist")
-
-        results = [Result.from_dir(config_dir) for config_dir in results_dir.iterdir()]
-        if not all_unique(results, key=lambda r: (r.config.id, r.config.bracket)):
-            msg = f"Found duplicate results for {benchmark}-{algorithm}-{seed}!"
-            raise RuntimeError(msg)
-
-        global_start = min(r.start_time for r in results)
+        global_start = min(result.start_time for result in results)
         results = [
             result.mutate(
                 start_time_since_global_start=result.start_time - global_start,
@@ -147,70 +125,7 @@ class Trace(Sequence[Result]):
         ]
 
         results = sorted(results, key=lambda r: r.end_time)
-        return cls(
-            experiment_group=experiment_group,
-            algorithm=algorithm,
-            benchmark=benchmark,
-            seed=seed,
-            results=results,
-        )
-
-    @classmethod
-    def seeds_available(
-        cls,
-        base_path: Path,
-        experiment_group: str,
-        algorithm: Algorithm,
-        benchmark: Benchmark,
-    ) -> list[int]:
-        algo_dir = (
-            base_path
-            / experiment_group
-            / f"benchmark={benchmark}"
-            / f"algorithm={algorithm}"
-        )
-        return [
-            int(d.name.split("=")[1])
-            for d in algo_dir.iterdir()
-            if d.is_dir() and "seed" in d.name
-        ]
-
-    @classmethod
-    def load_all(
-        cls,
-        base_path: Path,
-        experiment_group: str,
-        algorithms: list[Algorithm],
-        benchmarks: list[Benchmark],
-        parallel: bool = False,
-    ) -> list[Trace]:
-        seeds_present = {
-            (benchmark, algorithm): sorted(
-                cls.seeds_available(
-                    base_path=base_path,
-                    experiment_group=experiment_group,
-                    algorithm=algorithm,
-                    benchmark=benchmark,
-                )
-            )
-            for benchmark, algorithm in product(benchmarks, algorithms)
-        }
-        if not all_equal(seeds_present.values()):
-            msg = f"Not all (benchmark, algorithm) have the same seeds present!\n{seeds_present}"
-            raise RuntimeError(msg)
-
-        seeds: list[int] = first(seeds_present.values())
-        trace_itr = product(
-            [base_path], [experiment_group], algorithms, benchmarks, seeds
-        )
-
-        if parallel:
-            with Pool() as pool:
-                traces = pool.starmap(Trace.load, trace_itr)
-        else:
-            traces = list(starmap(Trace.load, trace_itr))
-
-        return traces
+        return cls(results)
 
     @overload
     def __getitem__(self, key: int) -> Result:
@@ -317,10 +232,28 @@ class Trace(Sequence[Result]):
 
         return replace(self, results=incumbents)
 
-    def series(self, index: str, values: str) -> pd.Series:
+    def in_range(self, bounds: tuple[float, float], xaxis: str) -> Trace:
+        low, high = bounds
+        results = [
+            result for result in self.results if low <= getattr(result, xaxis) <= high
+        ]
+        results = sorted(results, key=lambda r: getattr(r, xaxis))
+        return replace(self, results=results)
+
+    def rescale(self, c: float, xaxis: str) -> Trace:
+        results: list[Result] = []
+        for result in self.results:
+            copied = replace(result)
+            value = getattr(results, xaxis)
+            setattr(copied, xaxis, value * c)
+            results.append(copied)
+
+        results = sorted(results, key=lambda r: getattr(r, xaxis))
+        return replace(self, results=results)
+
+    def series(self, index: str, values: str, name: str | None = None) -> pd.Series:
         vals = self.df[values]
         indices = self.df[index]
-        name = f"{self.benchmark}-{self.algorithm}-{self.seed}"
         series = pd.Series(vals, index=indices, name=name)
         return series
 
@@ -413,3 +346,284 @@ class Benchmark:
 
     def __repr__(self) -> str:
         return str(self)
+
+
+@dataclass
+class AlgorithmResults(Mapping[int, Trace]):
+    traces: dict[int, Trace]
+
+    @classmethod
+    def load(
+        cls,
+        path: Path,
+        *,
+        pool: Pool | None = None,
+        seeds: list[int] | None = None,
+    ) -> AlgorithmResults:
+        """Load all traces for an algorithm."""
+        if seeds is None:
+            seeds = [
+                int(p.name.split("=")[1])
+                for p in path.iterdir()
+                if p.is_dir() and "seed" in p.name
+            ]
+
+        traces = {seed: Trace.load(path / f"seed={seed}", pool=pool) for seed in seeds}
+        return cls(traces=traces)
+
+    def with_continuations(self, pool: Pool | None = None) -> AlgorithmResults:
+        """Return a new AlgorithmResults with continuations."""
+
+        def do(t: Trace) -> Trace:
+            return t.with_continuations()
+
+        mapper = pool.imap if pool is not None else map
+
+        itr = zip(self.traces.keys(), mapper(do, self.traces.values()))  # type: ignore
+        return replace(self, traces={seed: trace for seed, trace in itr})
+
+    def with_cumulative_fidelity(self, pool: Pool | None = None) -> AlgorithmResults:
+        def do(t: Trace) -> Trace:
+            return t.with_cumulative_fidelity()
+
+        mapper = pool.imap if pool is not None else map
+
+        itr = zip(self.traces.keys(), mapper(do, self.traces.values()))  #
+        return replace(self, traces={seed: trace for seed, trace in itr})
+
+    def incumbent_traces(
+        self, pool: Pool | None = None, **kwargs: Any
+    ) -> AlgorithmResults:
+        def do(t: Trace) -> Trace:
+            return t.incumbent_trace(**kwargs)
+
+        mapper = pool.imap if pool is not None else map
+
+        itr = zip(self.traces.keys(), mapper(do, self.traces.values()))  # type: ignore
+        return replace(self, traces={seed: trace for seed, trace in itr})
+
+    def rescale(
+        self, xaxis: str, c: float, *, pool: Pool | None = None
+    ) -> AlgorithmResults:
+        def do(t: Trace) -> Trace:
+            return t.rescale(xaxis=xaxis, c=c)
+
+        mapper = pool.imap if pool is not None else map
+
+        itr = zip(self.traces.keys(), mapper(do, self.traces.values()))  # type: ignore
+        return replace(self, traces={seed: trace for seed, trace in itr})
+
+    def in_range(
+        self,
+        bounds: tuple[float, float],
+        xaxis: str,
+        *,
+        pool: Pool | None = None,
+    ) -> AlgorithmResults:
+        def do(t: Trace) -> Trace:
+            return t.in_range(bounds=bounds, xaxis=xaxis)
+
+        mapper = pool.imap if pool is not None else map
+
+        itr = zip(self.traces.keys(), mapper(do, self.traces.values()))  # type: ignore
+        return replace(self, traces={seed: trace for seed, trace in itr})
+
+    def df(self, index: str, values: str) -> pd.DataFrame:
+        """Return a dataframe with the traces."""
+        columns = [
+            trace.series(index=index, values=values, name=f"seed-{seed}")
+            for seed, trace in self.traces.items()
+        ]
+        df = pd.concat(columns, axis=1).sort_index(ascending=True)
+
+        assert isinstance(df, pd.DataFrame)
+        return df
+
+    def iter_results(self) -> Iterator[Result]:
+        yield from chain.from_iterable(iter(trace) for trace in self.traces.values())
+
+    def __getitem__(self, seed: int) -> Trace:
+        return self.traces.__getitem__(seed)
+
+    def __iter__(self) -> Iterator[int]:
+        return self.traces.__iter__()
+
+    def __len__(self) -> int:
+        return self.traces.__len__()
+
+
+@dataclass
+class BenchmarkResults(Mapping[str, AlgorithmResults]):
+    results: Mapping[str, AlgorithmResults]
+
+    def with_continuations(self, pool: Pool | None = None) -> BenchmarkResults:
+        results = {k: v.with_continuations(pool) for k, v in self.results.items()}
+        return replace(self, results=results)
+
+    def with_cumulative_fidelity(self, pool: Pool | None = None) -> BenchmarkResults:
+        results = {k: v.with_cumulative_fidelity(pool) for k, v in self.results.items()}
+        return replace(self, results=results)
+
+    def incumbent_traces(
+        self, pool: Pool | None = None, **kwargs: Any
+    ) -> BenchmarkResults:
+        results = {k: v.incumbent_traces(pool, **kwargs) for k, v in self.results.items()}
+        return replace(self, results=results)
+
+    @classmethod
+    def load(
+        cls,
+        path: Path,
+        *,
+        pool: Pool | None = None,
+        algorithms: list[str] | None = None,
+        seeds: list[int] | None = None,
+    ) -> BenchmarkResults:
+        if algorithms is None:
+            algorithms = [
+                p.name.split("=")[1]
+                for p in path.iterdir()
+                if p.is_dir() and "algo" in p.name
+            ]
+
+        results = {
+            algo: AlgorithmResults.load(
+                path / f"algorithm={algo}", seeds=seeds, pool=pool
+            )
+            for algo in algorithms
+        }
+        return cls(results)
+
+    def rescale(
+        self, xaxis: str, c: float, *, pool: Pool | None = None
+    ) -> BenchmarkResults:
+        results = {
+            name: algo_results.rescale(xaxis=xaxis, c=c, pool=pool)
+            for name, algo_results in self.results.items()
+        }
+        return replace(self, results=results)
+
+    def in_range(
+        self,
+        bounds: tuple[float, float],
+        xaxis: str,
+        *,
+        pool: Pool | None = None,
+    ) -> BenchmarkResults:
+        results = {
+            name: algo_results.in_range(bounds=bounds, xaxis=xaxis, pool=pool)
+            for name, algo_results in self.results.items()
+        }
+        return replace(self, results=results)
+
+    def iter_results(self) -> Iterator[Result]:
+        yield from chain.from_iterable(
+            algo_results.iter_results() for algo_results in self.results.values()
+        )
+
+    def __getitem__(self, algo: str) -> AlgorithmResults:
+        return self.results.__getitem__(algo)
+
+    def __iter__(self) -> Iterator[str]:
+        return self.results.__iter__()
+
+    def __len__(self) -> int:
+        return self.results.__len__()
+
+
+@dataclass
+class ExperimentResults(Mapping[str, BenchmarkResults]):
+    benchmarks: dict[str, Benchmark]
+    results: dict[str, BenchmarkResults]
+
+    @classmethod
+    def load(
+        cls,
+        path: Path,
+        *,
+        benchmarks: list[str] | None = None,
+        algorithms: list[str] | None = None,
+        seeds: list[int] | None = None,
+        benchmark_config_dir: Path,
+        pool: Pool | None = None,
+    ) -> ExperimentResults:
+        if benchmarks is None:
+            benchmarks = [
+                p.name.split("=")[1]
+                for p in path.iterdir()
+                if p.is_dir() and "benchmark" in p.name
+            ]
+
+        return cls(
+            benchmarks={
+                benchmark: Benchmark.from_name(benchmark, benchmark_config_dir)
+                for benchmark in benchmarks
+            },
+            results={
+                benchmark: BenchmarkResults.load(
+                    path / f"benchmark={benchmark}",
+                    algorithms=algorithms,
+                    seeds=seeds,
+                    pool=pool,
+                )
+                for benchmark in benchmarks
+            },
+        )
+
+    def with_continuations(self, pool: Pool | None = None) -> ExperimentResults:
+        results = {k: v.with_continuations(pool) for k, v in self.results.items()}
+        return replace(self, results=results)
+
+    def with_cumulative_fidelity(self, pool: Pool | None = None) -> ExperimentResults:
+        results = {k: v.with_cumulative_fidelity(pool) for k, v in self.results.items()}
+        return replace(self, results=results)
+
+    def incumbent_trace(
+        self,
+        pool: Pool | None = None,
+        **kwargs: Any,
+    ) -> ExperimentResults:
+        results = {k: v.incumbent_traces(pool, **kwargs) for k, v in self.results.items()}
+        return replace(self, results=results)
+
+    def rescale(
+        self, xaxis: str, by: Literal["max_fidelity"], *, pool: Pool | None = None
+    ) -> ExperimentResults:
+        if by != "max_fidelity":
+            raise NotImplementedError(f"by={by}")
+
+        max_fidelities = {
+            name: benchmark.max_fidelity for name, benchmark in self.benchmarks.items()
+        }
+
+        results = {
+            name: benchmark_results.rescale(
+                xaxis=xaxis, c=(1 / max_fidelities[name]), pool=pool
+            )
+            for name, benchmark_results in self.results.items()
+        }
+        return replace(self, results=results)
+
+    def in_range(
+        self, bounds: tuple[float, float], xaxis: str, *, pool: Pool | None = None
+    ) -> ExperimentResults:
+        results = {
+            k: v.in_range(bounds=bounds, xaxis=xaxis, pool=pool)
+            for k, v in self.results.items()
+        }
+        return replace(self, results=results)
+
+    def __getitem__(self, benchmark: str) -> BenchmarkResults:
+        return self.results.__getitem__(benchmark)
+
+    def __iter__(self) -> Iterator[str]:
+        return self.results.__iter__()
+
+    def __len__(self) -> int:
+        return self.results.__len__()
+
+    def iter_results(self) -> Iterator[Result]:
+        yield from chain.from_iterable(
+            benchmark_results.iter_results()
+            for benchmark_results in self.results.values()
+        )
