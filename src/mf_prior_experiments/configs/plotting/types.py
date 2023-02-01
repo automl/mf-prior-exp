@@ -306,7 +306,7 @@ class Trace(Sequence[Result]):
         results: list[Result] = []
         for result in self.results:
             copied = replace(result)
-            value = getattr(results, xaxis)
+            value = getattr(result, xaxis)
             setattr(copied, xaxis, value * c)
             results.append(copied)
 
