@@ -293,7 +293,7 @@ class Trace(Sequence[Result]):
                 max_fidelity_loss_incumbent = challenger
                 max_fidelity_loss_incumbents.append(challenger)
 
-        return replace(self, results=incumbents)
+        return replace(self, results=max_fidelity_loss_incumbents)
 
 
     def in_range(self, bounds: tuple[float, float], xaxis: str) -> Trace:
