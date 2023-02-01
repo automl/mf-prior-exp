@@ -261,26 +261,14 @@ class Trace(Sequence[Result]):
         ]
         return replace(self, results=cumulated_results)
 
-    def incumbent_trace(
-        self,
-        xaxis: str,
-        yaxis: str,
-        *,
-        op: Callable[[float, float], bool] = operator.lt,
-    ) -> Trace:
+    def incumbent_trace(self, xaxis: str, yaxis: str) -> Trace:
         """Return a trace with only the incumbent results."""
 
         def _xaxis(r) -> float:
             return getattr(r, xaxis)
 
-        def _yaxis(r) -> float:
-            return getattr(r, yaxis)
-
         if yaxis not in ("max_fidelity_loss", "loss"):
             raise NotImplementedError(f"yaxis={yaxis} not supported")
-
-        if op is not operator.lt:
-            raise NotImplementedError("Only supports `lt` with 'max_fidelity_loss' or 'loss'")
 
         results: list[Result] = sorted(self.results, key=_xaxis)
         incumbent = results[0]
@@ -288,11 +276,25 @@ class Trace(Sequence[Result]):
         incumbents = [incumbent]
         for result in results[1:]:
             # If the new result is better than the incumbent, replace the incumbent
-            if op(_yaxis(result), _yaxis(incumbent)):
+            if result.loss < incumbent.loss:
                 incumbent = result
                 incumbents.append(incumbent)
 
+        if yaxis == "loss":
+            return replace(self, results=incumbents)
+
+        assert yaxis == "max_fidelity_loss"
+        # We now do the same except we generate an incumbent trace over the
+        # existing incumbents selected
+        max_fidelity_loss_incumbent = incumbent
+        max_fidelity_loss_incumbents = [incumbents[0]]
+        for challenger in incumbents[1:]:
+            if challenger.max_fidelity_loss < max_fidelity_loss_incumbent.max_fidelity_loss:
+                max_fidelity_loss_incumbent = challenger
+                max_fidelity_loss_incumbents.append(challenger)
+
         return replace(self, results=incumbents)
+
 
     def in_range(self, bounds: tuple[float, float], xaxis: str) -> Trace:
         low, high = bounds
