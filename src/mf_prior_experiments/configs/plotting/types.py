@@ -299,7 +299,7 @@ class Benchmark:
 
     @classmethod
     def from_name(cls, name: str, config_dir: Path) -> Benchmark:
-        expected_path = config_dir / "configs" / "benchmark" / f"{name}.yaml"
+        expected_path = config_dir / f"{name}.yaml"
         if not expected_path.exists():
             raise ValueError(f"Expected benchmark path {expected_path} to exist.")
 
