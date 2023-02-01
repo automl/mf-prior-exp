@@ -449,9 +449,9 @@ class AlgorithmResults(Mapping[int, Trace]):
         args = [(trace, xaxis, c) for trace in self.traces.values()]
         traces: Iterable[Trace]
         if pool:
-            traces = pool.starmap(_incumbent_trace, args)
+            traces = pool.starmap(_rescale, args)
         else:
-            traces = starmap(_incumbent_trace, args)
+            traces = starmap(_rescale, args)
 
         itr = zip(self.traces.keys(), traces)
         return replace(self, traces={seed: trace for seed, trace in itr})
@@ -466,9 +466,9 @@ class AlgorithmResults(Mapping[int, Trace]):
         args = [(trace, bounds, xaxis) for trace in self.traces.values()]
         traces: Iterable[Trace]
         if pool:
-            traces = pool.starmap(_incumbent_trace, args)
+            traces = pool.starmap(_in_range, args)
         else:
-            traces = starmap(_incumbent_trace, args)
+            traces = starmap(_in_range, args)
 
         itr = zip(self.traces.keys(), traces)
         return replace(self, traces={seed: trace for seed, trace in itr})
