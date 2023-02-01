@@ -286,6 +286,7 @@ class Trace(Sequence[Result]):
         assert yaxis == "max_fidelity_loss"
         # We now do the same except we generate an incumbent trace over the
         # existing incumbents selected
+        print("*" * 100)
         max_fidelity_loss_incumbent = incumbent
         max_fidelity_loss_incumbents = [incumbents[0]]
         for challenger in incumbents[1:]:
