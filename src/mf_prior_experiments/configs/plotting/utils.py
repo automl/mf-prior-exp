@@ -216,15 +216,12 @@ def plot_incumbent(
     ax: plt.Axes,
     df: pd.DataFrame,
     algorithm: str,
-    # x,
-    # y,
     xlabel: str | None = None,
     ylabel: str | None = None,
     title: str | None = None,
     log_x: bool = False,
     log_y: bool = False,
     x_range: tuple[float, float] | None = None,
-    # max_cost=None,
     plot_default: float | None = None,
     plot_optimum: float | None = None,
     plot_rs_10: float | None = None,
@@ -245,6 +242,10 @@ def plot_incumbent(
     x = df.index
     y_mean = df.mean(axis=1).values
     std_error = stats.sem(df.values, axis=1)
+
+    debug_series = pd.Series(y_mean, index=x)
+    print("Line is:")
+    print(debug_series)
 
     ax.step(
         x,
