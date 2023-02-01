@@ -198,8 +198,7 @@ class Trace(Sequence[Result]):
                 for result in self.results
             ]
         )
-        print(df)
-        df = df.set_index("config_id")
+        df = df.set_index("end_time")
         assert df is not None
         return df
 
