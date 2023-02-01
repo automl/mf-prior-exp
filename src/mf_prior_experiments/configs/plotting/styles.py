@@ -1,5 +1,5 @@
 X_LABEL = {
-    "fidelity": "Full trainings",
+    "single_worker_cumulated_fidelity": "Full trainings",
     "end_time_since_global_start": "Approx. full trainings",
 }
 
