@@ -142,11 +142,15 @@ class Trace(Sequence[Result]):
     @classmethod
     def load(cls, path: Path, *, pool: Pool | None = None) -> Trace:
         trace_results_dir = path / "neps_root_directory" / "results"
-        config_dirs = [p for p in trace_results_dir.iterdir() if p.is_dir()]
+        assert trace_results_dir.exists()
+        config_dirs = [p for p in trace_results_dir.iterdir() if p.is_dir() and "config" in p.name]
         if pool:
             results = list(pool.imap_unordered(Result.from_dir, config_dirs))
         else:
             results = list(map(Result.from_dir, config_dirs))
+
+        if len(results) == 0:
+            raise ValueError(f"Couldn't find results in {trace_results_dir}")
 
         global_start = min(result.start_time for result in results)
         results = [
@@ -158,7 +162,7 @@ class Trace(Sequence[Result]):
         ]
 
         results = sorted(results, key=lambda r: r.end_time)
-        return cls(results)
+        return cls(results=results)
 
     @overload
     def __getitem__(self, key: int) -> Result:
