@@ -88,9 +88,9 @@ def plot(args):
             experiment_results = experiment_results.with_cumulative_fidelity(pool=pool)
 
         experiment_results = experiment_results.incumbent_trace(
-            pool=pool,
             xaxis=xaxis,
             yaxis=yaxis,
+            pool=pool,
         )
 
         # TODO: We should move to the new continuation fidelity metric.
@@ -99,11 +99,6 @@ def plot(args):
                 xaxis=xaxis,
                 by="max_fidelity",
                 pool=pool,
-            )
-
-        if xrange is not None:
-            experiment_results = experiment_results.in_range(
-                bounds=xrange, xaxis=xaxis, pool=pool
             )
 
     print(f"[{now()}] Done! Duration {time.time() - starttime:.3f}...")
