@@ -112,19 +112,6 @@ def get_parser():
         help="whether to process data in parallel or not",
     )
     parser.add_argument(
-        "--parallel_backend",
-        type=str,
-        choices=["multiprocessing", "threading"],
-        default="multiprocessing",
-        help="which backend use for parallel",
-    )
-    parser.add_argument(
-        "--parallel_sleep_decrement",
-        default=10,
-        type=int,
-        help="The sleep timer used during parallel runs",
-    )
-    parser.add_argument(
         "--plot_max_fidelity_loss",
         default=False,
         action="store_true",
