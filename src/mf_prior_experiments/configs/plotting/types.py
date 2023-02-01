@@ -84,6 +84,7 @@ class Result:
     single_worker_cumulated_fidelity: float | None = None
     start_time_since_global_start: float | None = None
     end_time_since_global_start: float | None = None
+    continued_from: Result | None = None
     process_id: int | None = None
 
     @classmethod
@@ -116,9 +117,11 @@ class Result:
     def continue_from(self, other: Result) -> Result:
         """Continue based on the results from a previous evaluation of the same config."""
         assert self.is_continuation(of=other)
+        assert self.continued_from is None, f"{self} - {other}"
         changes = {
             "fidelity": self.fidelity - other.fidelity,
             "cost": self.cost - other.cost,
+            "continued_from": other,
         }
         return self.mutate(**changes)
 
@@ -196,7 +199,10 @@ class Trace(Sequence[Result]):
                     "end_time": result.end_time,
                     "max_fidelity_loss": result.max_fidelity_loss,
                     "max_fidelity_cost": result.max_fidelity_cost,
+                    "single_worker_cumulated_fidelity": result.single_worker_cumulated_fidelity,
                     "config_id": str(result.config.id),
+                    "continued_from": str(result.continued_from),
+                    "bracket": str(result.config.bracket),
                     "process_id": result.process_id,
                 }
                 for result in self.results
