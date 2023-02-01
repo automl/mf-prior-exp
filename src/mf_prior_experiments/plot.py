@@ -93,13 +93,11 @@ def plot(args):
             pool=pool,
         )
 
-        # TODO: We should move to the new continuation fidelity metric.
-        if xaxis == "end_time_since_global_start":
-            experiment_results = experiment_results.rescale(
-                xaxis=xaxis,
-                by="max_fidelity",
-                pool=pool,
-            )
+        experiment_results = experiment_results.rescale(
+            xaxis=xaxis,
+            by="max_fidelity",
+            pool=pool,
+        )
 
     print(f"[{now()}] Done! Duration {time.time() - starttime:.3f}...")
 
