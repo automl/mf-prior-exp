@@ -137,7 +137,7 @@ class Algorithm:
 
 @dataclass
 class Trace(Sequence[Result]):
-    results: list[Result] = field(repr=False)
+    results: list[Result]
 
     @classmethod
     def load(cls, path: Path, *, pool: Pool | None = None) -> Trace:
