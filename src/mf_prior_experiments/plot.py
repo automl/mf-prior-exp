@@ -29,6 +29,7 @@ def now() -> str:
 
 
 def plot(args):
+    print(args)
     BASE_PATH = DEFAULT_BASE_PATH if args.base_path is None else args.base_path
     BENCHMARK_CONFIG_DIR = BASE_PATH / "src" / "mf_prior_experiments" / "configs" / "benchmark"
     RESULTS_DIR = BASE_PATH / "results" / args.experiment_group
@@ -104,11 +105,18 @@ def plot(args):
     print(f"[{now()}] Done! Duration {time.time() - starttime:.3f}...")
 
     for i, (benchmark, ax) in enumerate(zip(args.benchmarks, axs)):
+        print("=" * 50)
+        print(f"Doing benchmark: {benchmark}")
+        print("=" * 50)
         benchmark_results = experiment_results[benchmark]
         benchmark_config = experiment_results.benchmarks[benchmark]
 
         for algorithm in args.algorithms:
             algorithm_results = benchmark_results[algorithm]
+            benchmark_results = experiment_results[benchmark]
+            print("-" * 50)
+            print(f"Benchmark: {benchmark} | Algorithm: {algorithm}")
+            print("-" * 50)
 
             df = algorithm_results.df(index=xaxis, values=yaxis)
 

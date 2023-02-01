@@ -240,6 +240,8 @@ def plot_incumbent(
 
     # df = interpolate_time(incumbents=y, costs=x, x_range=x_range, scale_x=max_cost)
 
+    print("Got this for plotting")
+    print(df)
     x = df.index
     y_mean = df.mean(axis=1).values
     std_error = stats.sem(df.values, axis=1)
