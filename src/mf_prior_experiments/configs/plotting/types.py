@@ -276,10 +276,11 @@ class Trace(Sequence[Result]):
         def _yaxis(r) -> float:
             return getattr(r, yaxis)
 
-        if op is not operator.lt and xaxis not in ("max_fidelity_loss", "loss"):
-            raise NotImplementedError(
-                "Only supports lt with 'max_fidelity_loss' or 'loss'"
-            )
+        if yaxis not in ("max_fidelity_loss", "loss"):
+            raise NotImplementedError(f"yaxis={yaxis} not supported")
+
+        if op is not operator.lt:
+            raise NotImplementedError("Only supports `lt` with 'max_fidelity_loss' or 'loss'")
 
         results: list[Result] = sorted(self.results, key=_xaxis)
         incumbent = results[0]
