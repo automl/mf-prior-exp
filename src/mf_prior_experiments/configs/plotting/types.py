@@ -225,9 +225,12 @@ class Trace(Sequence[Result]):
         def bracket(res: Result) -> int:
             return 0 if res.config.bracket is None else res.config.bracket
 
+        # Needs to be sorted on the key before using groupby
+        trace_results = sorted(self.results, key=lambda r: r.config.id)
+
         results = {
             config_id: sorted(results, key=bracket)
-            for config_id, results in groupby(self.results, key=lambda r: r.config.id)
+            for config_id, results in groupby(trace_results, key=lambda r: r.config.id)
         }
 
         continuations = []
