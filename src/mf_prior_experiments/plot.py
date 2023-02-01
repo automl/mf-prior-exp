@@ -105,6 +105,7 @@ def plot(args):
 
     for i, (benchmark, ax) in enumerate(zip(args.benchmarks, axs)):
         benchmark_results = experiment_results[benchmark]
+        benchmark_config = experiment_results.benchmarks[benchmark]
 
         for algorithm in args.algorithms:
             algorithm_results = benchmark_results[algorithm]
@@ -129,12 +130,12 @@ def plot(args):
                 log_x=args.log_x,
                 log_y=args.log_y,
                 x_range=args.x_range,
-                plot_default=benchmark.prior_error if args.plot_default else None,
-                plot_optimum=benchmark.optimum if args.plot_optimum else None,
-                plot_rs_10=benchmark.best_10_error if args.plot_rs_10 else None,
-                plot_rs_25=benchmark.best_25_error if args.plot_rs_25 else None,
-                plot_rs_100=benchmark.best_100_error if args.plot_rs_100 else None,
-                force_prior_line="good" in benchmark.name,
+                plot_default=benchmark_config.prior_error if args.plot_default else None,
+                plot_optimum=benchmark_config.optimum if args.plot_optimum else None,
+                plot_rs_10=benchmark_config.best_10_error if args.plot_rs_10 else None,
+                plot_rs_25=benchmark_config.best_25_error if args.plot_rs_25 else None,
+                plot_rs_100=benchmark_config.best_100_error if args.plot_rs_100 else None,
+                force_prior_line="good" in benchmark_config.name,
             )
 
         if args.dynamic_y_lim:
