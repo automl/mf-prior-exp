@@ -153,7 +153,7 @@ def plot(args):
             plot_offset = 0.15
             dy = abs(y_max - y_min)
             ax.set_ylim(y_min - dy * plot_offset, y_max + dy * plot_offset)
-        elif "jahs_colorectal_histology" in benchmark.name:
+        elif "jahs_colorectal_histology" in benchmark:
             ax.set_ylim(bottom=4.5, top=8)  # EDIT THIS IF JAHS COLORECTAL CHANGES
         else:
             ax.set_ylim(auto=True)
