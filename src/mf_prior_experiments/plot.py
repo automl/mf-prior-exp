@@ -61,7 +61,11 @@ def plot(args):
 
     # TODO: We may want to change this with the new "continuation fidelity"
     # for parallel setup
-    xaxis = "fidelity" if args.n_workers <= 1 else "end_time_since_global_start"
+    if args.n_workers <= 1:
+        xaxis = "single_worker_cumulated_fidelity"
+    else:
+        xaxis = "end_time_since_global_start"
+
     yaxis = "max_fidelity_loss" if args.plot_max_fidelity_loss else "loss"
 
     context = Pool() if args.parallel else nullcontext(None)  # noqa: consider-using-with

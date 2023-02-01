@@ -5,13 +5,14 @@ from dataclasses import dataclass, field, replace
 from itertools import accumulate, chain, groupby, starmap
 from multiprocessing.pool import Pool
 from pathlib import Path
-from typing import Any, Callable, Iterator, Mapping, Sequence, overload, Iterable
+from typing import Any, Callable, Iterable, Iterator, Mapping, Sequence, overload
 
 import mfpbench
 import pandas as pd
 import yaml  # type: ignore
 from more_itertools import all_equal, pairwise
 from typing_extensions import Literal
+
 
 # NOTE: These need to be standalone functions for
 # it to work with multiprocessing
@@ -80,6 +81,7 @@ class Result:
     end_time: float
     max_fidelity_loss: float
     max_fidelity_cost: float
+    single_worker_cumulated_fidelity: float | None = None
     start_time_since_global_start: float | None = None
     end_time_since_global_start: float | None = None
     process_id: int | None = None
@@ -143,7 +145,9 @@ class Trace(Sequence[Result]):
     def load(cls, path: Path, *, pool: Pool | None = None) -> Trace:
         trace_results_dir = path / "neps_root_directory" / "results"
         assert trace_results_dir.exists()
-        config_dirs = [p for p in trace_results_dir.iterdir() if p.is_dir() and "config" in p.name]
+        config_dirs = [
+            p for p in trace_results_dir.iterdir() if p.is_dir() and "config" in p.name
+        ]
         if pool:
             results = list(pool.imap_unordered(Result.from_dir, config_dirs))
         else:
@@ -200,6 +204,8 @@ class Trace(Sequence[Result]):
         )
         df = df.set_index("end_time")
         assert df is not None
+        df = df.sort_index(ascending=True)
+        assert df is not None
         return df
 
     def with_continuations(self) -> Trace:
@@ -241,7 +247,8 @@ class Trace(Sequence[Result]):
         results = sorted(self.results, key=lambda r: r.end_time)
         cumulated_fidelities = accumulate([r.fidelity for r in results])
         cumulated_results = [
-            r.mutate(fidelity=f) for r, f in zip(results, cumulated_fidelities)
+            r.mutate(single_worker_cumulated_fidelity=f)
+            for r, f in zip(results, cumulated_fidelities)
         ]
         return replace(self, results=cumulated_results)
 
@@ -253,6 +260,7 @@ class Trace(Sequence[Result]):
         op: Callable[[float, float], bool] = operator.lt,
     ) -> Trace:
         """Return a trace with only the incumbent results."""
+
         def _xaxis(r) -> float:
             return getattr(r, xaxis)
 
@@ -260,7 +268,9 @@ class Trace(Sequence[Result]):
             return getattr(r, yaxis)
 
         if op is not operator.lt and xaxis not in ("max_fidelity_loss", "loss"):
-            raise NotImplementedError("Only supports lt with 'max_fidelity_loss' or 'loss'")
+            raise NotImplementedError(
+                "Only supports lt with 'max_fidelity_loss' or 'loss'"
+            )
 
         results: list[Result] = sorted(self.results, key=_xaxis)
         incumbent = results[0]
@@ -299,28 +309,6 @@ class Trace(Sequence[Result]):
         series = pd.Series(vals, index=indicies, name=name).sort_index()
         assert isinstance(series, pd.Series)
         return series
-
-    @classmethod
-    def combine(
-        cls,
-        traces: list[Trace],
-        *,
-        xaxis: str = "fidelity",  # end_time_since_global_start
-        yaxis: str = "loss",  # max_fidelity_loss
-        nan_fill: bool = True,
-    ) -> pd.DataFrame:
-        """Combine multiple traces into a single dataframe."""
-        trace_series = [trace.series(index=xaxis, values=yaxis) for trace in traces]
-        df = pd.concat(trace_series, axis=1).sort_index(ascending=True)  # column wise
-        assert isinstance(df, pd.DataFrame)
-
-        if nan_fill:
-            df = df.fillna(method="backfill", axis="rows")
-            df = df.fillna(method="ffill", axis="rows")
-
-        assert isinstance(df, pd.DataFrame)
-        return df
-
 
 @dataclass
 class Benchmark:
@@ -514,8 +502,13 @@ class BenchmarkResults(Mapping[str, AlgorithmResults]):
         results = {k: v.with_cumulative_fidelity(pool) for k, v in self.results.items()}
         return replace(self, results=results)
 
-    def incumbent_traces(self, xaxis: str, yaxis: str, *, pool: Pool | None = None) -> BenchmarkResults:
-        results = {k: v.incumbent_traces(pool=pool, xaxis=xaxis, yaxis=yaxis) for k, v in self.results.items()}
+    def incumbent_traces(
+        self, xaxis: str, yaxis: str, *, pool: Pool | None = None
+    ) -> BenchmarkResults:
+        results = {
+            k: v.incumbent_traces(pool=pool, xaxis=xaxis, yaxis=yaxis)
+            for k, v in self.results.items()
+        }
         return replace(self, results=results)
 
     @classmethod
@@ -633,7 +626,10 @@ class ExperimentResults(Mapping[str, BenchmarkResults]):
         *,
         pool: Pool | None = None,
     ) -> ExperimentResults:
-        results = {k: v.incumbent_traces(xaxis=xaxis, yaxis=yaxis, pool=pool) for k, v in self.results.items()}
+        results = {
+            k: v.incumbent_traces(xaxis=xaxis, yaxis=yaxis, pool=pool)
+            for k, v in self.results.items()
+        }
         return replace(self, results=results)
 
     def rescale(
