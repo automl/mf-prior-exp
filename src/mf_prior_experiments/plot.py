@@ -30,7 +30,7 @@ def now() -> str:
 
 def plot(args):
     BASE_PATH: Path = DEFAULT_BASE_PATH if args.base_path is None else args.base_path
-    BENCHMARK_CONFIG_DIR = BASE_PATH / "configs" / "benchmark"
+    BENCHMARK_CONFIG_DIR = BASE_PATH / "src" / "mf_prior_experiments" / "configs" / "benchmark"
     EXPERIMENT_PATH = BASE_PATH / args.experiment_group
 
     plot_dir = BASE_PATH / "plots" / args.experiment_group
