@@ -4,7 +4,7 @@ import matplotlib.pyplot as plt
 import mfpbench
 import numpy as np
 import pandas as pd
-from path import Path
+from pathlib import Path
 from scipy import stats
 
 from .styles import ALGORITHMS, BENCHMARK_COLORS, COLOR_MARKER_DICT, DATASETS

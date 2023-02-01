@@ -2,10 +2,10 @@ from __future__ import annotations
 
 import operator
 from dataclasses import dataclass, field, replace
-from itertools import accumulate, chain, groupby
+from itertools import accumulate, chain, groupby, starmap
 from multiprocessing.pool import Pool
 from pathlib import Path
-from typing import Any, Callable, Iterator, Mapping, Sequence, overload
+from typing import Any, Callable, Iterator, Mapping, Sequence, overload, Iterable
 
 import mfpbench
 import pandas as pd
@@ -13,26 +13,58 @@ import yaml  # type: ignore
 from more_itertools import all_equal, pairwise
 from typing_extensions import Literal
 
+# NOTE: These need to be standalone functions for
+# it to work with multiprocessing
+def _with_continuations(t: Trace) -> Trace:
+    return t.with_continuations()
+
+
+def _with_cumulative_fidelity(t: Trace) -> Trace:
+    return t.with_cumulative_fidelity()
+
+
+def _incumbent_trace(t: Trace, xaxis: str, yaxis: str) -> Trace:
+    return t.incumbent_trace(xaxis=xaxis, yaxis=yaxis)
+
+
+def _rescale(t: Trace, xaxis: str, c: float) -> Trace:
+    return t.rescale(xaxis=xaxis, c=c)
+
+
+def _in_range(t: Trace, bounds: tuple[float, float], xaxis: str) -> Trace:
+    return t.in_range(bounds=bounds, xaxis=xaxis)
+
 
 @dataclass
 class Config:
     # 0_0, 1_0, 2_0, 0_1, ..., 50_3
     id: int
-    bracket: int
+    bracket: int | None
     params: dict[str, Any]
 
-    def as_tuple(self) -> tuple[int, int]:
+    def as_tuple(self) -> tuple[int, int | None]:
         return (self.id, self.bracket)
 
     def __str__(self) -> str:
+        if self.bracket is None:
+            return f"{self.id}"
+
         return f"{self.id}_{self.bracket}"
 
     def is_direct_continuation(self, of: Config) -> bool:
+        if self.bracket is None:
+            return False
         return self.id == of.id and of.bracket == self.bracket - 1
 
     @classmethod
     def parse(cls, dirname: str, config: dict) -> Config:
-        id_, bracket = map(int, dirname.split("_"))
+        config_name = dirname.replace("config_", "")
+        if "_" in config_name:
+            id_, bracket = map(int, config_name.split("_"))
+        else:
+            id_ = int(config_name)
+            bracket = None
+
         return Config(id_, bracket, params=config)
 
 
@@ -64,7 +96,7 @@ class Result:
         with result_yaml.open("r") as f:
             result = yaml.safe_load(f)
 
-        info = result["info"]
+        info = result["info_dict"]
         return cls(
             config=Config.parse(config_dir.name, config),
             loss=result["loss"],
@@ -109,7 +141,8 @@ class Trace(Sequence[Result]):
 
     @classmethod
     def load(cls, path: Path, *, pool: Pool | None = None) -> Trace:
-        config_dirs = [p for p in path.iterdir() if p.is_dir()]
+        trace_results_dir = path / "neps_root_directory" / "results"
+        config_dirs = [p for p in trace_results_dir.iterdir() if p.is_dir()]
         if pool:
             results = list(pool.imap_unordered(Result.from_dir, config_dirs))
         else:
@@ -173,15 +206,16 @@ class Trace(Sequence[Result]):
         #   1: [1_0]
         #   2: [2_0, 2_1],
         # }
+        def bracket(res: Result) -> int:
+            return 0 if res.config.bracket is None else res.config.bracket
+
         results = {
-            config_id: sorted(results, key=lambda r: r.config.bracket)
+            config_id: sorted(results, key=bracket)
             for config_id, results in groupby(self.results, key=lambda r: r.config.id)
         }
 
         continuations = []
         for config_results in results.values():
-            assert len(config_results) == max(r.config.bracket for r in config_results)
-
             # Put the lowest bracket entry into the continued results,
             # it can't have continued from anything
             continuations.append(config_results[0])
@@ -209,18 +243,19 @@ class Trace(Sequence[Result]):
 
     def incumbent_trace(
         self,
-        xaxis: str | Callable[[Result], float] = lambda r: r.fidelity,
-        yaxis: str | Callable[[Result], float] = lambda r: r.max_fidelity_loss,
+        xaxis: str,
+        yaxis: str,
         *,
         op: Callable[[float, float], bool] = operator.lt,
     ) -> Trace:
         """Return a trace with only the incumbent results."""
-        if isinstance(xaxis, str):
-            xaxis = lambda r: getattr(r, xaxis)  # type: ignore
-        if isinstance(yaxis, str):
-            yaxis = lambda r: getattr(r, yaxis)  # type: ignore
+        def _xaxis(r) -> float:
+            return getattr(r, xaxis)
 
-        results: list[Result] = sorted(self.results, key=xaxis)
+        def _yaxis(r) -> float:
+            return getattr(r, yaxis)
+
+        results: list[Result] = sorted(self.results, key=lambda r: getattr(r, xaxis))
         incumbent = results[0]
 
         incumbents = [incumbent]
@@ -373,44 +408,49 @@ class AlgorithmResults(Mapping[int, Trace]):
 
     def with_continuations(self, pool: Pool | None = None) -> AlgorithmResults:
         """Return a new AlgorithmResults with continuations."""
+        traces: Iterable[Trace]
+        if pool:
+            traces = pool.imap(_with_continuations, self.traces.values())
+        else:
+            traces = map(_with_continuations, self.traces.values())
 
-        def do(t: Trace) -> Trace:
-            return t.with_continuations()
-
-        mapper = pool.imap if pool is not None else map
-
-        itr = zip(self.traces.keys(), mapper(do, self.traces.values()))  # type: ignore
+        itr = zip(self.traces.keys(), traces)
         return replace(self, traces={seed: trace for seed, trace in itr})
 
     def with_cumulative_fidelity(self, pool: Pool | None = None) -> AlgorithmResults:
-        def do(t: Trace) -> Trace:
-            return t.with_cumulative_fidelity()
+        traces: Iterable[Trace]
+        if pool:
+            traces = pool.imap(_with_cumulative_fidelity, self.traces.values())
+        else:
+            traces = map(_with_cumulative_fidelity, self.traces.values())
 
-        mapper = pool.imap if pool is not None else map
-
-        itr = zip(self.traces.keys(), mapper(do, self.traces.values()))  #
+        itr = zip(self.traces.keys(), traces)
         return replace(self, traces={seed: trace for seed, trace in itr})
 
     def incumbent_traces(
-        self, pool: Pool | None = None, **kwargs: Any
+        self, xaxis: str, yaxis: str, pool: Pool | None = None
     ) -> AlgorithmResults:
-        def do(t: Trace) -> Trace:
-            return t.incumbent_trace(**kwargs)
+        args = [(trace, xaxis, yaxis) for trace in self.traces.values()]
+        traces: Iterable[Trace]
+        if pool:
+            traces = pool.starmap(_incumbent_trace, args)
+        else:
+            traces = starmap(_incumbent_trace, args)
 
-        mapper = pool.imap if pool is not None else map
-
-        itr = zip(self.traces.keys(), mapper(do, self.traces.values()))  # type: ignore
+        itr = zip(self.traces.keys(), traces)
         return replace(self, traces={seed: trace for seed, trace in itr})
 
     def rescale(
         self, xaxis: str, c: float, *, pool: Pool | None = None
     ) -> AlgorithmResults:
-        def do(t: Trace) -> Trace:
-            return t.rescale(xaxis=xaxis, c=c)
+        args = [(trace, xaxis, c) for trace in self.traces.values()]
+        traces: Iterable[Trace]
+        if pool:
+            traces = pool.starmap(_incumbent_trace, args)
+        else:
+            traces = starmap(_incumbent_trace, args)
 
-        mapper = pool.imap if pool is not None else map
-
-        itr = zip(self.traces.keys(), mapper(do, self.traces.values()))  # type: ignore
+        itr = zip(self.traces.keys(), traces)
         return replace(self, traces={seed: trace for seed, trace in itr})
 
     def in_range(
@@ -420,12 +460,14 @@ class AlgorithmResults(Mapping[int, Trace]):
         *,
         pool: Pool | None = None,
     ) -> AlgorithmResults:
-        def do(t: Trace) -> Trace:
-            return t.in_range(bounds=bounds, xaxis=xaxis)
+        args = [(trace, bounds, xaxis) for trace in self.traces.values()]
+        traces: Iterable[Trace]
+        if pool:
+            traces = pool.starmap(_incumbent_trace, args)
+        else:
+            traces = starmap(_incumbent_trace, args)
 
-        mapper = pool.imap if pool is not None else map
-
-        itr = zip(self.traces.keys(), mapper(do, self.traces.values()))  # type: ignore
+        itr = zip(self.traces.keys(), traces)
         return replace(self, traces={seed: trace for seed, trace in itr})
 
     def df(self, index: str, values: str) -> pd.DataFrame:
@@ -464,10 +506,8 @@ class BenchmarkResults(Mapping[str, AlgorithmResults]):
         results = {k: v.with_cumulative_fidelity(pool) for k, v in self.results.items()}
         return replace(self, results=results)
 
-    def incumbent_traces(
-        self, pool: Pool | None = None, **kwargs: Any
-    ) -> BenchmarkResults:
-        results = {k: v.incumbent_traces(pool, **kwargs) for k, v in self.results.items()}
+    def incumbent_traces(self, xaxis: str, yaxis: str, *, pool: Pool | None = None) -> BenchmarkResults:
+        results = {k: v.incumbent_traces(pool=pool, xaxis=xaxis, yaxis=yaxis) for k, v in self.results.items()}
         return replace(self, results=results)
 
     @classmethod
@@ -580,10 +620,12 @@ class ExperimentResults(Mapping[str, BenchmarkResults]):
 
     def incumbent_trace(
         self,
+        xaxis: str,
+        yaxis: str,
+        *,
         pool: Pool | None = None,
-        **kwargs: Any,
     ) -> ExperimentResults:
-        results = {k: v.incumbent_traces(pool, **kwargs) for k, v in self.results.items()}
+        results = {k: v.incumbent_traces(xaxis=xaxis, yaxis=yaxis, pool=pool) for k, v in self.results.items()}
         return replace(self, results=results)
 
     def rescale(

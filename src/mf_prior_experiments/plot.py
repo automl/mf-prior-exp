@@ -29,10 +29,9 @@ def now() -> str:
 
 
 def plot(args):
-    BASE_PATH: Path = DEFAULT_BASE_PATH if args.base_path is None else args.base_path
+    BASE_PATH = DEFAULT_BASE_PATH if args.base_path is None else args.base_path
     BENCHMARK_CONFIG_DIR = BASE_PATH / "src" / "mf_prior_experiments" / "configs" / "benchmark"
-    EXPERIMENT_PATH = BASE_PATH / args.experiment_group
-
+    RESULTS_DIR = BASE_PATH / "results" / args.experiment_group
     plot_dir = BASE_PATH / "plots" / args.experiment_group
 
     set_general_plot_style()
@@ -70,7 +69,7 @@ def plot(args):
     print(f"[{now()}] Processing ...")
     with context as pool:
         experiment_results = ExperimentResults.load(
-            path=EXPERIMENT_PATH,
+            path=RESULTS_DIR,
             benchmarks=args.benchmarks,
             algorithms=args.algorithms,
             benchmark_config_dir=BENCHMARK_CONFIG_DIR,
