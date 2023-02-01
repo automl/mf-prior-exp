@@ -271,8 +271,8 @@ class Trace(Sequence[Result]):
             raise NotImplementedError(f"yaxis={yaxis} not supported")
 
         results: list[Result] = sorted(self.results, key=_xaxis)
-        incumbent = results[0]
 
+        incumbent = results[0]
         incumbents = [incumbent]
         for result in results[1:]:
             # If the new result is better than the incumbent, replace the incumbent
@@ -284,11 +284,11 @@ class Trace(Sequence[Result]):
             return replace(self, results=incumbents)
 
         assert yaxis == "max_fidelity_loss"
+
         # We now do the same except we generate an incumbent trace over the
         # existing incumbents selected
-        print("*" * 100)
-        max_fidelity_loss_incumbent = incumbent
-        max_fidelity_loss_incumbents = [incumbents[0]]
+        max_fidelity_loss_incumbent = incumbents[0]
+        max_fidelity_loss_incumbents = [max_fidelity_loss_incumbent]
         for challenger in incumbents[1:]:
             if challenger.max_fidelity_loss < max_fidelity_loss_incumbent.max_fidelity_loss:
                 max_fidelity_loss_incumbent = challenger
