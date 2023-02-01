@@ -194,7 +194,8 @@ class Trace(Sequence[Result]):
                 for result in self.results
             ]
         )
-        df = df.set_index("config_id", drop=True)
+        print(df)
+        df = df.set_index("config_id")
         assert df is not None
         return df
 
@@ -290,9 +291,10 @@ class Trace(Sequence[Result]):
         return replace(self, results=results)
 
     def series(self, index: str, values: str, name: str | None = None) -> pd.Series:
-        vals = self.df[values]
-        indices = self.df[index]
-        series = pd.Series(vals, index=indices, name=name)
+        indicies = [getattr(r, index) for r in self.results]
+        vals = [getattr(r, values) for r in self.results]
+        series = pd.Series(vals, index=indicies, name=name).sort_index()
+        assert isinstance(series, pd.Series)
         return series
 
     @classmethod
