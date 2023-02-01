@@ -368,9 +368,9 @@ class Benchmark:
     def benchmark(self) -> mfpbench.Benchmark:
         if self._benchmark is None:
             if self.task_id is not None:
-                self._benchmark = mfpbench.get(self.name, task_id=self.task_id)
+                self._benchmark = mfpbench.get(self.basename, task_id=self.task_id)
             else:
-                self._benchmark = mfpbench.get(self.name)
+                self._benchmark = mfpbench.get(self.basename)
 
         return self._benchmark
 
