@@ -334,55 +334,56 @@ class Trace(Sequence[Result]):
                 for r, f in zip(results, cumulated_fidelities)
             ]
         else:
+            # NOTE: This is a fairly complex process
             results = sorted(
                 self.results,
                 key=lambda r: r.process_id if r.process_id is not None else 0,
             )
             # Group each processes list of results and make them each an individual trace
             results_per_process = {
-            pid: Trace(results=list(presults))
-            for pid, presults in groupby(results, key=lambda r: r.process_id)
-        }
+                pid: Trace(results=list(presults))
+                for pid, presults in groupby(results, key=lambda r: r.process_id)
+            }
 
-        # Now for each processes trace, calculated the cumulated fidelities
-        cumulated_results_per_process = {
-            pid: trace.with_cumulative_fidelity()
-            for pid, trace in results_per_process.items()
-        }
-        cumulated_results = []
-        for trace in cumulated_results_per_process.values():
-            cumulated_results.extend(trace.results)
+            # Now for each processes trace, calculated the cumulated fidelities
+            cumulated_results_per_process = {
+                pid: trace.with_cumulative_fidelity()
+                for pid, trace in results_per_process.items()
+            }
+            cumulated_results = []
+            for trace in cumulated_results_per_process.values():
+                cumulated_results.extend(trace.results)
 
-        # NOTE: If removing this line and we expect someting
-        # other than a loss, which needs to be minimized,
-        # plese look for the `min` below and deal with it accordingly
-        # i.e. if we used "score" instead, this `min` would need to be 
-        # a `max`
-        assert yaxis == "loss", f"{yaxis} not supported right now"
+            # NOTE: If removing this line and we expect someting
+            # other than a loss, which needs to be minimized,
+            # plese look for the `min` below and deal with it accordingly
+            # i.e. if we used "score" instead, this `min` would need to be 
+            # a `max`
+            assert yaxis == "loss", f"{yaxis} not supported right now"
 
-        # Because we can have multiple results that share the same cumulated fidelity
-        # now, we need to take the one with the best value according to the yaxis.
+            # Because we can have multiple results that share the same cumulated fidelity
+            # now, we need to take the one with the best value according to the yaxis.
 
-        # Sort by the cumulated_fidelity so groupby works
-        cumulated_results = sorted(
-            cumulated_results,
-            key=lambda r: r.cumulated_fidelity,  # type: ignore
-        )
+            # Sort by the cumulated_fidelity so groupby works
+            cumulated_results = sorted(
+                cumulated_results,
+                key=lambda r: r.cumulated_fidelity,  # type: ignore
+            )
 
-        # For each list of results which share a cumulated_fidelity, get the
-        # result with the minimum `yaxis` value (e.g. loss)
-        cumulated_results = [
-            min(results, key=lambda r: getattr(r, yaxis))
-            for _, results
-            in groupby(cumulated_results, key=lambda r: r.cumulated_fidelity)
-        ]
+            # For each list of results which share a cumulated_fidelity, get the
+            # result with the minimum `yaxis` value (e.g. loss)
+            cumulated_results = [
+                min(results, key=lambda r: getattr(r, yaxis))
+                for _, results
+                in groupby(cumulated_results, key=lambda r: r.cumulated_fidelity)
+            ]
 
-        # Finally resort tem according to cumulated fidelities so the timeline
-        # is ordered
-        cumulated_results = sorted(
-            cumulated_results,
-            key=lambda r: r.cumulated_fidelity,  # type: ignore
-        )
+            # Finally resort tem according to cumulated fidelities so the timeline
+            # is ordered
+            cumulated_results = sorted(
+                cumulated_results,
+                key=lambda r: r.cumulated_fidelity,  # type: ignore
+            )
 
         return replace(self, results=cumulated_results)
 
