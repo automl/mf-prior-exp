@@ -257,8 +257,3 @@ DEFAULT_LINE_STYLE = {
     "linewidth": 1.0,
     "dashes": (5, 10),
 }
-
-INCUMBENT_LINE_STYLE = {
-    "linestyle":"-"
-    "linewidth":1,
-}
