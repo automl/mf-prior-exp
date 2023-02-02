@@ -30,9 +30,9 @@ def plot_incumbent_traces(
     plot_optimum: bool = True,
     yaxis: Literal["loss", "max_fidelity_loss"] = "loss",
     xaxis: Literal[
-        "single_worker_cumulated_fidelity",
+        "cumulated_fidelity",
         "end_time_since_global_start",
-    ] = "single_worker_cumulated_fidelity",
+    ] = "cumulated_fidelity",
     x_range: tuple[float, float] | None = None,
     dynamic_y_lim: bool = True,
 ) -> plt.Figure:
@@ -165,13 +165,6 @@ if __name__ == "__main__":
     plot_dir = base_path / "plots" / experiment_group
     set_general_plot_style()
 
-    if args.n_workers == 1:
-        xaxis = "single_worker_cumulated_fidelity"
-    elif args.n_workers > 1:
-        xaxis = "end_time_since_global_start"
-    else:
-        raise ValueError(f"n_workers={args.n_workers}")
-
     # Fetch the results we need
     starttime = time.time()
     print(f"[{now()}] Processing ...")
@@ -184,7 +177,7 @@ if __name__ == "__main__":
         n_workers=args.n_workers,  # Flag to indicate if it was a parallel setup
         continuations=True,  # Continue on fidelities from configurations
         cumulate_fidelities=True,  # Accumulate fidelities in the indices
-        xaxis=xaxis,  # The x-axis to use
+        xaxis="cumulated_fidelity",  # The x-axis to use
         rescale_xaxis="max_fidelity",  # We always rescale the xaxis by max_fidelity
         incumbent_value="loss",  # The incumbent is deteremined by the loss
         incumbents_only=True,  # We only want incumbent traces in our results

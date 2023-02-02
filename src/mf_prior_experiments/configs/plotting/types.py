@@ -28,10 +28,10 @@ def fetch_results(
     incumbents_only: bool = True,
     incumbent_value: Literal["loss"] = "loss",
     xaxis: Literal[
-        "single_worker_cumulated_fidelity", "end_time_since_global_start"
-    ] = "single_worker_cumulated_fidelity",
+        "cumulated_fidelity", "end_time_since_global_start"
+    ] = "cumulated_fidelity",
 ) -> ExperimentResults:
-    if n_workers > 1 and xaxis == "single_worker_cumulated_fidelity":
+    if n_workers > 1 and xaxis == "cumulated_fidelity":
         msg = "Cannot plot single worker cumulated fidelity with multiple workers"
         raise ValueError(msg)
 
@@ -149,7 +149,7 @@ class Result:
     end_time: float
     max_fidelity_loss: float
     max_fidelity_cost: float
-    single_worker_cumulated_fidelity: float | None = None
+    cumulated_fidelity: float | None = None
     start_time_since_global_start: float | None = None
     end_time_since_global_start: float | None = None
     continued_from: Result | None = None
@@ -267,7 +267,7 @@ class Trace(Sequence[Result]):
                     "end_time": result.end_time,
                     "max_fidelity_loss": result.max_fidelity_loss,
                     "max_fidelity_cost": result.max_fidelity_cost,
-                    "single_worker_cumulated_fidelity": result.single_worker_cumulated_fidelity,
+                    "cumulated_fidelity": result.cumulated_fidelity,
                     "config_id": str(result.config.id),
                     "continued_from": None
                     if result.continued_from is None
@@ -326,16 +326,39 @@ class Trace(Sequence[Result]):
             assert all_equal(r.process_id for r in self.results)
         else:
             assert all(r.process_id is not None for r in self.results)
+            assert len({r.process_id for r in self.results}) > 1
 
         if not per_worker:
             results = sorted(self.results, key=lambda r: r.end_time)
             cumulated_fidelities = accumulate([r.fidelity for r in results])
             cumulated_results = [
-                r.mutate(single_worker_cumulated_fidelity=f)
+                r.mutate(cumulated_fidelity=f)
                 for r, f in zip(results, cumulated_fidelities)
             ]
         else:
-            raise NotImplementedError("per_worker = True not supported yet")
+            results = sorted(
+                self.results,
+                key=lambda r: r.process_id if r.process_id is not None else 0,
+            )
+            # Group each processes list of results and make them each an individual trace
+            results_per_process = {
+                pid: Trace(results=list(presults))
+                for pid, presults in groupby(results, key=lambda r: r.process_id)
+            }
+
+            # Now for each processes trace, calculated the cumulated fidelities
+            cumulated_results_per_process = {
+                pid: trace.with_cumulative_fidelity()
+                for pid, trace in results_per_process.items()
+            }
+            cumulated_results = []
+            for trace in cumulated_results_per_process.values():
+                cumulated_results.extend(trace.results)
+
+            cumulated_results = sorted(
+                cumulated_results,
+                key=lambda r: r.cumulated_fidelity,  # type: ignore
+            )
 
         return replace(self, results=cumulated_results)
 
