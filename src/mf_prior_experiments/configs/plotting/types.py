@@ -267,7 +267,7 @@ class Trace(Sequence[Result]):
         def _xaxis(r) -> float:
             return getattr(r, xaxis)
 
-        if yaxis not in ("max_fidelity_loss", "loss"):
+        if yaxis == "loss":
             raise NotImplementedError(f"yaxis={yaxis} not supported")
 
         results: list[Result] = sorted(self.results, key=_xaxis)
@@ -276,25 +276,11 @@ class Trace(Sequence[Result]):
         incumbents = [incumbent]
         for result in results[1:]:
             # If the new result is better than the incumbent, replace the incumbent
-            if result.loss < incumbent.loss:
+            if getattr(result, yaxis) < getattr(incumbent, yaxis):
                 incumbent = result
                 incumbents.append(incumbent)
 
-        if yaxis == "loss":
-            return replace(self, results=incumbents)
-
-        assert yaxis == "max_fidelity_loss"
-
-        # We now do the same except we generate an incumbent trace over the
-        # existing incumbents selected
-        max_fidelity_loss_incumbent = incumbents[0]
-        max_fidelity_loss_incumbents = [max_fidelity_loss_incumbent]
-        for challenger in incumbents[1:]:
-            if challenger.max_fidelity_loss < max_fidelity_loss_incumbent.max_fidelity_loss:
-                max_fidelity_loss_incumbent = challenger
-                max_fidelity_loss_incumbents.append(challenger)
-
-        return replace(self, results=max_fidelity_loss_incumbents)
+        return replace(self, results=incumbents)
 
 
     def in_range(self, bounds: tuple[float, float], xaxis: str) -> Trace:
