@@ -250,3 +250,15 @@ Y_MAP = {
 X_MAP = [0, 25, 50, 75, 100]
 
 WIDTH_PT = 398.33864
+
+DEFAULT_LINE_STYLE = {
+    "color": "black",
+    "linestyle": ":",
+    "linewidth": 1.0,
+    "dashes": (5, 10),
+}
+
+INCUMBENT_LINE_STYLE = {
+    "linestyle":"-"
+    "linewidth":1,
+}

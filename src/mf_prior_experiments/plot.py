@@ -1,57 +1,59 @@
 from __future__ import annotations
 
 import time
-from contextlib import nullcontext
-from multiprocessing import Pool
 from pathlib import Path
 
 import matplotlib.pyplot as plt
 import numpy as np
 import seaborn as sns
-from attrdict import AttrDict
+from typing_extensions import Literal
 
 from .configs.plotting.styles import X_LABEL, Y_LABEL
-from .configs.plotting.types import ExperimentResults
+from .configs.plotting.types import ExperimentResults, fetch_results
 from .configs.plotting.utils import (
-    get_parser,
+    parse_args,
     plot_incumbent,
-    save_fig,
     set_general_plot_style,
 )
 
 HERE = Path(__file__).parent.absolute()
 DEFAULT_BASE_PATH = HERE.parent.parent
-BENCHMARK_CONFIGS_DIR = HERE / "configs" / "benchmark"
 
 
 def now() -> str:
     return time.strftime("%H:%M:%S", time.localtime())
 
 
-def plot(args):
-    print(args)
-    BASE_PATH = DEFAULT_BASE_PATH if args.base_path is None else args.base_path
-    BENCHMARK_CONFIG_DIR = BASE_PATH / "src" / "mf_prior_experiments" / "configs" / "benchmark"
-    RESULTS_DIR = BASE_PATH / "results" / args.experiment_group
-    plot_dir = BASE_PATH / "plots" / args.experiment_group
+def plot_incumbent_traces(
+    results: ExperimentResults,
+    plot_default: bool = True,
+    plot_optimum: bool = True,
+    yaxis: Literal["loss", "max_fidelity_loss"] = "loss",
+    xaxis: Literal[
+        "single_worker_cumulated_fidelity",
+        "end_time_since_global_start",
+    ] = "single_worker_cumulated_fidelity",
+    x_range: tuple[float, float] | None = None,
+    dynamic_y_lim: bool = True,
+) -> plt.Figure:
+    benchmarks = results.benchmarks
+    algorithms = results.algorithms
+    benchmark_configs = results.benchmark_configs
 
-    set_general_plot_style()
-    xrange = args.x_range
+    # If we are going to plot the optimum, we need to make sure
+    # there is a benchmark that actually has an optimum to plot
+    if plot_optimum and not any(
+        bench_config.optimum for bench_config in benchmark_configs.values()
+    ):
+        plot_optimum = False
 
-    if args.research_question == 1:
-        ncols = 1 if len(args.benchmarks) == 1 else 2
-        legend_ncol = len(args.algorithms)
-        legend_ncol += 1 if args.plot_default is not None else 0
-        legend_ncol += 1 if args.plot_optimum is not None else 0
-    elif args.research_question == 2:
-        ncols = 4
-        legend_ncol = len(args.algorithms)
-        legend_ncol += 1 if args.plot_default is not None else 0
-        legend_ncol += 1 if args.plot_optimum is not None else 0
-    else:
-        raise ValueError("Plotting works only for RQ1 and RQ2.")
+    legend_ncol = len(algorithms) + sum([plot_default, plot_optimum])
 
-    nrows = np.ceil(len(args.benchmarks) / ncols).astype(int)
+    nrows = np.ceil(len(benchmarks) / 4).astype(int)
+    ncols = min(len(benchmarks), 4)
+    is_last_row = lambda idx: idx >= (nrows - 1) * ncols
+    is_first_column = lambda idx: idx % ncols == 0
+
     bbox_y_mapping = {1: -0.20, 2: -0.11, 3: -0.07, 4: -0.05, 5: -0.04}
     bbox_to_anchor = (0.5, bbox_y_mapping[nrows])
     figsize = (4 * ncols, 3 * nrows)
@@ -59,93 +61,44 @@ def plot(args):
     fig, axs = plt.subplots(nrows=nrows, ncols=ncols, figsize=figsize)
     axs = axs.flatten() if isinstance(axs, np.ndarray) else [axs]
 
-    # TODO: We may want to change this with the new "continuation fidelity"
-    # for parallel setup
-    if args.n_workers <= 1:
-        xaxis = "single_worker_cumulated_fidelity"
-    else:
-        xaxis = "end_time_since_global_start"
+    for i, benchmark in enumerate(benchmarks):
+        benchmark_config = results.benchmark_configs[benchmark]
+        benchmark_results = results[benchmark]
 
-    yaxis = "max_fidelity_loss" if args.plot_max_fidelity_loss else "loss"
+        ax = axs[i]
+        xlabel = X_LABEL[xaxis] if is_last_row(i) else None
+        ylabel = Y_LABEL if is_first_column(i) else None
 
-    context = Pool() if args.parallel else nullcontext(None)  # noqa: consider-using-with
 
-    starttime = time.time()
-    print(f"[{now()}] Processing ...")
-    with context as pool:
-        experiment_results = ExperimentResults.load(
-            path=RESULTS_DIR,
-            benchmarks=args.benchmarks,
-            algorithms=args.algorithms,
-            benchmark_config_dir=BENCHMARK_CONFIG_DIR,
-            pool=pool,
-        )
-
-        experiment_results = experiment_results.with_continuations(pool=pool)
-
-        if args.n_workers <= 1:
-            # fidelities: [1, 1, 3, 1, 9] -> [1, 2, 5, 6, 15]
-            experiment_results = experiment_results.with_cumulative_fidelity(pool=pool)
-
-        experiment_results = experiment_results.incumbent_trace(
-            xaxis=xaxis,
-            yaxis="loss",  # For now we only allow incumbent traces over "loss"
-            pool=pool,
-        )
-
-        experiment_results = experiment_results.rescale(
-            xaxis=xaxis,
-            by="max_fidelity",
-            pool=pool,
-        )
-
-    print(f"[{now()}] Done! Duration {time.time() - starttime:.3f}...")
-
-    for i, (benchmark, ax) in enumerate(zip(args.benchmarks, axs)):
-        benchmark_results = experiment_results[benchmark]
-        benchmark_config = experiment_results.benchmarks[benchmark]
-
-        for algorithm in args.algorithms:
-            algorithm_results = benchmark_results[algorithm]
+        for algorithm in algorithms:
             print("-" * 50)
             print(f"Benchmark: {benchmark} | Algorithm: {algorithm}")
             print("-" * 50)
-
-            df = algorithm_results.df(index=xaxis, values=yaxis)
-
-            # We fill in nans with any results seen before a given timestamp with
-            # "ffill" and use "backfill" to fill in any NaNs that might occur at the
-            # very start.
-            df = df.fillna(method="ffill", axis=0).fillna(method="backfill", axis=0)
-
-            is_last_row = lambda idx: idx >= (nrows - 1) * ncols
-            is_first_column = lambda idx: idx % ncols == 0
+            df = (
+                benchmark_results[algorithm]
+                .df(index=xaxis, values=yaxis)
+                .fillna(method="ffill", axis=0)
+            )
 
             plot_incumbent(
                 ax=ax,
                 df=df,
                 title=benchmark,
-                xlabel=X_LABEL[xaxis] if is_last_row(i) else None,
-                ylabel=Y_LABEL if is_first_column(i) else None,
+                xlabel=xlabel,
+                ylabel=ylabel,
                 algorithm=algorithm,
-                log_x=args.log_x,
-                log_y=args.log_y,
-                x_range=args.x_range,
-                plot_default=benchmark_config.prior_error if args.plot_default else None,
-                plot_optimum=benchmark_config.optimum if args.plot_optimum else None,
-                plot_rs_10=benchmark_config.best_10_error if args.plot_rs_10 else None,
-                plot_rs_25=benchmark_config.best_25_error if args.plot_rs_25 else None,
-                plot_rs_100=benchmark_config.best_100_error if args.plot_rs_100 else None,
+                x_range=x_range,
+                plot_default=benchmark_config.prior_error if plot_default else None,
+                plot_optimum=benchmark_config.optimum if plot_optimum else None,
                 force_prior_line="good" in benchmark_config.name,
             )
 
-        if args.dynamic_y_lim:
+        if dynamic_y_lim:
             y_values = [getattr(result, yaxis) for result in benchmark_results.values()]
-            y_min = min(y_values)
-            y_max = max(y_values)
+            y_min, y_max = min(y_values), max(y_values)
+            dy = abs(y_max - y_min)
 
             plot_offset = 0.15
-            dy = abs(y_max - y_min)
             ax.set_ylim(y_min - dy * plot_offset, y_max + dy * plot_offset)
         elif "jahs_colorectal_histology" in benchmark:
             ax.set_ylim(bottom=4.5, top=8)  # EDIT THIS IF JAHS COLORECTAL CHANGES
@@ -156,8 +109,8 @@ def plot(args):
 
     handles, labels = axs[0].get_legend_handles_labels()
 
-    handles_to_plot, labels_to_plot = [], []
-    handles_default, labels_default = [], []
+    handles_to_plot, labels_to_plot = [], []  # type: ignore
+    handles_default, labels_default = [], []  # type: ignore
     for h, l in zip(handles, labels):
         if l not in (labels_to_plot + labels_default):
             if l.lower() in ["mode", "optimum"]:
@@ -185,30 +138,70 @@ def plot(args):
 
     fig.tight_layout(pad=0, h_pad=0.5)
 
-    filename = args.filename
-    if filename is None:
-        filename = f"{args.experiment_group}_{args.plot_id}"
+    return fig
 
-    if args.plot_max_fidelity_loss:
-        plot_dir = plot_dir / "max_fidelity_loss"
-
-    save_fig(
-        fig,
-        filename=filename,
-        output_dir=plot_dir,
-        extension=args.ext,
-        dpi=args.dpi,
-    )
-
-    print(f"Plotting took {time.time() - starttime}")
 
 
 if __name__ == "__main__":
+    args = parse_args()
 
-    parser = get_parser()
-    args = AttrDict(parser.parse_args().__dict__)
+    experiment_group: str = args.experiment_group
+    algorithms: list[str] = args.algorithms
+    base_path: Path = args.base_path or DEFAULT_BASE_PATH
 
-    if args.x_range is not None:
-        assert len(args.x_range) == 2
+    benchmarks: list[str]
+    if args.relative_rankings:
+        benchmarks = [
+            *args.benchmarks1,
+            *args.benchmarks2,
+            *args.benchmarks3,
+            *args.benchmarks4,
+        ]
+    else:
+        benchmarks = args.benchmarks
 
-    plot(args)
+    plot_dir = base_path / "plots" / experiment_group
+    set_general_plot_style()
+
+    if args.n_workers == 1:
+        xaxis = "single_worker_cumulated_fidelity"
+    elif args.n_workers > 1:
+        xaxis = "end_time_since_global_start"
+    else:
+        raise ValueError(f"n_workers={args.n_workers}")
+
+    # Fetch the results we need
+    starttime = time.time()
+    print(f"[{now()}] Processing ...")
+    experiment_results = fetch_results(
+        experiment_group=experiment_group,
+        benchmarks=benchmarks,
+        algorithms=algorithms,
+        base_path=base_path,  # Base path of the repo
+        parallel=args.parallel,  # Whether to process in parallel
+        n_workers=args.n_workers,  # Flag to indicate if it was a parallel setup
+        continuations=True,  # Continue on fidelities from configurations
+        cumulate_fidelities=True,  # Accumulate fidelities in the indices
+        xaxis=xaxis,  # The x-axis to use
+        rescale_xaxis="max_fidelity",  # We always rescale the xaxis by max_fidelity
+        incumbent_value="loss",  # The incumbent is deteremined by the loss
+        incumbents_only=True,  # We only want incumbent traces in our results
+    )
+    print(f"[{now()}] Done! Duration {time.time() - starttime:.3f}...")
+
+    for yaxis in ["loss", "max_fidelity_loss"]:
+        fig = plot_incumbent_traces(
+            results=experiment_results,
+            plot_default=args.plot_default,
+            plot_optimum=args.plot_optimum,
+            yaxis=yaxis,  # type: ignore
+            xaxis=xaxis,  # type: ignore
+            x_range=args.x_range,
+            dynamic_y_lim=args.dynamic_y_lim,
+        )
+
+        filename = f"{args.filename}.{args.extension}"
+        filepath = plot_dir / yaxis / filename
+        filepath.parent.mkdir(parents=True, exist_ok=True)
+        fig.savefig(filepath, bbox_inches="tight", dpi=args.dpi)
+        print(f"Saved to {filename} to {filepath}")

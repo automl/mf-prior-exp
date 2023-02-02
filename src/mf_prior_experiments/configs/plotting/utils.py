@@ -1,117 +1,70 @@
 from __future__ import annotations
 
-import argparse
+from argparse import ArgumentParser, Namespace
 from pathlib import Path
 from typing import Any
 from warnings import warn
 
 import matplotlib.pyplot as plt
-import numpy as np
 import pandas as pd
 from scipy import stats
 
 from .styles import ALGORITHMS, BENCHMARK_COLORS, COLOR_MARKER_DICT, DATASETS
 
 
-def get_parser():
-    parser = argparse.ArgumentParser(
-        description="mf-prior-exp plotting",
-    )
-    parser.add_argument(
-        "--base_path",
-        type=Path,
-        default=None,
-        help="path where `results/` exists",
-    )
-    parser.add_argument("--experiment_group", type=str, default="")
-    parser.add_argument(
-        "--n_workers",
-        type=int,
-        default=1,
-        help="for multiple workers we plot based on end timestamps on "
-        "x-axis (no continuation considered); any value > 1 is adequate",
-    )
+def parse_args() -> Namespace:
+    parser = ArgumentParser(description="mf-prior-exp plotting")
+
+    parser.add_argument("--filename", type=str, required=True)
+
+    parser.add_argument("--experiment_group", type=str, required=True)
+    parser.add_argument("--algorithms", nargs="+", required=True)
+
     parser.add_argument("--benchmarks", nargs="+", default=None)
-    parser.add_argument("--algorithms", nargs="+", default=None)
-    parser.add_argument("--plot_id", type=str, default="1")
-    parser.add_argument("--research_question", type=int, default=1)
-    parser.add_argument(
-        "--which_prior",
-        type=str,
-        choices=["good", "bad"],
-        default="bad",
-        help="for RQ2 choose whether to plot good or bad",
-    )
-    parser.add_argument("--budget", nargs="+", default=None, type=float)
-    parser.add_argument("--x_range", nargs="+", default=None, type=float)
-    parser.add_argument("--log_x", action="store_true")
-    parser.add_argument("--log_y", action="store_true")
-    parser.add_argument(
-        "--filename", type=str, default=None, help="name out pdf file generated"
-    )
+
+    parser.add_argument("--relative_rankings", action="store_true")
+    parser.add_argument("--benchmarks1", nargs="+", default=None)
+    parser.add_argument("--benchmarks2", nargs="+", default=None)
+    parser.add_argument("--benchmarks3", nargs="+", default=None)
+    parser.add_argument("--benchmarks4", nargs="+", default=None)
+
+    parser.add_argument("--base_path", type=Path, default=None)
+    parser.add_argument("--n_workers", type=int, default=1)
+    parser.add_argument("--budget", nargs="+", type=float, default=None)
+    parser.add_argument("--x_range", nargs=2, type=float, default=None)
+
     parser.add_argument("--dpi", type=int, default=200)
-    parser.add_argument(
-        "--ext",
-        type=str,
-        choices=["pdf", "png"],
-        default="pdf",
-        help="the file extension or the plot file type",
-    )
-    parser.add_argument(
-        "--plot_default",
-        default=False,
-        action="store_true",
-        help="plots a horizontal line for the prior score if available",
-    )
-    parser.add_argument(
-        "--plot_optimum",
-        default=False,
-        action="store_true",
-        help="plots a horizontal line for the optimum score if available",
-    )
-    parser.add_argument(
-        "--plot_rs_10",
-        default=False,
-        action="store_true",
-        help="plots a horizontal line for RS at 10x",
-    )
-    parser.add_argument(
-        "--plot_rs_25",
-        default=False,
-        action="store_true",
-        help="plots a horizontal line for RS at 25x",
-    )
-    parser.add_argument(
-        "--plot_rs_100",
-        default=False,
-        action="store_true",
-        help="plots a horizontal line for RS at 100x",
-    )
-    parser.add_argument(
-        "--dynamic_y_lim",
-        default=False,
-        action="store_true",
-        help="whether to set y_lim for plots to the worst performance of incumbents"
-        "of random_search and random_search_prior after 2 evals"
-        "(remember to run it first!)",
-    )
-    parser.add_argument(
-        "--parallel",
-        default=False,
-        action="store_true",
-        help="whether to process data in parallel or not",
-    )
-    parser.add_argument(
-        "--plot_max_fidelity_loss",
-        default=False,
-        action="store_true",
-        help="If set (to True), the incumbent trace is modified such that the loss of "
-        "the current incumbent at the max fidelity is plotted instead of the actual "
-        "score of the current incumbent.",
-    )
+    parser.add_argument("--ext", type=str, choices=["pdf", "png"], default="pdf")
+    parser.add_argument("--plot_default", action="store_true")
+    parser.add_argument("--plot_optimum", action="store_true")
+    parser.add_argument("--dynamic_y_lim", action="store_true")
+    parser.add_argument("--parallel", action="store_true")
 
-    return parser
+    args = parser.parse_args()
 
+    if args.budget:
+        raise ValueError("CD plots (which use --budget) not supported yet")
+
+    if args.relative_rankings:
+        benches = [args.benchmarks1, args.benchmarks2, args.benchmarks3, args.benchmarks4]
+        if any(b is None for b in benches):
+            raise ValueError("Must specify all benchmarks{1,2,3,4} for relative rankings")
+
+        total_benchmarks = [*args.benchmarks1, *args.benchmarks2, *args.benchmarks3, *args.benchmarks4,]
+        if not len(total_benchmarks) == len(set(total_benchmarks)):
+            msg = (
+                "Benchmarks in benchmarks{1,2,3,4} must all be unique\n"
+                f"--benchmarks1 {args.benchmarks1}\n"
+                f"--benchmarks2 {args.benchmarks2}\n"
+                f"--benchmarks3 {args.benchmarks3}\n"
+                f"--benchmarks4 {args.benchmarks4}"
+            )
+            raise ValueError(msg)
+    else:
+        if args.benchmarks is None:
+            raise ValueError("Must specify --benchmarks")
+
+    return args
 
 def set_general_plot_style():
     """
@@ -147,71 +100,6 @@ def set_general_plot_style():
         }
     )
 
-
-def save_fig(
-    fig: plt.Figure,
-    filename: str,
-    output_dir: Path,
-    extension: str = "pdf",
-    dpi: int = 100,
-) -> None:
-    output_dir = Path(output_dir)
-    output_dir.mkdir(exist_ok=True, parents=True)
-    filepath = output_dir / f"{filename}.{extension}"
-    fig.savefig(filepath, bbox_inches="tight", dpi=dpi)
-    print(f"Saved to {filepath}")
-
-
-def interpolate_time(
-    incumbents,
-    costs,
-    x_range=None,
-    scale_x=None,
-    parallel_evaluations: bool = False,
-    rounded_integer_costs_for_x_range: bool = False,
-):
-    df_dict = {
-        f"seed{i}": pd.Series(seed_incs, index=seed_costs)
-        for i, (seed_incs, seed_costs) in enumerate(zip(incumbents, costs))
-    }
-    if not parallel_evaluations:
-        for _, series in df_dict.items():
-            series.index = np.cumsum(series.index).tolist()
-
-    df = pd.DataFrame.from_dict(df_dict)
-    df = df.sort_index(ascending=True)
-
-    # important step to plot func evals on x-axis
-    df.index = df.index if scale_x is None else df.index.values / scale_x
-
-    if x_range is not None:
-        min_b, max_b = x_range
-
-        new_entry = {c: np.nan for c in df.columns}
-        _df = pd.DataFrame.from_dict(new_entry, orient="index").T
-        _df.index = [min_b]
-        df = pd.concat((df, _df)).sort_index()
-
-        new_entry = {c: np.nan for c in df.columns}
-        _df = pd.DataFrame.from_dict(new_entry, orient="index").T
-        _df.index = [max_b]
-        df = pd.concat((df, _df)).sort_index()
-
-    df = df.fillna(method="backfill", axis=0).fillna(method="ffill", axis=0)
-
-    if x_range is not None:
-        lower, upper = x_range
-
-        if rounded_integer_costs_for_x_range:
-            _index = df.index.astype(int)
-        else:
-            _index = df.index
-
-        df = df[(lower <= df.index) & (df.index <= upper)]
-
-    return df
-
-
 def plot_incumbent(
     ax: plt.Axes,
     df: pd.DataFrame,
@@ -219,33 +107,15 @@ def plot_incumbent(
     xlabel: str | None = None,
     ylabel: str | None = None,
     title: str | None = None,
-    log_x: bool = False,
-    log_y: bool = False,
     x_range: tuple[float, float] | None = None,
     plot_default: float | None = None,
     plot_optimum: float | None = None,
-    plot_rs_10: float | None = None,
-    plot_rs_25: float | None = None,
-    plot_rs_100: float | None = None,
     force_prior_line: bool = False,
     **plot_kwargs: Any,
 ):
-    # if isinstance(x, list):
-    #     x = np.array(x)
-    # if isinstance(y, list):
-    #     y = np.array(y)
-
-    # df = interpolate_time(incumbents=y, costs=x, x_range=x_range, scale_x=max_cost)
-
-    print("Got this for plotting")
-    print(df)
     x = df.index
     y_mean = df.mean(axis=1).values
     std_error = stats.sem(df.values, axis=1)
-
-    debug_series = pd.Series(y_mean, index=x)
-    print("Line is:")
-    print(debug_series)
 
     ax.step(
         x,
@@ -268,7 +138,6 @@ def plot_incumbent(
             dashes=(5, 10),
             label="Mode",
         )
-        # ax.hlines(y=plot_default, xmin=x[0], xmax=x[-1], color="black")
 
     if plot_optimum is not None and plot_optimum < y_mean[0]:
         # plot only if the optimum score is better than the first incumbent plotted
@@ -280,22 +149,6 @@ def plot_incumbent(
             linewidth=1.2,
             label="Optimum",
         )
-        # ax.hlines(y=plot_optimum, xmin=x[0], xmax=x[-1], color="black", linestyle=":")
-
-    if plot_rs_10 is not None and plot_rs_10 < y_mean[0]:
-        # plot only if the optimum score is better than the first incumbent plotted
-        ax.plot(x, [plot_rs_10] * len(x), color="grey", linestyle=":", label="RS@10")
-        # ax.hlines(y=plot_rs_10, xmin=x[0], xmax=x[-1], color="grey", linestyle=":")
-
-    if plot_rs_25 is not None and plot_rs_25 < y_mean[0]:
-        # plot only if the optimum score is better than the first incumbent plotted
-        ax.plot(x, [plot_rs_25] * len(x), color="grey", linestyle="-.", label="RS@25")
-        # ax.hlines(y=plot_rs_25, xmin=x[0], xmax=x[-1], color="grey", linestyle="-.")
-
-    if plot_rs_100 is not None and plot_rs_100 < y_mean[0]:
-        # plot only if the optimum score is better than the first incumbent plotted
-        ax.plot(x, [plot_rs_100] * len(x), color="grey", linestyle="--", label="RS@100")
-        # ax.hlines(y=plot_rs_100, xmin=x[0], xmax=x[-1], color="grey", linestyle="--")
 
     default_color_marker = "black"
     if algorithm not in COLOR_MARKER_DICT:
@@ -313,7 +166,6 @@ def plot_incumbent(
     )
 
     ax.set_xlim(auto=True)
-    # ax.set_ylim(auto=True)
 
     if title is not None:
         default_color = "black"
@@ -330,13 +182,10 @@ def plot_incumbent(
 
     if xlabel is not None:
         ax.set_xlabel(xlabel, fontsize=18, color=(0, 0, 0, 0.69))
+
     if ylabel is not None:
         ax.set_ylabel(ylabel, fontsize=18, color=(0, 0, 0, 0.69))
-    if log_x:
-        ax.set_xscale("log")
-    if log_y:
-        # ax.set_yscale("log")
-        ax.set_yscale("symlog")
+
     if x_range is not None:
         ax.set_xlim(*x_range)
         if x_range == [1, 12]:
