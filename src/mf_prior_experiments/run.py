@@ -166,8 +166,6 @@ def run_neps(args):
         else:
             fidelity = benchmark.fidelity_range[1]
 
-        logger.info(Path(".").absolute())
-
         result = benchmark.query(config, at=fidelity)
 
         # This design only makes sense in the context of surrogate/tabular
