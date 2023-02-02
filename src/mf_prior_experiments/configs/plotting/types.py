@@ -1,11 +1,10 @@
 from __future__ import annotations
 
-import operator
 from dataclasses import dataclass, field, replace
 from itertools import accumulate, chain, groupby, starmap
 from multiprocessing.pool import Pool
 from pathlib import Path
-from typing import Any, Callable, Iterable, Iterator, Mapping, Sequence, overload
+from typing import Any, Iterable, Iterator, Mapping, Sequence, overload
 
 import mfpbench
 import pandas as pd
@@ -28,8 +27,8 @@ def _incumbent_trace(t: Trace, xaxis: str, yaxis: str) -> Trace:
     return t.incumbent_trace(xaxis=xaxis, yaxis=yaxis)
 
 
-def _rescale(t: Trace, xaxis: str, c: float) -> Trace:
-    return t.rescale(xaxis=xaxis, c=c)
+def _rescale_xaxis(t: Trace, xaxis: str, c: float) -> Trace:
+    return t.rescale_xaxis(xaxis=xaxis, c=c)
 
 
 def _in_range(t: Trace, bounds: tuple[float, float], xaxis: str) -> Trace:
@@ -291,7 +290,7 @@ class Trace(Sequence[Result]):
         results = sorted(results, key=lambda r: getattr(r, xaxis))
         return replace(self, results=results)
 
-    def rescale(self, c: float, xaxis: str) -> Trace:
+    def rescale_xaxis(self, c: float, xaxis: str) -> Trace:
         results: list[Result] = []
         for result in self.results:
             copied = replace(result)
@@ -435,15 +434,15 @@ class AlgorithmResults(Mapping[int, Trace]):
         itr = zip(self.traces.keys(), traces)
         return replace(self, traces={seed: trace for seed, trace in itr})
 
-    def rescale(
+    def rescale_xaxis(
         self, xaxis: str, c: float, *, pool: Pool | None = None
     ) -> AlgorithmResults:
         args = [(trace, xaxis, c) for trace in self.traces.values()]
         traces: Iterable[Trace]
         if pool:
-            traces = pool.starmap(_rescale, args)
+            traces = pool.starmap(_rescale_xaxis, args)
         else:
-            traces = starmap(_rescale, args)
+            traces = starmap(_rescale_xaxis, args)
 
         itr = zip(self.traces.keys(), traces)
         return replace(self, traces={seed: trace for seed, trace in itr})
@@ -534,11 +533,11 @@ class BenchmarkResults(Mapping[str, AlgorithmResults]):
         }
         return cls(results)
 
-    def rescale(
+    def rescale_xaxis(
         self, xaxis: str, c: float, *, pool: Pool | None = None
     ) -> BenchmarkResults:
         results = {
-            name: algo_results.rescale(xaxis=xaxis, c=c, pool=pool)
+            name: algo_results.rescale_xaxis(xaxis=xaxis, c=c, pool=pool)
             for name, algo_results in self.results.items()
         }
         return replace(self, results=results)
@@ -631,7 +630,7 @@ class ExperimentResults(Mapping[str, BenchmarkResults]):
         }
         return replace(self, results=results)
 
-    def rescale(
+    def rescale_xaxis(
         self, xaxis: str, by: Literal["max_fidelity"], *, pool: Pool | None = None
     ) -> ExperimentResults:
         if by != "max_fidelity":
@@ -642,7 +641,7 @@ class ExperimentResults(Mapping[str, BenchmarkResults]):
         }
 
         results = {
-            name: benchmark_results.rescale(
+            name: benchmark_results.rescale_xaxis(
                 xaxis=xaxis, c=(1 / max_fidelities[name]), pool=pool
             )
             for name, benchmark_results in self.results.items()

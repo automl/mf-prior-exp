@@ -89,7 +89,7 @@ def plot(args):
 
         experiment_results = experiment_results.incumbent_trace(
             xaxis=xaxis,
-            yaxis=yaxis,
+            yaxis="loss",  # For now we only allow incumbent traces over "loss"
             pool=pool,
         )
 
@@ -102,15 +102,11 @@ def plot(args):
     print(f"[{now()}] Done! Duration {time.time() - starttime:.3f}...")
 
     for i, (benchmark, ax) in enumerate(zip(args.benchmarks, axs)):
-        print("=" * 50)
-        print(f"Doing benchmark: {benchmark}")
-        print("=" * 50)
         benchmark_results = experiment_results[benchmark]
         benchmark_config = experiment_results.benchmarks[benchmark]
 
         for algorithm in args.algorithms:
             algorithm_results = benchmark_results[algorithm]
-            benchmark_results = experiment_results[benchmark]
             print("-" * 50)
             print(f"Benchmark: {benchmark} | Algorithm: {algorithm}")
             print("-" * 50)
