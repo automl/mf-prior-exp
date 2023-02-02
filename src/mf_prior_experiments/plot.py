@@ -93,22 +93,25 @@ def plot_incumbent_traces(
                 force_prior_line="good" in benchmark_config.name,
             )
 
-        if dynamic_y_lim:
+    # Now that we've plotted all algorithms for the benchmark,
+    # we need to set some dynamic limits
+    if dynamic_y_lim:
+        for ax, benchmark in zip(axs, benchmarks):
+            benchmark_results = results[benchmark]
             y_values = [getattr(result, yaxis) for result in benchmark_results.values()]
             y_min, y_max = min(y_values), max(y_values)
             dy = abs(y_max - y_min)
 
             plot_offset = 0.15
             ax.set_ylim(y_min - dy * plot_offset, y_max + dy * plot_offset)
-        elif "jahs_colorectal_histology" in benchmark:
-            ax.set_ylim(bottom=4.5, top=8)  # EDIT THIS IF JAHS COLORECTAL CHANGES
-        else:
+    else:
+        for ax in axs:
             ax.set_ylim(auto=True)
 
     sns.despine(fig)
 
+    # Move `mode` and `optimum` to the front of the legend
     handles, labels = axs[0].get_legend_handles_labels()
-
     handles_to_plot, labels_to_plot = [], []  # type: ignore
     handles_default, labels_default = [], []  # type: ignore
     for h, l in zip(handles, labels):
@@ -137,7 +140,6 @@ def plot_incumbent_traces(
         legend_item.set_linewidth(2.0)
 
     fig.tight_layout(pad=0, h_pad=0.5)
-
     return fig
 
 
