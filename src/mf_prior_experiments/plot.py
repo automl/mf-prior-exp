@@ -202,7 +202,7 @@ if __name__ == "__main__":
             dynamic_y_lim=args.dynamic_y_lim,
         )
 
-        filename = f"{args.filename}.{args.extension}"
+        filename = f"{args.filename}.{args.ext}"
         filepath = plot_dir / yaxis / filename
         filepath.parent.mkdir(parents=True, exist_ok=True)
         fig.savefig(filepath, bbox_inches="tight", dpi=args.dpi)
