@@ -11,7 +11,7 @@ from typing import Any, Iterable, Iterator, Mapping, Sequence, overload
 import mfpbench
 import pandas as pd
 import yaml  # type: ignore
-from more_itertools import pairwise
+from more_itertools import pairwise, all_equal
 from typing_extensions import Literal
 
 
