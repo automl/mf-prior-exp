@@ -1,17 +1,17 @@
 from __future__ import annotations
 
+from contextlib import nullcontext
 from dataclasses import dataclass, field, replace
 from itertools import accumulate, chain, groupby, starmap
-from contextlib import nullcontext
 from multiprocessing import Pool as make_pool
 from multiprocessing.pool import Pool
 from pathlib import Path
-from typing import Any, Iterable, Iterator, Mapping, Sequence, overload
+from typing import Any, Iterable, Iterator, Mapping, Optional, Sequence, cast, overload
 
 import mfpbench
 import pandas as pd
 import yaml  # type: ignore
-from more_itertools import pairwise, all_equal
+from more_itertools import all_equal, pairwise
 from typing_extensions import Literal
 
 
@@ -40,12 +40,15 @@ def fetch_results(
     )
     RESULTS_DIR = base_path / "results" / experiment_group
 
+    context: Pool | nullcontext[None]
     if parallel:
         context = make_pool()
     else:
         context = nullcontext(None)
 
     with context as pool:
+        assert isinstance(pool, Pool) or pool is None
+        pool = cast(Optional[Pool], pool)
         experiment_results = ExperimentResults.load(
             name=experiment_group,
             path=RESULTS_DIR,
@@ -665,7 +668,7 @@ class ExperimentResults(Mapping[str, BenchmarkResults]):
     @classmethod
     def load(
         cls,
-        name:str,
+        name: str,
         path: Path,
         *,
         benchmarks: list[str],
@@ -728,7 +731,8 @@ class ExperimentResults(Mapping[str, BenchmarkResults]):
             raise NotImplementedError(f"by={by}")
 
         max_fidelities = {
-            name: benchmark.max_fidelity for name, benchmark in self.benchmarks.items()
+            name: benchmark.max_fidelity
+            for name, benchmark in self.benchmark_configs.items()
         }
 
         results = {
