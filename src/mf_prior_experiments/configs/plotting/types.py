@@ -31,10 +31,6 @@ def fetch_results(
         "cumulated_fidelity", "end_time_since_global_start"
     ] = "cumulated_fidelity",
 ) -> ExperimentResults:
-    if n_workers > 1 and xaxis == "cumulated_fidelity":
-        msg = "Cannot plot single worker cumulated fidelity with multiple workers"
-        raise ValueError(msg)
-
     BENCHMARK_CONFIG_DIR = (
         base_path / "src" / "mf_prior_experiments" / "configs" / "benchmark"
     )
