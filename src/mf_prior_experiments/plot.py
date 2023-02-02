@@ -165,6 +165,8 @@ if __name__ == "__main__":
     plot_dir = base_path / "plots" / experiment_group
     set_general_plot_style()
 
+    xaxis = "cumulated_fidelity"
+
     # Fetch the results we need
     starttime = time.time()
     print(f"[{now()}] Processing ...")
@@ -177,7 +179,7 @@ if __name__ == "__main__":
         n_workers=args.n_workers,  # Flag to indicate if it was a parallel setup
         continuations=True,  # Continue on fidelities from configurations
         cumulate_fidelities=True,  # Accumulate fidelities in the indices
-        xaxis="cumulated_fidelity",  # The x-axis to use
+        xaxis=xaxis,  # The x-axis to use
         rescale_xaxis="max_fidelity",  # We always rescale the xaxis by max_fidelity
         incumbent_value="loss",  # The incumbent is deteremined by the loss
         incumbents_only=True,  # We only want incumbent traces in our results
