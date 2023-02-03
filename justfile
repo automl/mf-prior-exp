@@ -26,7 +26,7 @@
 @plot experiment_group benchmarks algorithms filename ext="pdf" base_path=justfile_directory() :
   python -m mf_prior_experiments.plot \
     --experiment_group {{experiment_group}} \
-    --benchmark {{benchmarks}} \
+    --benchmarks {{benchmarks}} \
     --algorithm {{algorithms}} \
     --filename {{filename}} \
     --base_path {{base_path}} \
@@ -34,8 +34,7 @@
     --x_range 0 20 \
     --plot_default \
     --plot_optimum \
-    --parallel \
-    --plot_max_fidelity_loss
+    --parallel
 
 # Table job
 @table experiment_group benchmarks algorithms filename budget base_path=justfile_directory() :
