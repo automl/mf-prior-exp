@@ -19,7 +19,7 @@ logger = logging.getLogger("mf_prior_experiments.run")
 MIN_SLEEP_TIME = 10  # 10s hopefully is enough to simulate wait times for metahyper
 
 # Use this environment variable to force overwrite when running
-OVERWRITE = False # bool(os.environ.get("MF_EXP_OVERWRITE", False))
+OVERWRITE = False  # bool(os.environ.get("MF_EXP_OVERWRITE", False))
 
 print(f"{'='*50}\noverwrite={OVERWRITE}\n{'='*50}")
 
@@ -218,7 +218,7 @@ def run_neps(args):
     #     budget_args = {"max_evaluations_total": 50}
 
     if "mf" in args.algorithm and args.algorithm.mf:
-        max_evaluations_total = 125
+        max_evaluations_total = 130
     else:
         max_evaluations_total = 25
 

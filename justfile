@@ -33,7 +33,9 @@
     --ext {{ext}} \
     --x_range 0 20 \
     --plot_default \
-    --plot_optimum
+    --plot_optimum \
+    --parallel \
+    --plot_max_fidelity_loss
 
 # Table job
 @table experiment_group benchmarks algorithms filename budget base_path=justfile_directory() :

@@ -5,5 +5,7 @@ run_function:
 searcher:
   _partial_: true  # To not instantiate the class directly as required by neps
   _target_: neps.optimizers.multi_fidelity_prior.async_priorband.PriorBandAsha
+  prior_weight_type: linear
   inc_sample_type: crossover
-  inc_style: constant
+  inc_style: dynamic
+  model_based: False
