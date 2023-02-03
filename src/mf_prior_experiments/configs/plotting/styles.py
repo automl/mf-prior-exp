@@ -1,9 +1,7 @@
-X_LABEL = dict(
-    {
-        False: "Full trainings",  # if `cost_as_runtime` is False
-        True: "Approx. full trainings",
-    }
-)
+X_LABEL = {
+    "cumulated_fidelity": "Full trainings",
+    "end_time_since_global_start": "Approx. full trainings",
+}
 
 # "Runtime [s]"
 Y_LABEL = "Error"
@@ -266,3 +264,10 @@ Y_MAP = {
 X_MAP = [0, 25, 50, 75, 100]
 
 WIDTH_PT = 398.33864
+
+DEFAULT_LINE_STYLE = {
+    "color": "black",
+    "linestyle": ":",
+    "linewidth": 1.0,
+    "dashes": (5, 10),
+}

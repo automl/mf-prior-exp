@@ -1,7 +1,7 @@
 import contextlib
 import logging
-import random
 import os
+import random
 import sys
 import time
 from pathlib import Path
@@ -9,6 +9,7 @@ from typing import Any
 
 import hydra
 import numpy as np
+import yaml
 from gitinfo import gitinfo
 from omegaconf import OmegaConf
 
@@ -78,6 +79,7 @@ def run_hpbandster(args):
                 else result.fidelity,
                 "max_fidelity_loss": float(max_fidelity_result.error),
                 "max_fidelity_cost": float(max_fidelity_result.cost),
+                "process_id": os.getpid(),
                 # val_error: result.val_error
                 # test_error: result.test_error
             },
@@ -155,9 +157,9 @@ def run_neps(args):
     import neps
 
     # Added the type here just for editors to be able to get a quick view
-    benchmark: Benchmark = hydra.utils.instantiate(args.benchmark.api)
+    benchmark: Benchmark = hydra.utils.instantiate(args.benchmark.api)  # type: ignore
 
-    def run_pipeline(**config: Any) -> dict:
+    def run_pipeline(previous_pipeline_directory: Path, **config: Any) -> dict:
         start = time.time()
         if benchmark.fidelity_name in config:
             fidelity = config.pop(benchmark.fidelity_name)
@@ -171,9 +173,48 @@ def run_neps(args):
         # queried.
         max_fidelity_result = benchmark.query(config, at=benchmark.end)
 
-        if args.n_workers > 1:
-            # essential step to simulate speed-up
-            time.sleep(fidelity + MIN_SLEEP_TIME)
+        # To account for continuations of previous configs in the parallel setting,
+        # we use the `previous_pipeline_directory` which indicates if there has been
+        # a previous lower fidelity evaluation of this config. If that's the case we
+        # then subtract the previous fidelity off of this current one to compute
+        # the `continuation_fidelity`. Otherwise, the `continuation_fidelity` is
+        # just the current one. This is then used to make the worker sleep and
+        # so we get a hueristically correct setup for each worker. In contrast,
+        # if we do not do this, workers will not have even close to the correct
+        # timestamps, and the order in which workers pick up new configurations to
+        # evaluate may be in a very different order than if done in a real context.
+        if args.n_workers == 1:
+            # In the single worker setting, this does not matter and we can use
+            # post-processing of the results to calculate the `continuation_fidelity`.
+            continuation_fidelity = None
+        else:
+            # If there's no previous config, we sleep for `fidelity`.
+            if previous_pipeline_directory is None:
+                continuation_fidelity = None
+                fidelity_sleep_time = fidelity
+
+            # If there is a previous config, we calculate the `continuation_fidelity`
+            # and sleep for that time instead
+            else:
+                previous_results_file = previous_pipeline_directory / "result.yaml"
+                with previous_results_file.open("r") as f:
+                    previous_results = yaml.load(f, Loader=yaml.FullLoader)
+
+                # Calculate the continuation fidelity for sleeping
+                current_fidelity = fidelity
+                previous_fidelity = previous_results["info_dict"]["fidelity"]
+                continuation_fidelity = current_fidelity - previous_fidelity
+
+                logger.info("-"*30)
+                logger.info(f"Continuing from: {previous_pipeline_directory}")
+                logger.info(f"`continuation_fidelity`={continuation_fidelity}`")
+                logger.info(f"{previous_results}")
+                logger.info("-"*30)
+
+
+                fidelity_sleep_time = continuation_fidelity
+
+            time.sleep(fidelity_sleep_time + MIN_SLEEP_TIME)
 
         end = time.time()
         return {
@@ -184,10 +225,12 @@ def run_neps(args):
                 "val_score": result.val_score,
                 "test_score": result.test_score,
                 "fidelity": result.fidelity,
+                "continuation_fidelity": continuation_fidelity,
                 "start_time": start,
                 "end_time": end,  # + fidelity,
                 "max_fidelity_loss": float(max_fidelity_result.error),
                 "max_fidelity_cost": float(max_fidelity_result.cost),
+                "process_id": os.getpid(),
                 # val_error: result.val_error
                 # test_error: result.test_error
             },
