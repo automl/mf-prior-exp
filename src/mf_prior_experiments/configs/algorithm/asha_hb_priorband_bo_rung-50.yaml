@@ -1,13 +1,13 @@
-name: priorband_bo
+name: asha_hb_priorband_bo_rung-50
 mf: true
 run_function:
   _target_: mf_prior_experiments.run.run_neps
 searcher:
   _partial_: true  # To not instantiate the class directly as required by neps
-  _target_: neps.optimizers.multi_fidelity_prior.priorband.PriorBand
-  prior_weight_type: linear
+  _target_: neps.optimizers.multi_fidelity_prior.async_priorband.PriorBandAshaHB
+  sample_default_first: True
+  prior_weight_type: 50-50
   inc_sample_type: crossover
   inc_style: dynamic
   model_based: True
-  modelling_type: "joint"
-  initial_design_size: 10
+  modelling_type: "rung"
