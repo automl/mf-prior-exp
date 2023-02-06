@@ -6,16 +6,16 @@ import pickle
 from dataclasses import dataclass, replace
 from functools import reduce
 from itertools import accumulate, chain, groupby, product, starmap
-from joblib import Parallel, delayed
 from pathlib import Path
-from typing import Any, Iterator, Mapping, Sequence, overload, TYPE_CHECKING
+from typing import TYPE_CHECKING, Any, Iterator, Mapping, Sequence, overload
 
 import numpy as np
 import pandas as pd
 import yaml  # type: ignore
-from yaml import CLoader as Loader
+from joblib import Parallel, delayed
 from more_itertools import all_equal, flatten, pairwise
 from typing_extensions import Literal
+from yaml import CLoader as Loader
 
 if TYPE_CHECKING:
     import mfpbench
@@ -100,7 +100,9 @@ def _with_continuations(a: AlgorithmResults) -> AlgorithmResults:
     return a.with_continuations()
 
 
-def _with_cumulative_fidelity(a: AlgorithmResults, per_worker: bool = False) -> AlgorithmResults:
+def _with_cumulative_fidelity(
+    a: AlgorithmResults, per_worker: bool = False
+) -> AlgorithmResults:
     return a.with_cumulative_fidelity(per_worker=per_worker)
 
 
@@ -112,11 +114,17 @@ def _rescale_xaxis(a: AlgorithmResults, xaxis: str, c: float) -> AlgorithmResult
     return a.rescale_xaxis(xaxis=xaxis, c=c)
 
 
-def _in_range(a: AlgorithmResults, bounds: tuple[float, float], xaxis: str) -> AlgorithmResults:
+def _in_range(
+    a: AlgorithmResults, bounds: tuple[float, float], xaxis: str
+) -> AlgorithmResults:
     return a.in_range(bounds=bounds, xaxis=xaxis)
+
 
 def _algorithm_results(path: Path, seeds: list[int] | None) -> AlgorithmResults:
     return AlgorithmResults.load(path, seeds=seeds)
+
+def _trace_results(path: Path) -> Trace:
+    return Trace.load(path)
 
 
 @dataclass
@@ -540,6 +548,7 @@ class Benchmark:
     def benchmark(self) -> mfpbench.Benchmark:
         if self._benchmark is None:
             import mfpbench
+
             if self.task_id is not None:
                 self._benchmark = mfpbench.get(self.basename, task_id=self.task_id)
             else:
@@ -610,7 +619,10 @@ class AlgorithmResults(Mapping[int, Trace]):
         self,
         per_worker: bool = False,
     ) -> AlgorithmResults:
-        traces = {seed: trace.with_cumulative_fidelity(per_worker=per_worker) for seed, trace in self.traces.items()}
+        traces = {
+            seed: trace.with_cumulative_fidelity(per_worker=per_worker)
+            for seed, trace in self.traces.items()
+        }
         return replace(self, traces=traces)
 
     def incumbent_traces(
@@ -618,13 +630,17 @@ class AlgorithmResults(Mapping[int, Trace]):
         xaxis: str,
         yaxis: str,
     ) -> AlgorithmResults:
-        traces = {seed: trace.incumbent_trace(xaxis=xaxis, yaxis=yaxis) for seed, trace in self.traces.items()}
+        traces = {
+            seed: trace.incumbent_trace(xaxis=xaxis, yaxis=yaxis)
+            for seed, trace in self.traces.items()
+        }
         return replace(self, traces=traces)
 
-    def rescale_xaxis(
-        self, xaxis: str, c: float
-    ) -> AlgorithmResults:
-        traces = {seed: trace.rescale_xaxis(xaxis=xaxis, c=c) for seed, trace in self.traces.items()}
+    def rescale_xaxis(self, xaxis: str, c: float) -> AlgorithmResults:
+        traces = {
+            seed: trace.rescale_xaxis(xaxis=xaxis, c=c)
+            for seed, trace in self.traces.items()
+        }
         return replace(self, traces=traces)
 
     def in_range(
@@ -632,7 +648,10 @@ class AlgorithmResults(Mapping[int, Trace]):
         bounds: tuple[float, float],
         xaxis: str,
     ) -> AlgorithmResults:
-        traces = {seed: trace.in_range(bounds=bounds, xaxis=xaxis) for seed, trace in self.traces.items()}
+        traces = {
+            seed: trace.in_range(bounds=bounds, xaxis=xaxis)
+            for seed, trace in self.traces.items()
+        }
         return replace(self, traces=traces)
 
     def df(
@@ -885,56 +904,69 @@ class ExperimentResults(Mapping[str, BenchmarkResults]):
         name: str,
         path: Path,
         *,
-        benchmarks: list[str] | None,
-        algorithms: list[str] | None,
+        benchmarks: list[str],
+        algorithms: list[str],
         seeds: list[int] | None = None,
         benchmark_config_dir: Path,
-        pool: Parallel | None = None,
+        pool: Parallel | None = None
     ) -> ExperimentResults:
-        if benchmarks == []:
-            benchmarks = None
-
-        if algorithms == []:
-            algorithms = None
-
-        if benchmarks is None:
-            benchmarks = [
-                p.name.split("=")[1]
-                for p in path.iterdir()
-                if p.is_dir() and "benchmark" in p.name
-            ]
-
-        print(f"Loading {name}")
-        benchmark_results = {}
-        for benchmark in benchmarks:
-            print(f"\t* {benchmark}")
-            r = BenchmarkResults.load(
-                path / f"benchmark={benchmark}",
-                algorithms=algorithms,
-                seeds=seeds,
-                pool=pool,
+        if seeds is None:
+            first_benchmark = benchmarks[0]
+            random_search_path = (
+                path / f"benchmark={first_benchmark}" / "algorithm=random_search"
             )
-            benchmark_results[benchmark] = r
-
-        if algorithms is None:
-            # Collect all algorithms that exist
-            algorithms = list(
-                set(
-                    chain.from_iterable(
-                        b.results.keys() for b in benchmark_results.values()
-                    )
+            random_search_prior_path = (
+                path / f"benchmark={first_benchmark}" / "algorithm=random_search_prior"
+            )
+            if random_search_path.exists():
+                seeds = [int(s.name.split("=")[1]) for s in random_search_path.iterdir()]
+            elif random_search_prior_path.exists():
+                seeds = [int(s.name.split("=")[1]) for s in random_search_path.iterdir()]
+            else:
+                raise ValueError(
+                    "random_search[_prior] wasnt evaluated, can't determine seed count"
                 )
+
+        def _path(benchmark_: str, algorithm_: str, seed_: int) -> Path:
+            return (
+                path
+                / f"benchmark={benchmark_}"
+                / f"algorithm={algorithm_}"
+                / f"seed={seed_}"
             )
+
+        if pool is None:
+            pool = Parallel(n_jobs=1)
+
+        results: dict[str, dict[str, list[Trace]]] = {
+            benchmark: {
+                algorithm: pool(
+                    delayed(_trace_results)(_path(benchmark, algorithm, seed)) for seed in seeds
+                )
+                for algorithm in algorithms
+            }
+            for benchmark in benchmarks
+        }  # type: ignore
 
         return cls(
             name=name,
             algorithms=algorithms,
             benchmarks=benchmarks,
+            results={
+                benchmark: BenchmarkResults(
+                    {
+                        algo: AlgorithmResults(
+                            {seed: trace for seed, trace in enumerate(traces)}
+                        )
+                        for algo, traces in benchmark_results.items()
+                    }
+                )
+                for benchmark, benchmark_results in results.items()
+            },
             benchmark_configs={
                 benchmark: Benchmark.from_name(benchmark, benchmark_config_dir)
                 for benchmark in benchmarks
             },
-            results=benchmark_results,
         )
 
     def indices(self, xaxis: str, *, sort: bool = True) -> list[float]:
