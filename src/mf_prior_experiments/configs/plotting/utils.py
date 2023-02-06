@@ -2,7 +2,6 @@ from __future__ import annotations
 
 from argparse import ArgumentParser, Namespace
 from pathlib import Path
-from more_itertools import flatten
 
 import matplotlib.pyplot as plt
 
@@ -10,10 +9,12 @@ import matplotlib.pyplot as plt
 def parse_args() -> Namespace:
     parser = ArgumentParser(description="mf-prior-exp plotting")
 
-    parser.add_argument("--filename", type=str, required=True)
+    parser.add_argument("--filename", type=str, default=None)
+    parser.add_argument("--collect", action="store_true")
+    parser.add_argument("--use-cache", action="store_true")
 
     parser.add_argument("--experiment_group", type=str, required=True)
-    parser.add_argument("--algorithms", nargs="+", required=True)
+    parser.add_argument("--algorithms", nargs="+", default=[])
 
     parser.add_argument("--benchmarks", nargs="+", default=[])
     parser.add_argument("--rr-good-corr-good-prior", nargs="+", default=[])
@@ -34,6 +35,15 @@ def parse_args() -> Namespace:
     parser.add_argument("--parallel", action="store_true")
 
     args = parser.parse_args()
+
+    if args.collect and args.use_cache:
+        raise ValueError("Can't use --collect with --use-cache")
+
+    if not args.collect and args.filename is None:
+        raise ValueError("Must specify --filename unless using --collect")
+
+    if not args.collect and len(args.algorithms) == 0:
+        raise ValueError("Must specify --algorithms unless using --collect")
 
     if args.budget:
         raise ValueError("CD plots (which use --budget) not supported yet")
