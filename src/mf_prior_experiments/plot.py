@@ -80,6 +80,7 @@ def plot_relative_ranks(
     algorithms: list[str],
     yaxis: str,
     xaxis: str,
+    x_range: tuple[int, int] | None = None,
 ) -> plt.Figure:
     """Plot relative ranks of the incumbent over time."""
     ncols = 4
@@ -98,6 +99,15 @@ def plot_relative_ranks(
     }
 
     for col, ((subtitle, results), ax) in enumerate(zip(subplots.items(), axs)):
+        _x_range: tuple[int, int]
+        if x_range is None:
+            xmin = min(getattr(r, xaxis) for r in results.iter_results())
+            xmax = max(getattr(r, xaxis) for r in results.iter_results())
+            _x_range = (math.floor(xmin), math.ceil(xmax))
+        else:
+            _x_range = x_range
+
+        left, right = _x_range
         ymin, ymax = (0.8, len(algorithms))
         yticks = range(1, len(algorithms) + 1)
         center = (len(algorithms) + 1) / 2
@@ -106,6 +116,12 @@ def plot_relative_ranks(
         ax.set_ylim(ymin, ymax)
         ax.set_xlabel(X_LABEL[xaxis], fontsize=18, color=(0, 0, 0, 0.69))
         ax.set_yticks(yticks)  # type: ignore
+        ax.set_xlim(left=left, right=right)
+        if (left, right) == (1, 12):
+            xticks = [1, 3, 5, 8, 12]
+        else:
+            xticks = np.linspace(left, right, 5, dtype=int, endpoint=True).tolist()
+        ax.set_xticks(xticks, xticks)  # type: ignore
         ax.tick_params(axis="both", which="major", labelsize=18, color=(0, 0, 0, 0.69))
         ax.grid(True, which="both", ls="-", alpha=0.8)
 
@@ -411,6 +427,7 @@ if __name__ == "__main__":
                 bad_corr_bad_prior=results.select(benchmarks=args.rr_bad_corr_bad_prior),
                 yaxis=yaxis,
                 xaxis=xaxis,
+                x_range=args.x_range,
             )
 
             filename = f"{args.filename}.{args.ext}"
