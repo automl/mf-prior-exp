@@ -90,7 +90,6 @@ def fetch_results(
             )
 
     if collect:
-        print(experiment_results)
         with CACHE.open("wb") as f:
             pickle.dump(experiment_results, f)
 
@@ -222,7 +221,7 @@ class Trace(Sequence[Result]):
     @classmethod
     def load(cls, path: Path, *, pool: Pool | None = None) -> Trace:
         trace_results_dir = path / "neps_root_directory" / "results"
-        assert trace_results_dir.exists()
+        assert trace_results_dir.exists(), f"Path {trace_results_dir} does not exist"
         config_dirs = [
             p for p in trace_results_dir.iterdir() if p.is_dir() and "config" in p.name
         ]
@@ -544,7 +543,11 @@ class AlgorithmResults(Mapping[int, Trace]):
                 if p.is_dir() and "seed" in p.name
             ]
 
-        traces = {seed: Trace.load(path / f"seed={seed}", pool=pool) for seed in seeds}
+        traces = {}
+        for seed in seeds:
+            print(f"\t\t\t*{seed}")
+            traces[seed] = Trace.load(path / f"seed={seed}", pool=pool)
+
         return cls(traces=traces)
 
     def select(self, seeds: list[int] | None = None) -> AlgorithmResults:
@@ -798,12 +801,14 @@ class BenchmarkResults(Mapping[str, AlgorithmResults]):
                 if p.is_dir() and "algo" in p.name
             ]
 
-        results = {
-            algo: AlgorithmResults.load(
-                path / f"algorithm={algo}", seeds=seeds, pool=pool
+        results = {}
+        for algo in algorithms:
+            print(f"\t\t{algo}")
+            results[algo] = AlgorithmResults.load(
+                path / f"algorithm={algo}",
+                seeds=seeds,
+                pool=pool,
             )
-            for algo in algorithms
-        }
         return cls(results)
 
     def rescale_xaxis(
@@ -880,15 +885,17 @@ class ExperimentResults(Mapping[str, BenchmarkResults]):
                 if p.is_dir() and "benchmark" in p.name
             ]
 
-        benchmark_results = {
-            benchmark: BenchmarkResults.load(
+        print(f"Loading {name}")
+        benchmark_results = {}
+        for benchmark in benchmarks:
+            print(f"\t* {benchmark}")
+            r = BenchmarkResults.load(
                 path / f"benchmark={benchmark}",
                 algorithms=algorithms,
                 seeds=seeds,
                 pool=pool,
             )
-            for benchmark in benchmarks
-        }
+            benchmark_results[benchmark] = r
 
         if algorithms is None:
             # Collect all algorithms that exist
