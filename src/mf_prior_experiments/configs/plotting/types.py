@@ -614,7 +614,6 @@ class AlgorithmResults(Mapping[int, Trace]):
 
         traces = {}
         for seed in seeds:
-            print(f"\t\t\t*{seed}")
             traces[seed] = Trace.load(path / f"seed={seed}", pool=pool)
 
         return cls(traces=traces)
