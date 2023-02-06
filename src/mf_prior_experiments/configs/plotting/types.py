@@ -913,15 +913,15 @@ class ExperimentResults(Mapping[str, BenchmarkResults]):
         if seeds is None:
             first_benchmark = benchmarks[0]
             random_search_path = (
-                path / f"benchmark={first_benchmark}" / "algorithm=random_search"
+                path / name /  f"benchmark={first_benchmark}" / "algorithm=random_search"
             )
             random_search_prior_path = (
-                path / f"benchmark={first_benchmark}" / "algorithm=random_search_prior"
+                path / name / f"benchmark={first_benchmark}" / "algorithm=random_search_prior"
             )
             if random_search_path.exists():
                 seeds = [int(s.name.split("=")[1]) for s in random_search_path.iterdir()]
             elif random_search_prior_path.exists():
-                seeds = [int(s.name.split("=")[1]) for s in random_search_path.iterdir()]
+                seeds = [int(s.name.split("=")[1]) for s in random_search_prior_path.iterdir()]
             else:
                 raise ValueError(
                     "random_search[_prior] wasnt evaluated, can't determine seed count"
@@ -930,6 +930,7 @@ class ExperimentResults(Mapping[str, BenchmarkResults]):
         def _path(benchmark_: str, algorithm_: str, seed_: int) -> Path:
             return (
                 path
+                / name
                 / f"benchmark={benchmark_}"
                 / f"algorithm={algorithm_}"
                 / f"seed={seed_}"
