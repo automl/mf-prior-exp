@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import math
+import sys
 import time
 from pathlib import Path
 
@@ -361,8 +362,15 @@ if __name__ == "__main__":
         rescale_xaxis="max_fidelity",  # We always rescale the xaxis by max_fidelity
         incumbent_value="loss",  # The incumbent is deteremined by the loss
         incumbents_only=True,  # We only want incumbent traces in our results
+        use_cache=args.use_cache,  # Specify we want to use cached results
+        collect=args.collect,  # Specify we only want to collect
     )
     print(f"[{now()}] Done! Duration {time.time() - starttime:.3f}...")
+
+    # If we are just collecting results, then exit out now
+    if args.collect:
+        print("Collected results and cached!")
+        sys.exit(0)
 
     # Incumbent traces
     if len(args.benchmarks) > 0:

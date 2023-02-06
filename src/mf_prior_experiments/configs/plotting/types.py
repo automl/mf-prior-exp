@@ -1,7 +1,8 @@
 from __future__ import annotations
 
-from contextlib import nullcontext
 import operator
+import pickle
+from contextlib import nullcontext
 from dataclasses import dataclass, field, replace
 from functools import reduce
 from itertools import accumulate, chain, groupby, product, starmap
@@ -14,7 +15,7 @@ import mfpbench
 import numpy as np
 import pandas as pd
 import yaml  # type: ignore
-from more_itertools import all_equal, pairwise, flatten
+from more_itertools import all_equal, flatten, pairwise
 from typing_extensions import Literal
 
 
@@ -33,11 +34,21 @@ def fetch_results(
     xaxis: Literal[
         "cumulated_fidelity", "end_time_since_global_start"
     ] = "cumulated_fidelity",
+    use_cache: bool = False,
+    collect: bool = False,
 ) -> ExperimentResults:
     BENCHMARK_CONFIG_DIR = (
         base_path / "src" / "mf_prior_experiments" / "configs" / "benchmark"
     )
     RESULTS_DIR = base_path / "results" / experiment_group
+    CACHE = base_path / "results" / experiment_group / ".plot_cache.pkl"
+    CACHE.parent.mkdir(exist_ok=True, parents=True)
+    if use_cache and CACHE.exists():
+        print("-" * 50)
+        print(f"Using cache at {CACHE}")
+        print("-" * 50)
+        with CACHE.open("rb") as f:
+            return pickle.load(f)
 
     context: Pool | nullcontext[None]
     if parallel:
@@ -77,6 +88,11 @@ def fetch_results(
             experiment_results = experiment_results.rescale_xaxis(
                 xaxis=xaxis, by=rescale_xaxis, pool=pool
             )
+
+    if collect:
+        print(experiment_results)
+        with CACHE.open("wb") as f:
+            pickle.dump(experiment_results, f)
 
     return experiment_results
 
@@ -845,12 +861,45 @@ class ExperimentResults(Mapping[str, BenchmarkResults]):
         name: str,
         path: Path,
         *,
-        benchmarks: list[str],
-        algorithms: list[str],
+        benchmarks: list[str] | None,
+        algorithms: list[str] | None,
         seeds: list[int] | None = None,
         benchmark_config_dir: Path,
         pool: Pool | None = None,
     ) -> ExperimentResults:
+        if benchmarks == []:
+            benchmarks = None
+
+        if algorithms == []:
+            algorithms = None
+
+        if benchmarks is None:
+            benchmarks = [
+                p.name.split("=")[1]
+                for p in path.iterdir()
+                if p.is_dir() and "benchmark" in p.name
+            ]
+
+        benchmark_results = {
+            benchmark: BenchmarkResults.load(
+                path / f"benchmark={benchmark}",
+                algorithms=algorithms,
+                seeds=seeds,
+                pool=pool,
+            )
+            for benchmark in benchmarks
+        }
+
+        if algorithms is None:
+            # Collect all algorithms that exist
+            algorithms = list(
+                set(
+                    chain.from_iterable(
+                        b.results.keys() for b in benchmark_results.values()
+                    )
+                )
+            )
+
         return cls(
             name=name,
             algorithms=algorithms,
@@ -859,15 +908,7 @@ class ExperimentResults(Mapping[str, BenchmarkResults]):
                 benchmark: Benchmark.from_name(benchmark, benchmark_config_dir)
                 for benchmark in benchmarks
             },
-            results={
-                benchmark: BenchmarkResults.load(
-                    path / f"benchmark={benchmark}",
-                    algorithms=algorithms,
-                    seeds=seeds,
-                    pool=pool,
-                )
-                for benchmark in benchmarks
-            },
+            results=benchmark_results,
         )
 
     def indices(self, xaxis: str, *, sort: bool = True) -> list[float]:
@@ -965,7 +1006,6 @@ class ExperimentResults(Mapping[str, BenchmarkResults]):
             benchmarks_set = set(self.benchmarks)
         else:
             benchmarks_set = set(benchmarks)
-
 
         selected_results = {
             name: benchmark.select(algorithms=algorithms, seeds=seeds)
