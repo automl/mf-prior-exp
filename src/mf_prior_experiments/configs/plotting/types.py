@@ -297,10 +297,7 @@ class Trace(Sequence[Result]):
         config_dirs = [
             p for p in trace_results_dir.iterdir() if p.is_dir() and "config" in p.name
         ]
-        if pool:
-            results = list(pool.imap_unordered(Result.from_dir, config_dirs))
-        else:
-            results = list(map(Result.from_dir, config_dirs))
+        results = list(map(Result.from_dir, config_dirs))
 
         if len(results) == 0:
             raise ValueError(f"Couldn't find results in {trace_results_dir}")
