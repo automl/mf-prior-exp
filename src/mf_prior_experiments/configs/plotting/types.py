@@ -3,7 +3,7 @@ from __future__ import annotations
 import json
 import operator
 import pickle
-from dataclasses import dataclass, field, replace
+from dataclasses import dataclass, replace
 from functools import reduce
 from itertools import accumulate, chain, groupby, product, starmap
 from multiprocessing import get_context
@@ -15,6 +15,7 @@ import mfpbench
 import numpy as np
 import pandas as pd
 import yaml  # type: ignore
+from yaml import CLoader as Loader
 from more_itertools import all_equal, flatten, pairwise
 from typing_extensions import Literal
 
@@ -120,41 +121,9 @@ def _in_range(t: Trace, bounds: tuple[float, float], xaxis: str) -> Trace:
 
 
 @dataclass
-class Config:
-    # 0_0, 1_0, 2_0, 0_1, ..., 50_3
+class Result:
     id: int
     bracket: int | None
-    params: dict[str, Any]
-
-    def as_tuple(self) -> tuple[int, int | None]:
-        return (self.id, self.bracket)
-
-    def __str__(self) -> str:
-        if self.bracket is None:
-            return f"{self.id}"
-
-        return f"{self.id}_{self.bracket}"
-
-    def is_direct_continuation(self, of: Config) -> bool:
-        if self.bracket is None:
-            return False
-        return self.id == of.id and of.bracket == self.bracket - 1
-
-    @classmethod
-    def parse(cls, dirname: str, config: dict) -> Config:
-        config_name = dirname.replace("config_", "")
-        if "_" in config_name:
-            id_, bracket = map(int, config_name.split("_"))
-        else:
-            id_ = int(config_name)
-            bracket = None
-
-        return Config(id_, bracket, params=config)
-
-
-@dataclass
-class Result:
-    config: Config = field(repr=False)
     loss: float
     cost: float
     val_score: float
@@ -172,19 +141,21 @@ class Result:
 
     @classmethod
     def from_dir(cls, config_dir: Path) -> Result:
-        config_yaml = config_dir / "config.yaml"
         result_yaml = config_dir / "result.yaml"
-        # metadata_yaml = config_dir / "metadata.yaml"
-
-        with config_yaml.open("r") as f:
-            config = yaml.safe_load(f)
-
         with result_yaml.open("r") as f:
-            result = yaml.safe_load(f)
+            result = yaml.load(f, Loader=Loader)
+
+        config_name = config_dir.name.replace("config_", "")
+        if "_" in config_name:
+            id_, bracket = map(int, config_name.split("_"))
+        else:
+            id_ = int(config_name)
+            bracket = None
 
         info = result["info_dict"]
         return cls(
-            config=Config.parse(config_dir.name, config),
+            id=id_,
+            bracket=bracket,
             loss=result["loss"],
             cost=result["cost"],
             val_score=info["val_score"],
@@ -199,7 +170,6 @@ class Result:
 
     def continue_from(self, other: Result) -> Result:
         """Continue based on the results from a previous evaluation of the same config."""
-        assert self.is_continuation(of=other)
         assert self.continued_from is None, f"{self} - {other}"
         changes = {
             "fidelity": self.fidelity - other.fidelity,
@@ -207,9 +177,6 @@ class Result:
             "continued_from": other,
         }
         return self.mutate(**changes)
-
-    def is_continuation(self, of: Result) -> bool:
-        return self.config.is_direct_continuation(of.config)
 
     def mutate(self, **kwargs: Any) -> Result:
         return replace(self, **kwargs)
@@ -281,10 +248,12 @@ class Trace(Sequence[Result]):
 
         for result in hpbandster_results:
             config = result["config"]
-            id_, params = config["id"], config["params"]
+            id_ = config["id"]
             fidelity = result["fidelity"]
             bracket = _fid_to_bracket[fidelity]
-            result["config"] = Config(id=id_, bracket=bracket, params=params)
+            result["id"] = result["config"]["id"]
+            result["bracket"] = bracket
+            del result["config"]
 
         parsed_results = [Result(**r) for r in hpbandster_results]
         return cls(results=sorted(parsed_results, key=lambda r: r.end_time))
@@ -347,11 +316,11 @@ class Trace(Sequence[Result]):
                     "max_fidelity_loss": result.max_fidelity_loss,
                     "max_fidelity_cost": result.max_fidelity_cost,
                     "cumulated_fidelity": result.cumulated_fidelity,
-                    "config_id": str(result.config.id),
+                    "config_id": str(result.id),
                     "continued_from": None
                     if result.continued_from is None
-                    else str(result.continued_from.config),
-                    "bracket": str(result.config.bracket),
+                    else f"{result.continued_from.id}_{result.continued_from.bracket}",
+                    "bracket": str(result.bracket),
                     "process_id": result.process_id,
                 }
                 for result in self.results
@@ -372,14 +341,14 @@ class Trace(Sequence[Result]):
         #   2: [2_0, 2_1],
         # }
         def bracket(res: Result) -> int:
-            return 0 if res.config.bracket is None else res.config.bracket
+            return 0 if res.bracket is None else res.bracket
 
         # Needs to be sorted on the key before using groupby
-        trace_results = sorted(self.results, key=lambda r: r.config.id)
+        trace_results = sorted(self.results, key=lambda r: r.id)
 
         results = {
             config_id: sorted(results, key=bracket)
-            for config_id, results in groupby(trace_results, key=lambda r: r.config.id)
+            for config_id, results in groupby(trace_results, key=lambda r: r.id)
         }
 
         continuations = []
@@ -548,7 +517,7 @@ class Benchmark:
             raise ValueError(f"Expected benchmark path {expected_path} to exist.")
 
         with expected_path.open("r") as f:
-            config = yaml.safe_load(f)
+            config = yaml.load(f, Loader=Loader)
 
         return cls(
             name=name,
@@ -635,7 +604,7 @@ class AlgorithmResults(Mapping[int, Trace]):
     def with_continuations(self, pool: Pool | None = None) -> AlgorithmResults:
         """Return a new AlgorithmResults with continuations."""
         traces: Iterable[Trace]
-        if pool:
+        if pool is not None:
             traces = pool.imap(_with_continuations, self.traces.values())
         else:
             traces = map(_with_continuations, self.traces.values())
@@ -650,7 +619,7 @@ class AlgorithmResults(Mapping[int, Trace]):
     ) -> AlgorithmResults:
         args = [(trace, per_worker) for trace in self.traces.values()]
         traces: Iterable[Trace]
-        if pool:
+        if pool is not None:
             traces = pool.starmap(_with_cumulative_fidelity, args)
         else:
             traces = starmap(_with_cumulative_fidelity, args)
@@ -666,7 +635,7 @@ class AlgorithmResults(Mapping[int, Trace]):
     ) -> AlgorithmResults:
         args = [(trace, xaxis, yaxis) for trace in self.traces.values()]
         traces: Iterable[Trace]
-        if pool:
+        if pool is not None:
             traces = pool.starmap(_incumbent_trace, args)
         else:
             traces = starmap(_incumbent_trace, args)
@@ -679,7 +648,7 @@ class AlgorithmResults(Mapping[int, Trace]):
     ) -> AlgorithmResults:
         args = [(trace, xaxis, c) for trace in self.traces.values()]
         traces: Iterable[Trace]
-        if pool:
+        if pool is not None:
             traces = pool.starmap(_rescale_xaxis, args)
         else:
             traces = starmap(_rescale_xaxis, args)
@@ -696,7 +665,7 @@ class AlgorithmResults(Mapping[int, Trace]):
     ) -> AlgorithmResults:
         args = [(trace, bounds, xaxis) for trace in self.traces.values()]
         traces: Iterable[Trace]
-        if pool:
+        if pool is not None:
             traces = pool.starmap(_in_range, args)
         else:
             traces = starmap(_in_range, args)
