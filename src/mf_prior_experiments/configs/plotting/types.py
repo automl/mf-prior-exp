@@ -1,17 +1,14 @@
 from __future__ import annotations
 
 import json
-import sys
-import os
 import operator
 import pickle
 from dataclasses import dataclass, replace
 from functools import reduce
 from itertools import accumulate, chain, groupby, product, starmap
-from multiprocessing import get_context
-from multiprocessing.pool import Pool
+from joblib import Parallel, delayed
 from pathlib import Path
-from typing import Any, Iterable, Iterator, Mapping, Sequence, overload, TYPE_CHECKING
+from typing import Any, Iterator, Mapping, Sequence, overload, TYPE_CHECKING
 
 import numpy as np
 import pandas as pd
@@ -55,11 +52,8 @@ def fetch_results(
         with CACHE.open("rb") as f:
             return pickle.load(f)
 
-    pool: Pool | None
     if parallel:
-        ctx = get_context("forkserver")
-        ctx.set_forkserver_preload(list(sys.modules.keys()))
-        pool = Pool(context=ctx)
+        pool = Parallel(backend="multiprocessing")
     else:
         pool = None
 
@@ -92,9 +86,6 @@ def fetch_results(
         experiment_results = experiment_results.rescale_xaxis(
             xaxis=xaxis, by=rescale_xaxis, pool=pool
         )
-
-    if isinstance(pool, Pool):
-        pool.close()
 
     if collect:
         with CACHE.open("wb") as f:
@@ -579,7 +570,6 @@ class AlgorithmResults(Mapping[int, Trace]):
         cls,
         path: Path,
         *,
-        pool: Pool | None = None,
         seeds: list[int] | None = None,
     ) -> AlgorithmResults:
         """Load all traces for an algorithm."""
@@ -591,10 +581,7 @@ class AlgorithmResults(Mapping[int, Trace]):
             ]
 
         paths = [path / f"seed={seed}" for seed in seeds]
-        if pool is not None:
-            traces_ = list(pool.imap(Trace.load, paths))
-        else:
-            traces_ = list(map(Trace.load, paths))
+        traces_ = list(map(Trace.load, paths))
 
         traces = {k: v for k, v in zip(seeds, traces_)}
 
@@ -614,7 +601,7 @@ class AlgorithmResults(Mapping[int, Trace]):
         xs = list(set(flatten(indices)))
         return xs if not sort else sorted(xs)
 
-    def with_continuations(self, pool: Pool | None = None) -> AlgorithmResults:
+    def with_continuations(self) -> AlgorithmResults:
         """Return a new AlgorithmResults with continuations."""
         traces = {seed: trace.with_continuations() for seed, trace in self.traces.items()}
         return replace(self, traces=traces)
@@ -622,7 +609,6 @@ class AlgorithmResults(Mapping[int, Trace]):
     def with_cumulative_fidelity(
         self,
         per_worker: bool = False,
-        pool: Pool | None = None,
     ) -> AlgorithmResults:
         traces = {seed: trace.with_cumulative_fidelity(per_worker=per_worker) for seed, trace in self.traces.items()}
         return replace(self, traces=traces)
@@ -631,13 +617,12 @@ class AlgorithmResults(Mapping[int, Trace]):
         self,
         xaxis: str,
         yaxis: str,
-        pool: Pool | None = None,
     ) -> AlgorithmResults:
         traces = {seed: trace.incumbent_trace(xaxis=xaxis, yaxis=yaxis) for seed, trace in self.traces.items()}
         return replace(self, traces=traces)
 
     def rescale_xaxis(
-        self, xaxis: str, c: float, *, pool: Pool | None = None
+        self, xaxis: str, c: float
     ) -> AlgorithmResults:
         traces = {seed: trace.rescale_xaxis(xaxis=xaxis, c=c) for seed, trace in self.traces.items()}
         return replace(self, traces=traces)
@@ -646,8 +631,6 @@ class AlgorithmResults(Mapping[int, Trace]):
         self,
         bounds: tuple[float, float],
         xaxis: str,
-        *,
-        pool: Pool | None = None,
     ) -> AlgorithmResults:
         traces = {seed: trace.in_range(bounds=bounds, xaxis=xaxis) for seed, trace in self.traces.items()}
         return replace(self, traces=traces)
@@ -723,34 +706,38 @@ class BenchmarkResults(Mapping[str, AlgorithmResults]):
         algo_seeds = [algo.seeds() for algo in self.results.values()]
         return set().union(*algo_seeds)
 
-    def with_continuations(self, pool: Pool | None = None) -> BenchmarkResults:
+    def with_continuations(self, pool: Parallel | None = None) -> BenchmarkResults:
         keys = self.results.keys()
+        results_: list[AlgorithmResults]
         if pool is not None:
-            results_ = list(pool.imap(_with_continuations, self.results.values()))
+            results_ = pool(delayed(_with_continuations)(v) for v in self.results.values())  # type: ignore
         else:
             results_ = list(map(_with_continuations, self.results.values()))
+
         results = {k: v for k, v in zip(keys, results_)}
         return replace(self, results=results)
 
     def with_cumulative_fidelity(
-        self, per_worker: bool = False, pool: Pool | None = None
+        self, per_worker: bool = False, pool: Parallel | None = None
     ) -> BenchmarkResults:
         keys = self.results.keys()
+        results_: list[AlgorithmResults]
         args = [(algo_results, per_worker) for algo_results in self.results.values()]
         if pool is not None:
-            results_ = list(pool.starmap(_with_cumulative_fidelity, args))
+            results_ = pool(delayed(_with_cumulative_fidelity)(*a) for a in args)  # type: ignore
         else:
             results_ = list(starmap(_with_cumulative_fidelity, args))
         results = {k: v for k, v in zip(keys, results_)}
         return replace(self, results=results)
 
     def incumbent_traces(
-        self, xaxis: str, yaxis: str, *, pool: Pool | None = None
+        self, xaxis: str, yaxis: str, *, pool: Parallel | None = None
     ) -> BenchmarkResults:
         keys = self.results.keys()
+        results_: list[AlgorithmResults]
         args = [(algo_results, xaxis, yaxis) for algo_results in self.results.values()]
         if pool is not None:
-            results_ = list(pool.starmap(_incumbent_trace, args))
+            results_ = pool(delayed(_incumbent_trace)(*a) for a in args)  # type: ignore
         else:
             results_ = list(starmap(_incumbent_trace, args))
         results = {k: v for k, v in zip(keys, results_)}
@@ -817,7 +804,7 @@ class BenchmarkResults(Mapping[str, AlgorithmResults]):
         cls,
         path: Path,
         *,
-        pool: Pool | None = None,
+        pool: Parallel | None = None,
         algorithms: list[str] | None = None,
         seeds: list[int] | None = None,
     ) -> BenchmarkResults:
@@ -831,26 +818,26 @@ class BenchmarkResults(Mapping[str, AlgorithmResults]):
         args = [(path / f"algorithm={algo}", seeds) for algo in algorithms]
 
         if pool is not None:
-            results = pool.starmap(_algorithm_results, args)
+            results = pool(delayed(_algorithm_results)(*a) for a in args)
         else:
             results = list(starmap(_algorithm_results, args))
 
-        return cls(results=dict(zip(algorithms, results)))
+        return cls(results=dict(zip(algorithms, results)))  # type: ignore
 
     def rescale_xaxis(
         self,
         xaxis: str,
         c: float,
         *,
-        pool: Pool | None = None,
+        pool: Parallel | None = None,
     ) -> BenchmarkResults:
         keys = self.results.keys()
         args = [(algo_results, xaxis, c) for algo_results in self.results.values()]
         if pool is not None:
-            results_ = list(pool.starmap(_rescale_xaxis, args))
+            results_ = pool(delayed(_rescale_xaxis)(*a) for a in args)
         else:
             results_ = list(starmap(_rescale_xaxis, args))
-        results = {k: v for k, v in zip(keys, results_)}
+        results = {k: v for k, v in zip(keys, results_)}  # type: ignore
         return replace(self, results=results)
 
     def in_range(
@@ -858,15 +845,15 @@ class BenchmarkResults(Mapping[str, AlgorithmResults]):
         bounds: tuple[float, float],
         xaxis: str,
         *,
-        pool: Pool | None = None,
+        pool: Parallel | None = None,
     ) -> BenchmarkResults:
         keys = self.results.keys()
         args = [(algo_results, bounds, xaxis) for algo_results in self.results.values()]
         if pool is not None:
-            results_ = list(pool.starmap(_in_range, args))
+            results_ = pool(delayed(_in_range)(*a) for a in args)
         else:
             results_ = list(starmap(_in_range, args))
-        results = {k: v for k, v in zip(keys, results_)}
+        results = {k: v for k, v in zip(keys, results_)}  # type: ignore
         return replace(self, results=results)
 
     def iter_results(self) -> Iterator[Result]:
@@ -902,7 +889,7 @@ class ExperimentResults(Mapping[str, BenchmarkResults]):
         algorithms: list[str] | None,
         seeds: list[int] | None = None,
         benchmark_config_dir: Path,
-        pool: Pool | None = None,
+        pool: Parallel | None = None,
     ) -> ExperimentResults:
         if benchmarks == []:
             benchmarks = None
@@ -955,14 +942,14 @@ class ExperimentResults(Mapping[str, BenchmarkResults]):
         xs = list(set(flatten(indices)))
         return xs if not sort else sorted(xs)
 
-    def with_continuations(self, pool: Pool | None = None) -> ExperimentResults:
+    def with_continuations(self, pool: Parallel | None = None) -> ExperimentResults:
         results = {k: v.with_continuations(pool) for k, v in self.results.items()}
         return replace(self, results=results)
 
     def with_cumulative_fidelity(
         self,
         per_worker: bool = False,
-        pool: Pool | None = None,
+        pool: Parallel | None = None,
     ) -> ExperimentResults:
         results = {
             k: v.with_cumulative_fidelity(per_worker=per_worker, pool=pool)
@@ -975,7 +962,7 @@ class ExperimentResults(Mapping[str, BenchmarkResults]):
         xaxis: str,
         yaxis: str,
         *,
-        pool: Pool | None = None,
+        pool: Parallel | None = None,
     ) -> ExperimentResults:
         results = {
             k: v.incumbent_traces(xaxis=xaxis, yaxis=yaxis, pool=pool)
@@ -988,7 +975,7 @@ class ExperimentResults(Mapping[str, BenchmarkResults]):
         xaxis: str,
         by: Literal["max_fidelity"],
         *,
-        pool: Pool | None = None,
+        pool: Parallel | None = None,
     ) -> ExperimentResults:
         if by != "max_fidelity":
             raise NotImplementedError(f"by={by}")
@@ -1011,7 +998,7 @@ class ExperimentResults(Mapping[str, BenchmarkResults]):
         bounds: tuple[float, float],
         xaxis: str,
         *,
-        pool: Pool | None = None,
+        pool: Parallel | None = None,
     ) -> ExperimentResults:
         results = {
             k: v.in_range(bounds=bounds, xaxis=xaxis, pool=pool)
