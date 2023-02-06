@@ -3,14 +3,13 @@ from __future__ import annotations
 import json
 import operator
 import pickle
-from contextlib import nullcontext
 from dataclasses import dataclass, field, replace
 from functools import reduce
 from itertools import accumulate, chain, groupby, product, starmap
-from multiprocessing import Pool as make_pool
+from multiprocessing import get_context
 from multiprocessing.pool import Pool
 from pathlib import Path
-from typing import Any, Iterable, Iterator, Mapping, Optional, Sequence, cast, overload
+from typing import Any, Iterable, Iterator, Mapping, Sequence, overload
 
 import mfpbench
 import numpy as np
@@ -51,44 +50,45 @@ def fetch_results(
         with CACHE.open("rb") as f:
             return pickle.load(f)
 
-    context: Pool | nullcontext[None]
+    pool: Pool | None
     if parallel:
-        context = make_pool()
+        ctx = get_context("forkserver")
+        pool = Pool(context=ctx)
     else:
-        context = nullcontext(None)
+        pool = None
 
-    with context as pool:
-        assert isinstance(pool, Pool) or pool is None
-        pool = cast(Optional[Pool], pool)
-        experiment_results = ExperimentResults.load(
-            name=experiment_group,
-            path=RESULTS_DIR,
-            benchmarks=benchmarks,
-            algorithms=algorithms,
-            benchmark_config_dir=BENCHMARK_CONFIG_DIR,
-            pool=pool,
+    experiment_results = ExperimentResults.load(
+        name=experiment_group,
+        path=RESULTS_DIR,
+        benchmarks=benchmarks,
+        algorithms=algorithms,
+        benchmark_config_dir=BENCHMARK_CONFIG_DIR,
+        pool=pool,
+    )
+
+    if continuations:
+        experiment_results = experiment_results.with_continuations(pool=pool)
+
+    if cumulate_fidelities:
+        # fidelities: [1, 1, 3, 1, 9] -> [1, 2, 5, 6, 15]
+        experiment_results = experiment_results.with_cumulative_fidelity(
+            pool=pool, per_worker=(n_workers > 1)
         )
 
-        if continuations:
-            experiment_results = experiment_results.with_continuations(pool=pool)
+    if incumbents_only:
+        # For now we only allow incumbent traces over "loss"
+        experiment_results = experiment_results.incumbent_trace(
+            xaxis=xaxis, yaxis=incumbent_value, pool=pool
+        )
 
-        if cumulate_fidelities:
-            # fidelities: [1, 1, 3, 1, 9] -> [1, 2, 5, 6, 15]
-            experiment_results = experiment_results.with_cumulative_fidelity(
-                pool=pool, per_worker=(n_workers > 1)
-            )
+    if rescale_xaxis:
+        assert rescale_xaxis == "max_fidelity", "All we allow for now"
+        experiment_results = experiment_results.rescale_xaxis(
+            xaxis=xaxis, by=rescale_xaxis, pool=pool
+        )
 
-        if incumbents_only:
-            # For now we only allow incumbent traces over "loss"
-            experiment_results = experiment_results.incumbent_trace(
-                xaxis=xaxis, yaxis=incumbent_value, pool=pool
-            )
-
-        if rescale_xaxis:
-            assert rescale_xaxis == "max_fidelity", "All we allow for now"
-            experiment_results = experiment_results.rescale_xaxis(
-                xaxis=xaxis, by=rescale_xaxis, pool=pool
-            )
+    if isinstance(pool, Pool):
+        pool.close()
 
     if collect:
         with CACHE.open("wb") as f:
