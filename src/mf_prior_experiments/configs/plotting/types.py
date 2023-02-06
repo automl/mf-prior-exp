@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 import json
+import sys
+import os
 import operator
 import pickle
 from dataclasses import dataclass, replace
@@ -9,15 +11,17 @@ from itertools import accumulate, chain, groupby, product, starmap
 from multiprocessing import get_context
 from multiprocessing.pool import Pool
 from pathlib import Path
-from typing import Any, Iterable, Iterator, Mapping, Sequence, overload
+from typing import Any, Iterable, Iterator, Mapping, Sequence, overload, TYPE_CHECKING
 
-import mfpbench
 import numpy as np
 import pandas as pd
 import yaml  # type: ignore
 from yaml import CLoader as Loader
 from more_itertools import all_equal, flatten, pairwise
 from typing_extensions import Literal
+
+if TYPE_CHECKING:
+    import mfpbench
 
 
 def fetch_results(
@@ -54,6 +58,7 @@ def fetch_results(
     pool: Pool | None
     if parallel:
         ctx = get_context("forkserver")
+        ctx.set_forkserver_preload(list(sys.modules.keys()))
         pool = Pool(context=ctx)
     else:
         pool = None
@@ -118,6 +123,9 @@ def _rescale_xaxis(t: Trace, xaxis: str, c: float) -> Trace:
 
 def _in_range(t: Trace, bounds: tuple[float, float], xaxis: str) -> Trace:
     return t.in_range(bounds=bounds, xaxis=xaxis)
+
+def _algorithm_results(path: Path, seeds: list[int] | None) -> AlgorithmResults:
+    return AlgorithmResults.load(path, seeds=seeds)
 
 
 @dataclass
@@ -187,22 +195,22 @@ class Trace(Sequence[Result]):
     results: list[Result]
 
     @classmethod
-    def load(cls, path: Path, *, pool: Pool | None = None) -> Trace:
+    def load(cls, path: Path) -> Trace:
         directories = list(path.iterdir())
         if path / "neps_root_directory" in directories:
-            return cls.load_neps(path, pool=pool)
+            return cls.load_neps(path)
         elif path / "hpbandster_root_directory" in directories:
-            return cls.load_hpbandster(path, pool=pool)
+            return cls.load_hpbandster(path)
         else:
             raise ValueError(f"Neither neps/hpbandster_root_directory in {path}")
 
     @classmethod
-    def load_hpbandster(cls, path: Path, *, pool: Pool | None = None) -> Trace:
+    def load_hpbandster(cls, path: Path) -> Trace:
         result_dir = path / "hpbandster_root_directory"
         configs_file = result_dir / "configs.json"
         results_file = result_dir / "results.json"
         loaded_configs = {}
-        with configs_file.open("r") as f:
+        with configs_file.open() as f:
             for line_ in f:
                 line = json.loads(line_)
                 if len(line) == 3:
@@ -259,7 +267,7 @@ class Trace(Sequence[Result]):
         return cls(results=sorted(parsed_results, key=lambda r: r.end_time))
 
     @classmethod
-    def load_neps(cls, path: Path, *, pool: Pool | None = None) -> Trace:
+    def load_neps(cls, path: Path) -> Trace:
         trace_results_dir = path / "neps_root_directory" / "results"
 
         assert trace_results_dir.exists(), f"Path {trace_results_dir} does not exist"
@@ -540,6 +548,7 @@ class Benchmark:
     @property
     def benchmark(self) -> mfpbench.Benchmark:
         if self._benchmark is None:
+            import mfpbench
             if self.task_id is not None:
                 self._benchmark = mfpbench.get(self.basename, task_id=self.task_id)
             else:
@@ -581,9 +590,13 @@ class AlgorithmResults(Mapping[int, Trace]):
                 if p.is_dir() and "seed" in p.name
             ]
 
-        traces = {}
-        for seed in seeds:
-            traces[seed] = Trace.load(path / f"seed={seed}", pool=pool)
+        paths = [path / f"seed={seed}" for seed in seeds]
+        if pool is not None:
+            traces_ = pool.imap(Trace.load, paths)
+        else:
+            traces_ = map(Trace.load, paths)
+
+        traces = {k: v for k, v in zip(seeds, traces_)}
 
         return cls(traces=traces)
 
@@ -838,15 +851,14 @@ class BenchmarkResults(Mapping[str, AlgorithmResults]):
                 if p.is_dir() and "algo" in p.name
             ]
 
-        results = {}
-        for algo in algorithms:
-            print(f"\t\t{algo}")
-            results[algo] = AlgorithmResults.load(
-                path / f"algorithm={algo}",
-                seeds=seeds,
-                pool=pool,
-            )
-        return cls(results)
+        args = [(path / f"algorithm={algo}", seeds) for algo in algorithms]
+
+        if pool is not None:
+            results = pool.starmap(_algorithm_results, args)
+        else:
+            results = list(starmap(_algorithm_results, args))
+
+        return cls(results=dict(zip(algorithms, results)))
 
     def rescale_xaxis(
         self,

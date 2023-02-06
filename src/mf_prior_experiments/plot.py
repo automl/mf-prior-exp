@@ -20,6 +20,7 @@ from .configs.plotting.styles import (
     X_LABEL,
     Y_LABEL,
 )
+
 from .configs.plotting.types import ExperimentResults, fetch_results
 from .configs.plotting.utils import parse_args, set_general_plot_style
 
@@ -27,6 +28,7 @@ HERE = Path(__file__).parent.absolute()
 DEFAULT_BASE_PATH = HERE.parent.parent
 
 is_last_row = lambda idx, nrows, ncols: idx >= (nrows - 1) * ncols
+HERE = Path(__file__).parent.absolute()
 is_first_column = lambda idx, ncols: idx % ncols == 0
 
 
