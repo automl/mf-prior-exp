@@ -53,7 +53,7 @@ def fetch_results(
             return pickle.load(f)
 
     if parallel:
-        pool = Parallel(backend="multiprocessing")
+        pool = Parallel(backend="multiprocessing", n_jobs=-1)
     else:
         pool = None
 
