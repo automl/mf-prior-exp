@@ -105,24 +105,24 @@ def fetch_results(
 
 # NOTE: These need to be standalone functions for
 # it to work with multiprocessing
-def _with_continuations(t: Trace) -> Trace:
-    return t.with_continuations()
+def _with_continuations(a: AlgorithmResults) -> AlgorithmResults:
+    return a.with_continuations()
 
 
-def _with_cumulative_fidelity(t: Trace, per_worker: bool = False) -> Trace:
-    return t.with_cumulative_fidelity(per_worker=per_worker)
+def _with_cumulative_fidelity(a: AlgorithmResults, per_worker: bool = False) -> AlgorithmResults:
+    return a.with_cumulative_fidelity(per_worker=per_worker)
 
 
-def _incumbent_trace(t: Trace, xaxis: str, yaxis: str) -> Trace:
-    return t.incumbent_trace(xaxis=xaxis, yaxis=yaxis)
+def _incumbent_trace(a: AlgorithmResults, xaxis: str, yaxis: str) -> AlgorithmResults:
+    return a.incumbent_traces(xaxis=xaxis, yaxis=yaxis)
 
 
-def _rescale_xaxis(t: Trace, xaxis: str, c: float) -> Trace:
-    return t.rescale_xaxis(xaxis=xaxis, c=c)
+def _rescale_xaxis(a: AlgorithmResults, xaxis: str, c: float) -> AlgorithmResults:
+    return a.rescale_xaxis(xaxis=xaxis, c=c)
 
 
-def _in_range(t: Trace, bounds: tuple[float, float], xaxis: str) -> Trace:
-    return t.in_range(bounds=bounds, xaxis=xaxis)
+def _in_range(a: AlgorithmResults, bounds: tuple[float, float], xaxis: str) -> AlgorithmResults:
+    return a.in_range(bounds=bounds, xaxis=xaxis)
 
 def _algorithm_results(path: Path, seeds: list[int] | None) -> AlgorithmResults:
     return AlgorithmResults.load(path, seeds=seeds)
@@ -592,9 +592,9 @@ class AlgorithmResults(Mapping[int, Trace]):
 
         paths = [path / f"seed={seed}" for seed in seeds]
         if pool is not None:
-            traces_ = pool.imap(Trace.load, paths)
+            traces_ = list(pool.imap(Trace.load, paths))
         else:
-            traces_ = map(Trace.load, paths)
+            traces_ = list(map(Trace.load, paths))
 
         traces = {k: v for k, v in zip(seeds, traces_)}
 
@@ -616,29 +616,16 @@ class AlgorithmResults(Mapping[int, Trace]):
 
     def with_continuations(self, pool: Pool | None = None) -> AlgorithmResults:
         """Return a new AlgorithmResults with continuations."""
-        traces: Iterable[Trace]
-        if pool is not None:
-            traces = pool.imap(_with_continuations, self.traces.values())
-        else:
-            traces = map(_with_continuations, self.traces.values())
-
-        itr = zip(self.traces.keys(), traces)
-        return replace(self, traces={seed: trace for seed, trace in itr})
+        traces = {seed: trace.with_continuations() for seed, trace in self.traces.items()}
+        return replace(self, traces=traces)
 
     def with_cumulative_fidelity(
         self,
         per_worker: bool = False,
         pool: Pool | None = None,
     ) -> AlgorithmResults:
-        args = [(trace, per_worker) for trace in self.traces.values()]
-        traces: Iterable[Trace]
-        if pool is not None:
-            traces = pool.starmap(_with_cumulative_fidelity, args)
-        else:
-            traces = starmap(_with_cumulative_fidelity, args)
-
-        itr = zip(self.traces.keys(), traces)
-        return replace(self, traces={seed: trace for seed, trace in itr})
+        traces = {seed: trace.with_cumulative_fidelity(per_worker=per_worker) for seed, trace in self.traces.items()}
+        return replace(self, traces=traces)
 
     def incumbent_traces(
         self,
@@ -646,28 +633,14 @@ class AlgorithmResults(Mapping[int, Trace]):
         yaxis: str,
         pool: Pool | None = None,
     ) -> AlgorithmResults:
-        args = [(trace, xaxis, yaxis) for trace in self.traces.values()]
-        traces: Iterable[Trace]
-        if pool is not None:
-            traces = pool.starmap(_incumbent_trace, args)
-        else:
-            traces = starmap(_incumbent_trace, args)
-
-        itr = zip(self.traces.keys(), traces)
-        return replace(self, traces={seed: trace for seed, trace in itr})
+        traces = {seed: trace.incumbent_trace(xaxis=xaxis, yaxis=yaxis) for seed, trace in self.traces.items()}
+        return replace(self, traces=traces)
 
     def rescale_xaxis(
         self, xaxis: str, c: float, *, pool: Pool | None = None
     ) -> AlgorithmResults:
-        args = [(trace, xaxis, c) for trace in self.traces.values()]
-        traces: Iterable[Trace]
-        if pool is not None:
-            traces = pool.starmap(_rescale_xaxis, args)
-        else:
-            traces = starmap(_rescale_xaxis, args)
-
-        itr = zip(self.traces.keys(), traces)
-        return replace(self, traces={seed: trace for seed, trace in itr})
+        traces = {seed: trace.rescale_xaxis(xaxis=xaxis, c=c) for seed, trace in self.traces.items()}
+        return replace(self, traces=traces)
 
     def in_range(
         self,
@@ -676,15 +649,8 @@ class AlgorithmResults(Mapping[int, Trace]):
         *,
         pool: Pool | None = None,
     ) -> AlgorithmResults:
-        args = [(trace, bounds, xaxis) for trace in self.traces.values()]
-        traces: Iterable[Trace]
-        if pool is not None:
-            traces = pool.starmap(_in_range, args)
-        else:
-            traces = starmap(_in_range, args)
-
-        itr = zip(self.traces.keys(), traces)
-        return replace(self, traces={seed: trace for seed, trace in itr})
+        traces = {seed: trace.in_range(bounds=bounds, xaxis=xaxis) for seed, trace in self.traces.items()}
+        return replace(self, traces=traces)
 
     def df(
         self,
@@ -758,25 +724,36 @@ class BenchmarkResults(Mapping[str, AlgorithmResults]):
         return set().union(*algo_seeds)
 
     def with_continuations(self, pool: Pool | None = None) -> BenchmarkResults:
-        results = {k: v.with_continuations(pool) for k, v in self.results.items()}
+        keys = self.results.keys()
+        if pool is not None:
+            results_ = list(pool.imap(_with_continuations, self.results.values()))
+        else:
+            results_ = list(map(_with_continuations, self.results.values()))
+        results = {k: v for k, v in zip(keys, results_)}
         return replace(self, results=results)
 
     def with_cumulative_fidelity(
         self, per_worker: bool = False, pool: Pool | None = None
     ) -> BenchmarkResults:
-        results = {
-            k: v.with_cumulative_fidelity(pool=pool, per_worker=per_worker)
-            for k, v in self.results.items()
-        }
+        keys = self.results.keys()
+        args = [(algo_results, per_worker) for algo_results in self.results.values()]
+        if pool is not None:
+            results_ = list(pool.starmap(_with_cumulative_fidelity, args))
+        else:
+            results_ = list(starmap(_with_cumulative_fidelity, args))
+        results = {k: v for k, v in zip(keys, results_)}
         return replace(self, results=results)
 
     def incumbent_traces(
         self, xaxis: str, yaxis: str, *, pool: Pool | None = None
     ) -> BenchmarkResults:
-        results = {
-            k: v.incumbent_traces(pool=pool, xaxis=xaxis, yaxis=yaxis)
-            for k, v in self.results.items()
-        }
+        keys = self.results.keys()
+        args = [(algo_results, xaxis, yaxis) for algo_results in self.results.values()]
+        if pool is not None:
+            results_ = list(pool.starmap(_incumbent_trace, args))
+        else:
+            results_ = list(starmap(_incumbent_trace, args))
+        results = {k: v for k, v in zip(keys, results_)}
         return replace(self, results=results)
 
     def ranks(
@@ -867,10 +844,13 @@ class BenchmarkResults(Mapping[str, AlgorithmResults]):
         *,
         pool: Pool | None = None,
     ) -> BenchmarkResults:
-        results = {
-            name: algo_results.rescale_xaxis(xaxis=xaxis, c=c, pool=pool)
-            for name, algo_results in self.results.items()
-        }
+        keys = self.results.keys()
+        args = [(algo_results, xaxis, c) for algo_results in self.results.values()]
+        if pool is not None:
+            results_ = list(pool.starmap(_rescale_xaxis, args))
+        else:
+            results_ = list(starmap(_rescale_xaxis, args))
+        results = {k: v for k, v in zip(keys, results_)}
         return replace(self, results=results)
 
     def in_range(
@@ -880,10 +860,13 @@ class BenchmarkResults(Mapping[str, AlgorithmResults]):
         *,
         pool: Pool | None = None,
     ) -> BenchmarkResults:
-        results = {
-            name: algo_results.in_range(bounds=bounds, xaxis=xaxis, pool=pool)
-            for name, algo_results in self.results.items()
-        }
+        keys = self.results.keys()
+        args = [(algo_results, bounds, xaxis) for algo_results in self.results.values()]
+        if pool is not None:
+            results_ = list(pool.starmap(_in_range, args))
+        else:
+            results_ = list(starmap(_in_range, args))
+        results = {k: v for k, v in zip(keys, results_)}
         return replace(self, results=results)
 
     def iter_results(self) -> Iterator[Result]:
