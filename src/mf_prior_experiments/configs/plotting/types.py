@@ -1,17 +1,20 @@
 from __future__ import annotations
 
 from contextlib import nullcontext
+import operator
 from dataclasses import dataclass, field, replace
-from itertools import accumulate, chain, groupby, starmap
+from functools import reduce
+from itertools import accumulate, chain, groupby, product, starmap
 from multiprocessing import Pool as make_pool
 from multiprocessing.pool import Pool
 from pathlib import Path
 from typing import Any, Iterable, Iterator, Mapping, Optional, Sequence, cast, overload
 
 import mfpbench
+import numpy as np
 import pandas as pd
 import yaml  # type: ignore
-from more_itertools import all_equal, pairwise
+from more_itertools import all_equal, pairwise, flatten
 from typing_extensions import Literal
 
 
@@ -197,14 +200,6 @@ class Result:
 
 
 @dataclass
-class Algorithm:
-    name: str
-
-    def __hash__(self) -> int:
-        return hash(self.name)
-
-
-@dataclass
 class Trace(Sequence[Result]):
     results: list[Result]
 
@@ -248,6 +243,10 @@ class Trace(Sequence[Result]):
 
     def __len__(self) -> int:
         return len(self.results)
+
+    def indices(self, xaxis: str, *, sort: bool = True) -> list[float]:
+        xs = [getattr(r, xaxis) for r in self.results]
+        return xs if not sort else sorted(xs)
 
     @property
     def df(self) -> pd.DataFrame:
@@ -340,6 +339,10 @@ class Trace(Sequence[Result]):
                 key=lambda r: r.process_id if r.process_id is not None else 0,
             )
             # Group each processes list of results and make them each an individual trace
+            # 0: Trace([...])
+            # 1: [...]
+            # 2: [...]
+            # 3: [...]
             results_per_process = {
                 pid: Trace(results=list(presults))
                 for pid, presults in groupby(results, key=lambda r: r.process_id)
@@ -357,7 +360,7 @@ class Trace(Sequence[Result]):
             # NOTE: If removing this line and we expect someting
             # other than a loss, which needs to be minimized,
             # plese look for the `min` below and deal with it accordingly
-            # i.e. if we used "score" instead, this `min` would need to be 
+            # i.e. if we used "score" instead, this `min` would need to be
             # a `max`
             assert yaxis == "loss", f"{yaxis} not supported right now"
 
@@ -374,8 +377,9 @@ class Trace(Sequence[Result]):
             # result with the minimum `yaxis` value (e.g. loss)
             cumulated_results = [
                 min(results, key=lambda r: getattr(r, yaxis))
-                for _, results
-                in groupby(cumulated_results, key=lambda r: r.cumulated_fidelity)
+                for _, results in groupby(
+                    cumulated_results, key=lambda r: r.cumulated_fidelity
+                )
             ]
 
             # Finally resort tem according to cumulated fidelities so the timeline
@@ -468,7 +472,7 @@ class Benchmark:
             prior=config["api"]["prior"],
             epsilon=config["api"].get("epsilon"),
             task_id=config["api"].get("task_id"),
-            optimum=config["api"].get("optimum"),
+            optimum=config.get("optimum"),
             prior_error=config["prior_highest_fidelity_error"],
             best_10_error=config["best_10_error"],
             best_25_error=config["best_25_error"],
@@ -527,6 +531,20 @@ class AlgorithmResults(Mapping[int, Trace]):
         traces = {seed: Trace.load(path / f"seed={seed}", pool=pool) for seed in seeds}
         return cls(traces=traces)
 
+    def select(self, seeds: list[int] | None = None) -> AlgorithmResults:
+        if seeds is None:
+            return replace(self)
+
+        return replace(self, traces={s: self.traces[s] for s in seeds})
+
+    def seeds(self) -> set[int]:
+        return set(self.traces.keys())
+
+    def indices(self, xaxis: str, *, sort: bool = True) -> list[float]:
+        indices = [trace.indices(xaxis, sort=False) for trace in self.traces.values()]
+        xs = list(set(flatten(indices)))
+        return xs if not sort else sorted(xs)
+
     def with_continuations(self, pool: Pool | None = None) -> AlgorithmResults:
         """Return a new AlgorithmResults with continuations."""
         traces: Iterable[Trace]
@@ -539,7 +557,9 @@ class AlgorithmResults(Mapping[int, Trace]):
         return replace(self, traces={seed: trace for seed, trace in itr})
 
     def with_cumulative_fidelity(
-        self, per_worker: bool = False, pool: Pool | None = None
+        self,
+        per_worker: bool = False,
+        pool: Pool | None = None,
     ) -> AlgorithmResults:
         args = [(trace, per_worker) for trace in self.traces.values()]
         traces: Iterable[Trace]
@@ -552,7 +572,10 @@ class AlgorithmResults(Mapping[int, Trace]):
         return replace(self, traces={seed: trace for seed, trace in itr})
 
     def incumbent_traces(
-        self, xaxis: str, yaxis: str, pool: Pool | None = None
+        self,
+        xaxis: str,
+        yaxis: str,
+        pool: Pool | None = None,
     ) -> AlgorithmResults:
         args = [(trace, xaxis, yaxis) for trace in self.traces.values()]
         traces: Iterable[Trace]
@@ -594,15 +617,35 @@ class AlgorithmResults(Mapping[int, Trace]):
         itr = zip(self.traces.keys(), traces)
         return replace(self, traces={seed: trace for seed, trace in itr})
 
-    def df(self, index: str, values: str) -> pd.DataFrame:
+    def df(
+        self,
+        index: str,
+        values: str,
+        *,
+        seeds: int | list[int] | None = None,
+    ) -> pd.DataFrame | pd.Series:
         """Return a dataframe with the traces."""
+        if seeds is None:
+            traces = self.traces
+        elif isinstance(seeds, int):
+            traces = {seeds: self.traces[seeds]}
+        else:
+            traces = {seed: self.traces[seed] for seed in seeds}
+
         columns = [
             trace.series(index=index, values=values, name=f"seed-{seed}")
-            for seed, trace in self.traces.items()
+            for seed, trace in traces.items()
         ]
         df = pd.concat(columns, axis=1).sort_index(ascending=True)
 
-        assert isinstance(df, pd.DataFrame)
+        if len(traces) == 1:
+            assert isinstance(df, pd.DataFrame)
+            assert len(df.columns) == 1, df
+            df = df[df.columns[0]]
+            assert isinstance(df, pd.Series), f"{type(df)},\n{df}"
+        else:
+            assert isinstance(df, pd.DataFrame)
+
         return df
 
     def iter_results(self) -> Iterator[Result]:
@@ -621,6 +664,29 @@ class AlgorithmResults(Mapping[int, Trace]):
 @dataclass
 class BenchmarkResults(Mapping[str, AlgorithmResults]):
     results: Mapping[str, AlgorithmResults]
+
+    def select(
+        self,
+        *,
+        algorithms: list[str] | None = None,
+        seeds: list[int] | None = None,
+    ) -> BenchmarkResults:
+        if algorithms is None:
+            selected = set(self.results.keys())
+        else:
+            selected = set(algorithms)
+
+        results = {a: r.select(seeds) for a, r in self.results.items() if a in selected}
+        return replace(self, results=results)
+
+    def indices(self, xaxis: str, *, sort: bool = True) -> list[float]:
+        indices = [algo.indices(xaxis, sort=False) for algo in self.results.values()]
+        xs = list(set(flatten(indices)))
+        return xs if not sort else sorted(xs)
+
+    def seeds(self) -> set[int]:
+        algo_seeds = [algo.seeds() for algo in self.results.values()]
+        return set().union(*algo_seeds)
 
     def with_continuations(self, pool: Pool | None = None) -> BenchmarkResults:
         results = {k: v.with_continuations(pool) for k, v in self.results.items()}
@@ -643,6 +709,62 @@ class BenchmarkResults(Mapping[str, AlgorithmResults]):
             for k, v in self.results.items()
         }
         return replace(self, results=results)
+
+    def ranks(
+        self,
+        xaxis: str,
+        yaxis: str,
+        seed: int,
+        indices: Sequence[float] | None = None,
+    ) -> pd.DataFrame:
+        """Rank results for each algorithm on this benchmark for a certain seed."""
+        # NOTE: Everything here is in the context of a given seed for this
+        # benchmark
+        # {
+        #   A1: [result_trace...]
+        #   A2: [result_trace...]
+        #   A3: [result_trace...]
+        # }
+        seed_results = {
+            algo: results.select(seeds=[seed]) for algo, results in self.results.items()
+        }
+
+        # {
+        #   A1: [incumbent_trace...]
+        #   A2: [incumbent_trace...]
+        #   A3: [incumbent_trace...]
+        # }
+        incumbent_results = {
+            algo: results.incumbent_traces(xaxis=xaxis, yaxis="loss")
+            for algo, results in seed_results.items()
+        }
+
+        # xaxis  |  A1,     A2,    A3
+        #  1     |   .      .      .
+        #  3     |   .      .      .
+        #  6     |   .     nan     .
+        #  9     |   .      .      .
+        #  12    | nan      .      .
+        series = [
+            results.df(index=xaxis, values=yaxis).rename(algo)
+            for algo, results in incumbent_results.items()
+        ]
+        df = pd.concat(series, axis=1)  # type: ignore
+
+        # There may be a case where we want to merge this
+        # rank table with another rank table and so we need
+        # them to share the same set of indicies. Hence
+        # we allow this as an option.
+        if indices is not None:
+            missing_indices = set(indices) - set(df.index)
+            for index in missing_indices:
+                df.loc[index] = np.nan
+
+            df = df.sort_index(ascending=True)
+
+        df = df.fillna(method="ffill", axis=0)
+        df = df.rank(method="average", axis=1)
+        return df
 
     @classmethod
     def load(
@@ -669,7 +791,11 @@ class BenchmarkResults(Mapping[str, AlgorithmResults]):
         return cls(results)
 
     def rescale_xaxis(
-        self, xaxis: str, c: float, *, pool: Pool | None = None
+        self,
+        xaxis: str,
+        c: float,
+        *,
+        pool: Pool | None = None,
     ) -> BenchmarkResults:
         results = {
             name: algo_results.rescale_xaxis(xaxis=xaxis, c=c, pool=pool)
@@ -744,6 +870,11 @@ class ExperimentResults(Mapping[str, BenchmarkResults]):
             },
         )
 
+    def indices(self, xaxis: str, *, sort: bool = True) -> list[float]:
+        indices = [bench.indices(xaxis, sort=False) for bench in self.results.values()]
+        xs = list(set(flatten(indices)))
+        return xs if not sort else sorted(xs)
+
     def with_continuations(self, pool: Pool | None = None) -> ExperimentResults:
         results = {k: v.with_continuations(pool) for k, v in self.results.items()}
         return replace(self, results=results)
@@ -773,7 +904,11 @@ class ExperimentResults(Mapping[str, BenchmarkResults]):
         return replace(self, results=results)
 
     def rescale_xaxis(
-        self, xaxis: str, by: Literal["max_fidelity"], *, pool: Pool | None = None
+        self,
+        xaxis: str,
+        by: Literal["max_fidelity"],
+        *,
+        pool: Pool | None = None,
     ) -> ExperimentResults:
         if by != "max_fidelity":
             raise NotImplementedError(f"by={by}")
@@ -792,7 +927,11 @@ class ExperimentResults(Mapping[str, BenchmarkResults]):
         return replace(self, results=results)
 
     def in_range(
-        self, bounds: tuple[float, float], xaxis: str, *, pool: Pool | None = None
+        self,
+        bounds: tuple[float, float],
+        xaxis: str,
+        *,
+        pool: Pool | None = None,
     ) -> ExperimentResults:
         results = {
             k: v.in_range(bounds=bounds, xaxis=xaxis, pool=pool)
@@ -814,3 +953,70 @@ class ExperimentResults(Mapping[str, BenchmarkResults]):
             benchmark_results.iter_results()
             for benchmark_results in self.results.values()
         )
+
+    def select(
+        self,
+        *,
+        benchmarks: list[str] | None = None,
+        algorithms: list[str] | None = None,
+        seeds: list[int] | None = None,
+    ) -> ExperimentResults:
+        if benchmarks is None:
+            benchmarks_set = set(self.benchmarks)
+        else:
+            benchmarks_set = set(benchmarks)
+
+
+        selected_results = {
+            name: benchmark.select(algorithms=algorithms, seeds=seeds)
+            for name, benchmark in self.results.items()
+            if name in benchmarks_set
+        }
+        benchmark_configs = {
+            name: config
+            for name, config in self.benchmark_configs.items()
+            if name in benchmarks_set
+        }
+
+        if algorithms is None:
+            algorithms = self.algorithms
+
+        return replace(
+            self,
+            name=self.name,
+            benchmarks=benchmarks,
+            algorithms=algorithms,
+            results=selected_results,
+            benchmark_configs=benchmark_configs,
+        )
+
+    def seeds(self) -> set[int]:
+        bench_seeds = [bench.seeds() for bench in self.results.values()]
+        return set().union(*bench_seeds)
+
+    def ranks(self, *, xaxis: str, yaxis: str) -> tuple[pd.DataFrame, pd.DataFrame]:
+        indices = self.indices(xaxis=xaxis, sort=False)
+        seeds = self.seeds()
+        bench_results = self.results.values()
+
+        ranks = {
+            seed: bench.ranks(xaxis, yaxis, seed=seed, indices=indices)
+            for bench, seed in product(bench_results, seeds)
+        }
+
+        ranks_accumulated = reduce(operator.add, ranks.values())
+        means = ranks_accumulated / len(ranks)
+
+        stds = pd.DataFrame(columns=self.algorithms)
+        for algorithm in self.algorithms:
+            algorithm_ranks_per_seed: list[pd.Series] = [
+                rank_df[algorithm].rename(f"seed-{seed}")  # type: ignore
+                for seed, rank_df in ranks.items()
+            ]
+            # Stack all the seed results as columns
+            algorithm_results = pd.concat(algorithm_ranks_per_seed, axis=1)
+
+            # Take the standard deviation over all of them
+            stds[algorithm] = algorithm_results.std(axis=1).rename(algorithm)
+
+        return means, stds
