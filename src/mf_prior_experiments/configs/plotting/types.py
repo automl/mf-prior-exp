@@ -1115,6 +1115,6 @@ class ExperimentResults(Mapping[str, BenchmarkResults]):
             algorithm_results = pd.concat(algorithm_ranks_per_seed, axis=1)
 
             # Take the standard deviation over all of them
-            stds[algorithm] = algorithm_results.std(axis=1).rename(algorithm)
+            stds[algorithm] = algorithm_results.sem(axis=1).rename(algorithm)
 
         return means, stds
