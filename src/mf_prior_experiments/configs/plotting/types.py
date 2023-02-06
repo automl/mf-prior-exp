@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 import operator
 import pickle
 from contextlib import nullcontext
@@ -220,7 +221,78 @@ class Trace(Sequence[Result]):
 
     @classmethod
     def load(cls, path: Path, *, pool: Pool | None = None) -> Trace:
+        directories = list(path.iterdir())
+        if path / "neps_root_directory" in directories:
+            return cls.load_neps(path, pool=pool)
+        elif path / "hpbandster_root_directory" in directories:
+            return cls.load_hpbandster(path, pool=pool)
+        else:
+            raise ValueError(f"Neither neps/hpbandster_root_directory in {path}")
+
+    @classmethod
+    def load_hpbandster(cls, path: Path, *, pool: Pool | None = None) -> Trace:
+        result_dir = path / "hpbandster_root_directory"
+        configs_file = result_dir / "configs.json"
+        results_file = result_dir / "results.json"
+        loaded_configs = {}
+        with configs_file.open("r") as f:
+            for line_ in f:
+                line = json.loads(line_)
+                if len(line) == 3:
+                    id_, config, _ = line
+                else:
+                    id_, config = line
+
+                hpbandster_config_id = tuple(id_)
+                loaded_configs[hpbandster_config_id] = {"config": config}
+
+        new_id_mappings = {
+            hpbandster_config_id: i
+            for i, hpbandster_config_id in enumerate(loaded_configs)
+        }
+
+        hpbandster_results = []
+        with results_file.open("r") as f:
+            for line_ in f:
+                line = json.loads(line_)
+                id_, budget, time_stamps, result, _ = line
+                info = result["info"]
+                id_ = tuple(id_)
+                config = loaded_configs[id_]
+                new_id = new_id_mappings[id_]
+
+                hpbandster_results.append(
+                    {
+                        "config": {"id": new_id, "params": config, "bracket": None},
+                        "start_time": time_stamps["started"],
+                        "end_time": time_stamps["finished"],
+                        "loss": result["loss"],
+                        "cost": result["cost"],
+                        "val_score": info["val_score"],
+                        "test_score": info["test_score"],
+                        "max_fidelity_loss": info["max_fidelity_loss"],
+                        "max_fidelity_cost": info["max_fidelity_cost"],
+                        "fidelity": int(budget),
+                    }
+                )
+
+        unique_fidelities = set(r["fidelity"] for r in hpbandster_results)
+        _fid_to_bracket = {f: i for i, f in enumerate(sorted(unique_fidelities))}
+
+        for result in hpbandster_results:
+            config = result["config"]
+            id_, params = config["id"], config["params"]
+            fidelity = result["fidelity"]
+            bracket = _fid_to_bracket[fidelity]
+            result["config"] = Config(id=id_, bracket=bracket, params=params)
+
+        parsed_results = [Result(**r) for r in hpbandster_results]
+        return cls(results=sorted(parsed_results, key=lambda r: r.end_time))
+
+    @classmethod
+    def load_neps(cls, path: Path, *, pool: Pool | None = None) -> Trace:
         trace_results_dir = path / "neps_root_directory" / "results"
+
         assert trace_results_dir.exists(), f"Path {trace_results_dir} does not exist"
         config_dirs = [
             p for p in trace_results_dir.iterdir() if p.is_dir() and "config" in p.name

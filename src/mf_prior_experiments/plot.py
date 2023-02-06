@@ -228,7 +228,10 @@ def plot_incumbent_traces(
                 _ax.set_ylim(auto=True)
 
         ax.set_xlim(left=left, right=right)
-        xticks = list(range(left, right + 1, 2))
+        if (left, right) == (1, 12):
+            xticks = [1, 3, 5, 8, 12]
+        else:
+            xticks = np.linspace(left, right, 5, dtype=int, endpoint=True).tolist()
         ax.set_xticks(xticks, xticks)
 
         ax.set_title(
@@ -247,9 +250,8 @@ def plot_incumbent_traces(
         ax.grid(True, which="both", ls="-", alpha=0.8)
 
         if plot_default and benchmark_config.prior_error is not None:
-            ax.plot(
-                all_indices,
-                [benchmark_config.prior_error] * len(all_indices),
+            ax.axhline(
+                benchmark_config.prior_error,
                 color="black",
                 linestyle=":",
                 linewidth=1.0,
@@ -259,9 +261,8 @@ def plot_incumbent_traces(
 
         if plot_optimum and benchmark_config.optimum is not None:
             # plot only if the optimum score is better than the first incumbent plotted
-            ax.plot(
-                all_indices,
-                [benchmark_config.optimum] * len(all_indices),
+            ax.axhline(
+                benchmark_config.optimum,
                 color="black",
                 linestyle="-.",
                 linewidth=1.2,
