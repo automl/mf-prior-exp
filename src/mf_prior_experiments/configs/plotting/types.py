@@ -387,7 +387,7 @@ class Trace(Sequence[Result]):
             assert all_equal(r.process_id for r in self.results)
         else:
             assert all(r.process_id is not None for r in self.results)
-            assert len({r.process_id for r in self.results}) > n_workers, f"{self}"
+            assert len({r.process_id for r in self.results}) >= n_workers, f"{self}"
 
         if n_workers is None or n_workers == 1:
             results = sorted(self.results, key=lambda r: r.end_time)
