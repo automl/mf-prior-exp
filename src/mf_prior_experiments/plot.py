@@ -155,6 +155,10 @@ def plot_relative_ranks(
             if x_together is not None:
                 means = means.loc[x_together:]
                 stds = stds.loc[x_together:]
+            elif x_together is None:
+                # Otherwise, we just use whatever the xaxis cutoff is
+                means = means.loc[left:]
+                stds = stds.loc[left:]
 
             # Center everything
             means.loc[0] = center
