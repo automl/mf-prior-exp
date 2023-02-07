@@ -102,8 +102,10 @@ def _with_continuations(a: AlgorithmResults) -> AlgorithmResults:
 
 
 def _with_cumulative_fidelity(
-    a: AlgorithmResults, n_workers: int | None = None
+    a: AlgorithmResults, n_workers: int | None = None, algo_name: str | None = None
 ) -> AlgorithmResults:
+    if algo_name:
+        print(f"cumulative_fidelity algo: {algo}")
     return a.with_cumulative_fidelity(n_workers=n_workers)
 
 
@@ -747,7 +749,7 @@ class BenchmarkResults(Mapping[str, AlgorithmResults]):
     ) -> BenchmarkResults:
         keys = self.results.keys()
         results_: list[AlgorithmResults]
-        args = [(algo_results, n_workers) for algo_results in self.results.values()]
+        args = [(algo_results, n_workers, algo_name) for algo_name, algo_results in self.results.items()]
         if pool is not None:
             results_ = pool(delayed(_with_cumulative_fidelity)(*a) for a in args)  # type: ignore
         else:
