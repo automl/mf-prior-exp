@@ -30,6 +30,7 @@ def fetch_results(
     parallel: bool = True,
     continuations: bool = True,
     cumulate_fidelities: bool = True,
+    rescale: bool = True,
     rescale_xaxis: Literal["max_fidelity"] = "max_fidelity",
     incumbents_only: bool = True,
     incumbent_value: Literal["loss"] = "loss",
@@ -81,7 +82,7 @@ def fetch_results(
             xaxis=xaxis, yaxis=incumbent_value, pool=pool
         )
 
-    if rescale_xaxis:
+    if rescale and rescale_xaxis:
         assert rescale_xaxis == "max_fidelity", "All we allow for now"
         experiment_results = experiment_results.rescale_xaxis(
             xaxis=xaxis, by=rescale_xaxis, pool=pool
