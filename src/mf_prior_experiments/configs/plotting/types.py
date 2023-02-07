@@ -621,10 +621,10 @@ class AlgorithmResults(Mapping[int, Trace]):
         return replace(self, traces=traces)
 
     def with_cumulative_fidelity(self, n_workers: int | None = None) -> AlgorithmResults:
-        traces = {
-            seed: trace.with_cumulative_fidelity(n_workers=n_workers)
-            for seed, trace in self.traces.items()
-        }
+        traces = {}
+        for seed, trace in self.traces.items():
+            print(f"cumulative_fidelity {seed}")
+            traces[seed] = trace.with_cumulative_fidelity(n_workers=n_workers)
         return replace(self, traces=traces)
 
     def incumbent_traces(
