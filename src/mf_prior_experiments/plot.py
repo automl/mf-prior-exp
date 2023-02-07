@@ -104,6 +104,9 @@ def plot_relative_ranks(
             "bad corr. & bad prior": bad_corr_bad_prior,
         }
 
+    for key, value in subplots.items():
+        print(key, value.results.keys())
+
     ncols = len(subplots)
     nrows = 1
     figsize = (ncols * 4, nrows * 3)
@@ -265,6 +268,7 @@ def plot_incumbent_traces(
         if dynamic_y_lim:
             y_values = [
                 getattr(result, yaxis) for result in benchmark_results.iter_results()
+                if getattr(results, xaxis) >= left and getattr(results, xaxis) <= right
             ]
             y_min, y_max = min(y_values), max(y_values)
             dy = abs(y_max - y_min)
@@ -371,7 +375,7 @@ def plot_incumbent_traces(
     return fig
 
 
-if __name__ == "__main__":
+def main():
     args = parse_args()
 
     experiment_group: str = args.experiment_group
@@ -471,6 +475,8 @@ if __name__ == "__main__":
         # aggrgating by prior kind
         good_prior_benchmarks = [*args.rr_good_corr_good_prior, *args.rr_bad_corr_good_prior]
         bad_prior_benchmarks = [*args.rr_good_corr_bad_prior, *args.rr_bad_corr_bad_prior]
+        print(f"good_prior_benchmarks={good_prior_benchmarks}")
+        print(f"bad_prior_benchmarks={bad_prior_benchmarks}")
 
         for yaxis in yaxes:
             fig = plot_relative_ranks(
@@ -494,6 +500,8 @@ if __name__ == "__main__":
         # aggrgating by correlation kind
         good_corr_benchmarks = [*args.rr_good_corr_good_prior, *args.rr_good_corr_bad_prior]
         bad_corr_benchmarks = [*args.rr_bad_corr_good_prior, *args.rr_bad_corr_bad_prior]
+        print(f"good_corr_benchmarks={good_corr_benchmarks}")
+        print(f"bad_corr_benchmarks={bad_corr_benchmarks}")
 
         for yaxis in yaxes:
             fig = plot_relative_ranks(
@@ -513,3 +521,5 @@ if __name__ == "__main__":
             fig.savefig(filepath, bbox_inches="tight", dpi=args.dpi)
             print(f"Saved to {filename} to {filepath}")
 
+if __name__ == "__main__":
+    main()

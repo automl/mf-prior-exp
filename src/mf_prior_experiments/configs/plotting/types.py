@@ -1094,7 +1094,7 @@ class ExperimentResults(Mapping[str, BenchmarkResults]):
         return replace(
             self,
             name=self.name,
-            benchmarks=benchmarks,
+            benchmarks=list(benchmarks_set),
             algorithms=algorithms,
             results=selected_results,
             benchmark_configs=benchmark_configs,
