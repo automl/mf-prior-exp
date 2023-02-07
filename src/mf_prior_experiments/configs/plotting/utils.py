@@ -26,6 +26,7 @@ def parse_args() -> Namespace:
     parser.add_argument("--n_workers", type=int, default=1)
     parser.add_argument("--budget", nargs="+", type=float, default=None)
     parser.add_argument("--x_range", nargs=2, type=float, default=None)
+    parser.add_argument("--x_together", type=float, default=None)
 
     parser.add_argument("--dpi", type=int, default=200)
     parser.add_argument("--ext", type=str, choices=["pdf", "png"], default="png")
@@ -41,6 +42,9 @@ def parse_args() -> Namespace:
 
     if not args.collect and args.filename is None:
         raise ValueError("Must specify --filename unless using --collect")
+
+    if args.x_together and args.x_range and args.x_together < args.x_range[0]:
+        raise ValueError("--x_together must be larger than --x_range[0]")
 
     if not args.collect and len(args.algorithms) == 0:
         raise ValueError("Must specify --algorithms unless using --collect")

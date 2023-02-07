@@ -73,17 +73,38 @@ def reorganize_legend(
 
 
 def plot_relative_ranks(
-    good_corr_good_prior: ExperimentResults,
-    good_corr_bad_prior: ExperimentResults,
-    bad_corr_good_prior: ExperimentResults,
-    bad_corr_bad_prior: ExperimentResults,
     algorithms: list[str],
     yaxis: str,
     xaxis: str,
+    good_corr_good_prior: ExperimentResults | None = None,
+    good_corr_bad_prior: ExperimentResults | None = None,
+    bad_corr_good_prior: ExperimentResults | None = None,
+    bad_corr_bad_prior: ExperimentResults | None = None,
+    pairwise_plots: tuple[tuple[str, ExperimentResults], tuple[str, ExperimentResults]] | None = None,
+    x_together: float | None = None,
     x_range: tuple[int, int] | None = None,
 ) -> plt.Figure:
     """Plot relative ranks of the incumbent over time."""
-    ncols = 4
+
+    if pairwise_plots:
+        assert good_corr_good_prior is None
+        assert good_corr_bad_prior is None
+        assert bad_corr_good_prior is None
+        assert bad_corr_bad_prior is None
+        subplots = {title: results for title, results in pairwise_plots}
+    else:
+        assert good_corr_good_prior is not None
+        assert good_corr_bad_prior is not None
+        assert bad_corr_good_prior is not None
+        assert bad_corr_bad_prior is not None
+        subplots = {
+            "good corr. & good prior": good_corr_good_prior,
+            "good corr. & bad prior": good_corr_bad_prior,
+            "bad corr. & good prior": bad_corr_good_prior,
+            "bad corr. & bad prior": bad_corr_bad_prior,
+        }
+
+    ncols = len(subplots)
     nrows = 1
     figsize = (ncols * 4, nrows * 3)
     legend_ncol = len(algorithms)
@@ -91,12 +112,6 @@ def plot_relative_ranks(
     fig, _axs = plt.subplots(nrows, ncols, figsize=figsize)
     axs: list[plt.Axes] = list(_axs.flatten())
 
-    subplots: dict[str, ExperimentResults] = {
-        "good corr. & good prior": good_corr_good_prior,
-        "good corr. & bad prior": good_corr_bad_prior,
-        "bad corr. & good prior": bad_corr_good_prior,
-        "bad corr. & bad prior": bad_corr_bad_prior,
-    }
 
     for col, ((subtitle, results), ax) in enumerate(zip(subplots.items(), axs)):
         _x_range: tuple[int, int]
@@ -134,14 +149,25 @@ def plot_relative_ranks(
             means: pd.Series = all_means[algorithm]  # type: ignore
             stds: pd.Series = all_stds[algorithm]  # type: ignore
 
+            # If x_together is specified, we want to shave off
+            # everything in the x-axis before the x_together index
+            # so that it lines up with the above
+            if x_together is not None:
+                means = means.loc[x_together:]
+                stds = stds.loc[x_together:]
+
+            # Center everything
+            means.loc[0] = center
+            stds.loc[0] = 0
+
             means = means.sort_index(ascending=True)  # type: ignore
             stds = stds.sort_index(ascending=True)  # type: ignore
             assert means is not None
             assert stds is not None
 
-            x = np.array([0] + means.index.tolist(), dtype=float)
-            y = np.array([center] + means.tolist(), dtype=float)
-            std = np.array([0] + stds.tolist(), dtype=float)
+            x = np.array(means.index.tolist(), dtype=float)
+            y = np.array(means.tolist(), dtype=float)
+            std = np.array(stds.tolist(), dtype=float)
 
             ax.step(
                 x=x,
@@ -428,6 +454,7 @@ if __name__ == "__main__":
                 yaxis=yaxis,
                 xaxis=xaxis,
                 x_range=args.x_range,
+                x_together=args.x_together,
             )
 
             filename = f"{args.filename}.{args.ext}"
@@ -435,3 +462,50 @@ if __name__ == "__main__":
             filepath.parent.mkdir(parents=True, exist_ok=True)
             fig.savefig(filepath, bbox_inches="tight", dpi=args.dpi)
             print(f"Saved to {filename} to {filepath}")
+
+        # We also do a relative ranking plot in two sections
+        # aggrgating by prior kind
+        good_prior_benchmarks = [*args.rr_good_corr_good_prior, *args.rr_bad_corr_good_prior]
+        bad_prior_benchmarks = [*args.rr_good_corr_bad_prior, *args.rr_bad_corr_bad_prior]
+
+        for yaxis in yaxes:
+            fig = plot_relative_ranks(
+                algorithms=algorithms,
+                pairwise_plots=(
+                    ("good prior", results.select(benchmarks=good_prior_benchmarks)),
+                    ("bad prior", results.select(benchmarks=bad_prior_benchmarks))
+                ),
+                yaxis=yaxis,
+                xaxis=xaxis,
+                x_range=args.x_range,
+                x_together=args.x_together,
+            )
+            filename = f"{args.filename}-benchmarks-by-prior.{args.ext}"
+            filepath = plot_dir / "relative_ranks" / yaxis / filename
+            filepath.parent.mkdir(parents=True, exist_ok=True)
+            fig.savefig(filepath, bbox_inches="tight", dpi=args.dpi)
+            print(f"Saved to {filename} to {filepath}")
+
+        # We also do a relative ranking plot in two sections
+        # aggrgating by correlation kind
+        good_corr_benchmarks = [*args.rr_good_corr_good_prior, *args.rr_good_corr_bad_prior]
+        bad_corr_benchmarks = [*args.rr_bad_corr_good_prior, *args.rr_bad_corr_bad_prior]
+
+        for yaxis in yaxes:
+            fig = plot_relative_ranks(
+                algorithms=algorithms,
+                pairwise_plots=(
+                    ("good corr.", results.select(benchmarks=good_corr_benchmarks)),
+                    ("bad corr.", results.select(benchmarks=bad_corr_benchmarks))
+                ),
+                yaxis=yaxis,
+                xaxis=xaxis,
+                x_range=args.x_range,
+                x_together=args.x_together,
+            )
+            filename = f"{args.filename}-benchmarks-by-correlation.{args.ext}"
+            filepath = plot_dir / "relative_ranks" / yaxis / filename
+            filepath.parent.mkdir(parents=True, exist_ok=True)
+            fig.savefig(filepath, bbox_inches="tight", dpi=args.dpi)
+            print(f"Saved to {filename} to {filepath}")
+
