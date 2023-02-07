@@ -985,10 +985,11 @@ class ExperimentResults(Mapping[str, BenchmarkResults]):
         per_worker: bool = False,
         pool: Parallel | None = None,
     ) -> ExperimentResults:
-        results = {
-            k: v.with_cumulative_fidelity(per_worker=per_worker, pool=pool)
-            for k, v in self.results.items()
-        }
+        results = {}
+        for k, v in self.results.items():
+            print(f"Cumulative fidelity for {k}")
+            results[k] = v.with_cumulative_fidelity(per_worker=per_worker, pool=pool)
+
         return replace(self, results=results)
 
     def incumbent_trace(
