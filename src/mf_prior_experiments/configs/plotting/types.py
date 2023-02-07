@@ -374,6 +374,8 @@ class Trace(Sequence[Result]):
                 continued_result = higher_bracket.continue_from(lower_bracket)
                 continuations.append(continued_result)
 
+        assert len(trace_results) == len(continuations)
+
         sorted_continuations = sorted(continuations, key=lambda r: r.end_time)
         return replace(self, results=sorted_continuations)
 
