@@ -105,7 +105,7 @@ def _with_cumulative_fidelity(
     a: AlgorithmResults, n_workers: int | None = None, algo_name: str | None = None
 ) -> AlgorithmResults:
     if algo_name:
-        print(f"cumulative_fidelity algo: {algo}")
+        print(f"cumulative_fidelity algo: {algo_name}")
     return a.with_cumulative_fidelity(n_workers=n_workers)
 
 
