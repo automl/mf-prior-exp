@@ -749,7 +749,10 @@ class BenchmarkResults(Mapping[str, AlgorithmResults]):
     ) -> BenchmarkResults:
         keys = self.results.keys()
         results_: list[AlgorithmResults]
-        args = [(algo_results, n_workers, algo_name) for algo_name, algo_results in self.results.items()]
+        args = [
+            (algo_results, n_workers, algo_name)
+            for algo_name, algo_results in self.results.items()
+        ]
         if pool is not None:
             results_ = pool(delayed(_with_cumulative_fidelity)(*a) for a in args)  # type: ignore
         else:
@@ -758,7 +761,11 @@ class BenchmarkResults(Mapping[str, AlgorithmResults]):
         return replace(self, results=results)
 
     def incumbent_traces(
-        self, xaxis: str, yaxis: str, *, pool: Parallel | None = None,
+        self,
+        xaxis: str,
+        yaxis: str,
+        *,
+        pool: Parallel | None = None,
     ) -> BenchmarkResults:
         keys = self.results.keys()
         results_: list[AlgorithmResults]
@@ -1107,11 +1114,13 @@ class ExperimentResults(Mapping[str, BenchmarkResults]):
     def ranks(self, *, xaxis: str, yaxis: str) -> tuple[pd.DataFrame, pd.DataFrame]:
         indices = self.indices(xaxis=xaxis, sort=False)
         seeds = self.seeds()
-        bench_results = self.results.values()
+        benchmarks = self.benchmarks
 
         ranks = {
-            seed: bench.ranks(xaxis, yaxis, seed=seed, indices=indices)
-            for bench, seed in product(bench_results, seeds)
+            (benchmark, seed): self.results[benchmark].ranks(
+                xaxis, yaxis, seed=seed, indices=indices
+            )
+            for benchmark, seed in product(benchmarks, seeds)
         }
 
         ranks_accumulated = reduce(operator.add, ranks.values())
@@ -1119,14 +1128,14 @@ class ExperimentResults(Mapping[str, BenchmarkResults]):
 
         stds = pd.DataFrame(columns=self.algorithms)
         for algorithm in self.algorithms:
-            algorithm_ranks_per_seed: list[pd.Series] = [
-                rank_df[algorithm].rename(f"seed-{seed}")  # type: ignore
-                for seed, rank_df in ranks.items()
+            algorithm_ranks_per_benchmark_seed: list[pd.Series] = [
+                rank_df[algorithm].rename(f"benchmark-{benchmark}--seed-{seed}")  # type: ignore
+                for (benchmark, seed), rank_df in ranks.items()
             ]
             # Stack all the seed results as columns
-            algorithm_results = pd.concat(algorithm_ranks_per_seed, axis=1)
+            algorithm_results = pd.concat(algorithm_ranks_per_benchmark_seed, axis=1)
 
-            # Take the standard deviation over all of them
+            # Take the standard error from the mean over all of them
             stds[algorithm] = algorithm_results.sem(axis=1).rename(algorithm)
 
         return means, stds
