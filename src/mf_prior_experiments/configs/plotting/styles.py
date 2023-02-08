@@ -1,6 +1,93 @@
+from __future__ import annotations
+
 X_LABEL = {
     "cumulated_fidelity": "Full trainings",
     "end_time_since_global_start": "Approx. full trainings",
+}
+
+def get_xticks(xrange: tuple[int, int], ticks: int = 5) -> list[int]:
+    predefined: dict[tuple[int, int], list[int]] = {
+        (0, 12): [0, 3, 6, 9, 12],
+        (1, 12): [1, 3, 6, 9, 12],
+        (0, 5): [0, 1, 2, 3, 4, 5],
+        (1, 5): [1, 2, 3, 4, 5],
+        (0, 20): [0, 5, 10, 15, 20],
+        (1, 20): [1, 5, 10, 15, 20],
+    }
+    xticks = predefined.get(xrange)
+    if xticks is None:
+        import numpy as np
+        low, high = xrange
+        return np.linspace(low, high, num=ticks, endpoint=True, dtype=int).tolist()
+    else:
+        return xticks
+
+
+Y_LIMITS: dict[str, tuple[float | None, float | None]] = {
+     'cifar100_wideresnet_2048_prior-at25': (None, 0.5),
+     'cifar100_wideresnet_2048_prior-bad': (None, 0.5),
+     'cifar100_wideresnet_2048_prior-good': (None, 0.5),
+     'cifar100_wideresnet_2048_prior-medium': (None, 0.5),
+     'imagenet_resnet_512_prior-at25': (None, 0.5),
+     'imagenet_resnet_512_prior-bad': (None, 0.5),
+     'imagenet_resnet_512_prior-good': (None, 0.5),
+     'imagenet_resnet_512_prior-medium': (None, 0.5),
+     'jahs_cifar10_prior-at25': (None, 25),
+     'jahs_cifar10_prior-bad': (None, 25),
+     'jahs_cifar10_prior-good': (None, 25),
+     'jahs_cifar10_prior-medium': (None, 25),
+     'jahs_colorectal_histology_prior-at25': (None, 30),
+     'jahs_colorectal_histology_prior-bad': (None, 30),
+     'jahs_colorectal_histology_prior-good': (None, 30),
+     'jahs_colorectal_histology_prior-medium': (None, 30),
+     'jahs_fashion_mnist_prior-at25': (None, 15),
+     'jahs_fashion_mnist_prior-bad': (None, 15),
+     'jahs_fashion_mnist_prior-good': (None, 15),
+     'jahs_fashion_mnist_prior-medium': (None, 15),
+     'lcbench-126026_prior-at25': (None, 0.15),
+     'lcbench-126026_prior-bad': (None, 0.15),
+     'lcbench-126026_prior-good': (None, 0.15),
+     'lcbench-126026_prior-medium': (None, 0.15),
+     'lcbench-167190_prior-at25': (None, 0.3),
+     'lcbench-167190_prior-bad': (None, 0.3),
+     'lcbench-167190_prior-good': (None, 0.3),
+     'lcbench-167190_prior-medium': (None, 0.3),
+     'lcbench-168330_prior-at25': (None, 0.55),
+     'lcbench-168330_prior-bad': (None, 0.55),
+     'lcbench-168330_prior-good': (None, 0.55),
+     'lcbench-168330_prior-medium': (None, 0.55),
+     'lcbench-168910_prior-at25': (None, 0.65),
+     'lcbench-168910_prior-bad': (None, 0.65),
+     'lcbench-168910_prior-good': (None, 0.65),
+     'lcbench-168910_prior-medium': (None, 0.65),
+     'lcbench-189906_prior-at25': (None, 0.5),
+     'lcbench-189906_prior-bad': (None, 0.5),
+     'lcbench-189906_prior-good': (None, 0.5),
+     'lcbench-189906_prior-medium': (None, 0.5),
+     'lm1b_transformer_2048_prior-at25': (None, 0.7),
+     'lm1b_transformer_2048_prior-bad': (None, 0.7),
+     'lm1b_transformer_2048_prior-good': (None, 0.7),
+     'lm1b_transformer_2048_prior-medium': (None, 0.7),
+     'mfh3_good_prior-at25': (-4, 0),
+     'mfh3_good_prior-bad': (-4, 0),
+     'mfh3_good_prior-good': (-4, 0),
+     'mfh3_good_prior-medium': (-4, 0),
+     'mfh3_terrible_prior-at25': (-4, 0),
+     'mfh3_terrible_prior-bad': (-4, 0),
+     'mfh3_terrible_prior-good': (-4, 0),
+     'mfh3_terrible_prior-medium': (-4, 0),
+     'mfh6_good_prior-at25': (-4, 0),
+     'mfh6_good_prior-bad': (-4, 0),
+     'mfh6_good_prior-good': (-4, 0),
+     'mfh6_good_prior-medium': (-4, 0),
+     'mfh6_terrible_prior-at25': (-4, 0),
+     'mfh6_terrible_prior-bad': (-4, 0),
+     'mfh6_terrible_prior-good': (-4, 0),
+     'mfh6_terrible_prior-medium': (-4, 0),
+     'translatewmt_xformer_64_prior-at25': (None, 0.5),
+     'translatewmt_xformer_64_prior-bad': (None, 0.5),
+     'translatewmt_xformer_64_prior-good': (None, 0.5),
+     'translatewmt_xformer_64_prior-medium': (None, 0.5)
 }
 
 # "Runtime [s]"
