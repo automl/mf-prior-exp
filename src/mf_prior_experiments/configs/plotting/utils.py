@@ -17,10 +17,6 @@ def parse_args() -> Namespace:
     parser.add_argument("--algorithms", nargs="+", default=[])
 
     parser.add_argument("--benchmarks", nargs="+", default=[])
-
-    parser.add_argument("--good-prior-benchmarks", nargs="+", default=[])
-    parser.add_argument("--bad-prior-benchmarks", nargs="+", default=[])
-
     parser.add_argument("--rr-good-corr-good-prior", nargs="+", default=[])
     parser.add_argument("--rr-good-corr-bad-prior", nargs="+", default=[])
     parser.add_argument("--rr-bad-corr-good-prior", nargs="+", default=[])
@@ -36,7 +32,7 @@ def parse_args() -> Namespace:
     parser.add_argument("--ext", type=str, choices=["pdf", "png"], default="png")
     parser.add_argument("--plot_default", action="store_true")
     parser.add_argument("--plot_optimum", action="store_true")
-    # parser.add_argument("--dynamic_y_lim", action="store_true")
+    #parser.add_argument("--dynamic_y_lim", action="store_true")
     parser.add_argument("--parallel", action="store_true")
 
     args = parser.parse_args()
@@ -62,21 +58,13 @@ def parse_args() -> Namespace:
         args.rr_bad_corr_good_prior,
         args.rr_bad_corr_bad_prior,
     ]
-    if (len(args.good_prior_benchmarks) > 0 and len(args.bad_prior_benchmarks) <= 0) or (
-        len(args.good_prior_benchmarks) <= 0 and len(args.bad_prior_benchmarks) > 0
-    ):
-        raise ValueError(
-            "If using --good-benchmarks, must also use --bad-benchmarks and vice versa"
-        )
-
     if any(len(b) > 0 for b in benches) and not all(len(b) > 0 for b in benches):
         raise ValueError("Must specify all --rr args for relative rankings")
 
-        # if not len(list(flatten(benches))) == len(set(flatten(benches))):
-        # raise ValueError("Benchmarks in --rr must all be unique\n")
+        #if not len(list(flatten(benches))) == len(set(flatten(benches))):
+        #raise ValueError("Benchmarks in --rr must all be unique\n")
 
     return args
-
 
 def set_general_plot_style():
     """

@@ -106,6 +106,9 @@ def plot_relative_ranks(
             "bad corr. & bad prior": bad_corr_bad_prior,
         }
 
+    for key, value in subplots.items():
+        print(key, value.results.keys())
+
     ncols = len(subplots)
     nrows = 1
     figsize = (ncols * 4, nrows * 3)
@@ -313,12 +316,9 @@ def plot_incumbent_traces(
                 "mfh3_good_prior-good",
                 "mfh3_terrible_prior-good",
                 "mfh6_good_prior-good",
-                "mfh6_terrible_prior-good",
+                "mfh6_terrible_prior-good"
             ]
-            if (
-                "random_search_prior" in algorithms
-                and benchmark in mfh_good_prior_benchmarks
-            ):
+            if "random_search_prior" in algorithms and benchmark in mfh_good_prior_benchmarks:
                 random_search_results = benchmark_results["random_search_prior"]
                 values = random_search_results.df(index=xaxis, values=yaxis)
                 prior_error = values.iloc[0].mean(axis=0)
@@ -469,7 +469,6 @@ def main():
     # Relative ranking plots
     # If one is set, the rest is set
     if len(args.rr_good_corr_good_prior) > 0:
-
         for yaxis in yaxes:
             fig = plot_relative_ranks(
                 algorithms=algorithms,
@@ -482,9 +481,7 @@ def main():
                 bad_corr_good_prior=results.select(
                     benchmarks=args.rr_bad_corr_good_prior
                 ),
-                bad_corr_bad_prior=results.select(
-                    benchmarks=args.rr_bad_corr_bad_prior,
-                ),
+                bad_corr_bad_prior=results.select(benchmarks=args.rr_bad_corr_bad_prior),
                 yaxis=yaxis,
                 xaxis=xaxis,
                 x_range=args.x_range,
@@ -497,13 +494,22 @@ def main():
             fig.savefig(filepath, bbox_inches="tight", dpi=args.dpi)
             print(f"Saved to {filename} to {filepath}")
 
-    if len(args.good_prior_benchmarks) > 0:
+        # We also do a relative ranking plot in two sections
+        # aggrgating by prior kind
+        good_prior_benchmarks = [
+            *args.rr_good_corr_good_prior,
+            *args.rr_bad_corr_good_prior,
+        ]
+        bad_prior_benchmarks = [*args.rr_good_corr_bad_prior, *args.rr_bad_corr_bad_prior]
+        print(f"good_prior_benchmarks={good_prior_benchmarks}")
+        print(f"bad_prior_benchmarks={bad_prior_benchmarks}")
+
         for yaxis in yaxes:
             fig = plot_relative_ranks(
                 algorithms=algorithms,
                 pairwise_plots=(
-                    ("good prior", results.select(benchmarks=args.good_prior_benchmarks)),
-                    ("bad prior", results.select(benchmarks=args.bad_prior_benchmarks)),
+                    ("good prior", results.select(benchmarks=good_prior_benchmarks)),
+                    ("bad prior", results.select(benchmarks=bad_prior_benchmarks)),
                 ),
                 yaxis=yaxis,
                 xaxis=xaxis,
@@ -511,6 +517,34 @@ def main():
                 x_together=args.x_together,
             )
             filename = f"{args.filename}-benchmarks-by-prior.{args.ext}"
+            filepath = plot_dir / "relative_ranks" / yaxis / filename
+            filepath.parent.mkdir(parents=True, exist_ok=True)
+            fig.savefig(filepath, bbox_inches="tight", dpi=args.dpi)
+            print(f"Saved to {filename} to {filepath}")
+
+        # We also do a relative ranking plot in two sections
+        # aggrgating by correlation kind
+        good_corr_benchmarks = [
+            *args.rr_good_corr_good_prior,
+            *args.rr_good_corr_bad_prior,
+        ]
+        bad_corr_benchmarks = [*args.rr_bad_corr_good_prior, *args.rr_bad_corr_bad_prior]
+        print(f"good_corr_benchmarks={good_corr_benchmarks}")
+        print(f"bad_corr_benchmarks={bad_corr_benchmarks}")
+
+        for yaxis in yaxes:
+            fig = plot_relative_ranks(
+                algorithms=algorithms,
+                pairwise_plots=(
+                    ("good corr.", results.select(benchmarks=good_corr_benchmarks)),
+                    ("bad corr.", results.select(benchmarks=bad_corr_benchmarks)),
+                ),
+                yaxis=yaxis,
+                xaxis=xaxis,
+                x_range=args.x_range,
+                x_together=args.x_together,
+            )
+            filename = f"{args.filename}-benchmarks-by-correlation.{args.ext}"
             filepath = plot_dir / "relative_ranks" / yaxis / filename
             filepath.parent.mkdir(parents=True, exist_ok=True)
             fig.savefig(filepath, bbox_inches="tight", dpi=args.dpi)
