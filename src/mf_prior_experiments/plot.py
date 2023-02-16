@@ -19,8 +19,9 @@ from .configs.plotting.styles import (
     DATASETS,
     X_LABEL,
     Y_LABEL,
+    Y_LIMITS,
+    get_xticks,
 )
-
 from .configs.plotting.types import ExperimentResults, fetch_results
 from .configs.plotting.utils import parse_args, set_general_plot_style
 
@@ -80,7 +81,8 @@ def plot_relative_ranks(
     good_corr_bad_prior: ExperimentResults | None = None,
     bad_corr_good_prior: ExperimentResults | None = None,
     bad_corr_bad_prior: ExperimentResults | None = None,
-    pairwise_plots: tuple[tuple[str, ExperimentResults], tuple[str, ExperimentResults]] | None = None,
+    pairwise_plots: tuple[tuple[str, ExperimentResults], tuple[str, ExperimentResults]]
+    | None = None,
     x_together: float | None = None,
     x_range: tuple[int, int] | None = None,
 ) -> plt.Figure:
@@ -104,6 +106,9 @@ def plot_relative_ranks(
             "bad corr. & bad prior": bad_corr_bad_prior,
         }
 
+    for key, value in subplots.items():
+        print(key, value.results.keys())
+
     ncols = len(subplots)
     nrows = 1
     figsize = (ncols * 4, nrows * 3)
@@ -112,7 +117,6 @@ def plot_relative_ranks(
     fig, _axs = plt.subplots(nrows, ncols, figsize=figsize)
     axs: list[plt.Axes] = list(_axs.flatten())
 
-
     for col, ((subtitle, results), ax) in enumerate(zip(subplots.items(), axs)):
         _x_range: tuple[int, int]
         if x_range is None:
@@ -120,9 +124,10 @@ def plot_relative_ranks(
             xmax = max(getattr(r, xaxis) for r in results.iter_results())
             _x_range = (math.floor(xmin), math.ceil(xmax))
         else:
-            _x_range = x_range
+            _x_range = tuple(x_range)  # type: ignore
 
         left, right = _x_range
+        xticks = get_xticks(_x_range)
         ymin, ymax = (0.8, len(algorithms))
         yticks = range(1, len(algorithms) + 1)
         center = (len(algorithms) + 1) / 2
@@ -132,10 +137,6 @@ def plot_relative_ranks(
         ax.set_xlabel(X_LABEL[xaxis], fontsize=18, color=(0, 0, 0, 0.69))
         ax.set_yticks(yticks)  # type: ignore
         ax.set_xlim(left=left, right=right)
-        if (left, right) == (1, 12):
-            xticks = [1, 3, 5, 8, 12]
-        else:
-            xticks = np.linspace(left, right, 5, dtype=int, endpoint=True).tolist()
         ax.set_xticks(xticks, xticks)  # type: ignore
         ax.tick_params(axis="both", which="major", labelsize=18, color=(0, 0, 0, 0.69))
         ax.grid(True, which="both", ls="-", alpha=0.8)
@@ -230,6 +231,7 @@ def plot_incumbent_traces(
     plot_default = plot_default and any(
         c.prior_error is not None for c in bench_configs.values()
     )
+
     plot_optimum = plot_optimum and any(
         c.optimum is not None for c in bench_configs.values()
     )
@@ -264,7 +266,9 @@ def plot_incumbent_traces(
         # we need to set some dynamic limits
         if dynamic_y_lim:
             y_values = [
-                getattr(result, yaxis) for result in benchmark_results.iter_results()
+                getattr(result, yaxis)
+                for result in benchmark_results.iter_results()
+                if getattr(results, xaxis) >= left and getattr(results, xaxis) <= right
             ]
             y_min, y_max = min(y_values), max(y_values)
             dy = abs(y_max - y_min)
@@ -272,8 +276,12 @@ def plot_incumbent_traces(
             plot_offset = 0.15
             ax.set_ylim(y_min - dy * plot_offset, y_max + dy * plot_offset)
         else:
-            for _ax in axs:
-                _ax.set_ylim(auto=True)
+            ylims = Y_LIMITS.get(benchmark)
+            if ylims is None:
+                ax.set_ylim(auto=True)
+            else:
+                down, up = ylims
+                ax.set_ylim(down, up)
 
         ax.set_xlim(left=left, right=right)
         if (left, right) == (1, 12):
@@ -298,8 +306,27 @@ def plot_incumbent_traces(
         ax.grid(True, which="both", ls="-", alpha=0.8)
 
         if plot_default and benchmark_config.prior_error is not None:
+            # NOTE: In the case of MFH good where we have taken a prior close
+            # to the optimum, and additionally add 0.25 noise at every iteration,
+            # there is no predefined prior line we can meaningfully plot. Each
+            # run will see a different prior. For consistency in the plots, we
+            # have chosen to take the mean line of RS+Prior as a proxy to the
+            # averaged prior, as RS+Prior will always sample the prior first.
+            mfh_good_prior_benchmarks = [
+                "mfh3_good_prior-good",
+                "mfh3_terrible_prior-good",
+                "mfh6_good_prior-good",
+                "mfh6_terrible_prior-good"
+            ]
+            if "random_search_prior" in algorithms and benchmark in mfh_good_prior_benchmarks:
+                random_search_results = benchmark_results["random_search_prior"]
+                values = random_search_results.df(index=xaxis, values=yaxis)
+                prior_error = values.iloc[0].mean(axis=0)
+            else:
+                prior_error = benchmark_config.prior_error
+
             ax.axhline(
-                benchmark_config.prior_error,
+                prior_error,
                 color="black",
                 linestyle=":",
                 linewidth=1.0,
@@ -371,7 +398,7 @@ def plot_incumbent_traces(
     return fig
 
 
-if __name__ == "__main__":
+def main():
     args = parse_args()
 
     experiment_group: str = args.experiment_group
@@ -469,15 +496,20 @@ if __name__ == "__main__":
 
         # We also do a relative ranking plot in two sections
         # aggrgating by prior kind
-        good_prior_benchmarks = [*args.rr_good_corr_good_prior, *args.rr_bad_corr_good_prior]
+        good_prior_benchmarks = [
+            *args.rr_good_corr_good_prior,
+            *args.rr_bad_corr_good_prior,
+        ]
         bad_prior_benchmarks = [*args.rr_good_corr_bad_prior, *args.rr_bad_corr_bad_prior]
+        print(f"good_prior_benchmarks={good_prior_benchmarks}")
+        print(f"bad_prior_benchmarks={bad_prior_benchmarks}")
 
         for yaxis in yaxes:
             fig = plot_relative_ranks(
                 algorithms=algorithms,
                 pairwise_plots=(
                     ("good prior", results.select(benchmarks=good_prior_benchmarks)),
-                    ("bad prior", results.select(benchmarks=bad_prior_benchmarks))
+                    ("bad prior", results.select(benchmarks=bad_prior_benchmarks)),
                 ),
                 yaxis=yaxis,
                 xaxis=xaxis,
@@ -492,15 +524,20 @@ if __name__ == "__main__":
 
         # We also do a relative ranking plot in two sections
         # aggrgating by correlation kind
-        good_corr_benchmarks = [*args.rr_good_corr_good_prior, *args.rr_good_corr_bad_prior]
+        good_corr_benchmarks = [
+            *args.rr_good_corr_good_prior,
+            *args.rr_good_corr_bad_prior,
+        ]
         bad_corr_benchmarks = [*args.rr_bad_corr_good_prior, *args.rr_bad_corr_bad_prior]
+        print(f"good_corr_benchmarks={good_corr_benchmarks}")
+        print(f"bad_corr_benchmarks={bad_corr_benchmarks}")
 
         for yaxis in yaxes:
             fig = plot_relative_ranks(
                 algorithms=algorithms,
                 pairwise_plots=(
                     ("good corr.", results.select(benchmarks=good_corr_benchmarks)),
-                    ("bad corr.", results.select(benchmarks=bad_corr_benchmarks))
+                    ("bad corr.", results.select(benchmarks=bad_corr_benchmarks)),
                 ),
                 yaxis=yaxis,
                 xaxis=xaxis,
@@ -513,3 +550,6 @@ if __name__ == "__main__":
             fig.savefig(filepath, bbox_inches="tight", dpi=args.dpi)
             print(f"Saved to {filename} to {filepath}")
 
+
+if __name__ == "__main__":
+    main()
