@@ -8,3 +8,5 @@ searcher:
   prior_weight_type: linear
   inc_sample_type: hypersphere
   inc_style: dynamic
+  model_based: False
+  sample_default_first: True

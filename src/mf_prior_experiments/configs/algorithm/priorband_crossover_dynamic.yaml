@@ -8,3 +8,5 @@ searcher:
   prior_weight_type: geometric
   inc_sample_type: crossover
   inc_style: dynamic
+  model_based: False
+  sample_default_first: True
