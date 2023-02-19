@@ -165,7 +165,7 @@ def plot_relative_ranks(
                 x,
                 y - std,  # type: ignore
                 y + std,  # type: ignore
-                color=COLOR_MARKER_DICT.get(algorithm, "black")
+                color=COLOR_MARKER_DICT.get(algorithm, "black"),
                 alpha=0.1,
                 step="post",
             )
