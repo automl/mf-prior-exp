@@ -21,24 +21,14 @@ if TYPE_CHECKING:
 
 
 def all_possibilities(
-    experiment_group: str, base_path: Path
-) -> tuple[set[str], set[str]]:
+    experiment_group: str,
+    base_path: Path,
+) -> tuple[set[str], set[str], set[int]]:
     RESULTS_DIR = base_path / "results" / experiment_group
-    benchmark_paths = list(
-        path for path in RESULTS_DIR.iterdir() if path.name.startswith("benchmark=")
-    )
-    benchmarks: set[str] = set(path.name.split("=")[1] for path in benchmark_paths)
-    algorithms: set[str] = set()
-    for benchmark_path in benchmark_paths:
-        algorithms.update(
-            [
-                path.name.split("=")[1]
-                for path in benchmark_path.iterdir()
-                if path.name.startswith("algorithm=")
-            ]
-        )
-
-    return benchmarks, algorithms
+    benchmarks = {p.name.split("=")[1] for p in RESULTS_DIR.glob("**/benchmark=*")}
+    algorithms = {p.name.split("=")[1] for p in RESULTS_DIR.glob("**/algorithm=*")}
+    seeds = {int(p.name.split("=")[1]) for p in RESULTS_DIR.glob("**/seed=*")}
+    return benchmarks, algorithms, seeds
 
 
 def fetch_results(
@@ -46,6 +36,7 @@ def fetch_results(
     benchmarks: list[str],
     algorithms: list[str],
     base_path: Path,
+    seeds: list[int] | None = None,
     n_workers: int = 1,
     parallel: bool = True,
     continuations: bool = True,
@@ -73,6 +64,7 @@ def fetch_results(
         path=RESULTS_DIR,
         benchmarks=benchmarks,
         algorithms=algorithms,
+        seeds=seeds,
         benchmark_config_dir=BENCHMARK_CONFIG_DIR,
         pool=pool,
     )
@@ -929,23 +921,7 @@ class ExperimentResults(Mapping[str, BenchmarkResults]):
         pool: Parallel | None = None,
     ) -> ExperimentResults:
         if seeds is None:
-            first_benchmark = benchmarks[0]
-            random_search_path = (
-                path / f"benchmark={first_benchmark}" / "algorithm=random_search"
-            )
-            random_search_prior_path = (
-                path / f"benchmark={first_benchmark}" / "algorithm=random_search_prior"
-            )
-            if random_search_path.exists():
-                seeds = [int(s.name.split("=")[1]) for s in random_search_path.iterdir()]
-            elif random_search_prior_path.exists():
-                seeds = [
-                    int(s.name.split("=")[1]) for s in random_search_prior_path.iterdir()
-                ]
-            else:
-                raise ValueError(
-                    "random_search[_prior] wasnt evaluated, can't determine seed count"
-                )
+            seeds = sorted(int(p.name.split("=")[1]) for p in path.glob("**/seed=*"))
 
         def _path(benchmark_: str, algorithm_: str, seed_: int) -> Path:
             return (

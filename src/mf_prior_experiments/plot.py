@@ -551,11 +551,14 @@ def collect(
     xaxis = "cumulated_fidelity"
 
     print(f"[{now()}] Processing ...")
-    all_benchmarks, all_algorithms = all_possibilities(experiment_group, base_path)
+    all_benchmarks, all_algorithms, all_seeds = all_possibilities(
+        experiment_group, base_path
+    )
     results = fetch_results(
         experiment_group=experiment_group,
         benchmarks=list(all_benchmarks),
         algorithms=list(all_algorithms),
+        seeds=sorted(all_seeds),
         base_path=base_path,  # Base path of the repo
         parallel=parallel,  # Whether to process in parallel
         n_workers=n_workers,  # Flag to indicate if it was a parallel setup
