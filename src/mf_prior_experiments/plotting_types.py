@@ -969,22 +969,24 @@ class ExperimentResults(Mapping[str, BenchmarkResults]):
         if pool is None:
             pool = Parallel(n_jobs=1)
 
-        items = list(product(benchmarks, algorithms, seeds))
-        paths = [_path(b, a, s) for b, a, s in items]
+        # path, benchmark, algorithm, seed
+        items = (
+            (_path(b, a, s), b, a, s) for b, a, s in
+            product(benchmarks, algorithms, seeds)
+        )
         if ignore_missing:
-            paths = [p for p in paths if p.exists()]
+            items = (
+                (p, b, a, s) for p, b, a, s in items
+                if p.exists()
+            )
 
         parallel_results: list[tuple[str, str, int, Trace]] = pool(
-            delayed(_trace_results)(path, b, a, s) for path, (b, a, s) in zip(paths, items)
+            delayed(_trace_results)(p, b, a, s) for p, b, a, s in items
         )  # type: ignore
-        results = {
-            benchmark: {
-                algorithm: {
-                    seed: trace
-                }
-            }
-            for benchmark, algorithm, seed, trace in parallel_results
-        }
+
+        results = {}
+        for benchmark, algorithm, seed, trace in parallel_results:
+            results.setdefault(benchmark, {}).setdefault(algorithm, {})[seed] = trace
 
         return cls(
             name=name,
