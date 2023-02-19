@@ -113,7 +113,7 @@ def plot_relative_ranks(
 
         ax.set_title(subtitle)
         ax.set_ylim(ymin, ymax)
-        ax.set_xlabel(X_LABEL[xaxis], fontsize=18, color=(0, 0, 0, 0.69))
+        ax.set_xlabel(X_LABEL.get(xaxis, xaxis), fontsize=18, color=(0, 0, 0, 0.69))
         ax.set_yticks(yticks)  # type: ignore
         ax.set_xlim(left=left, right=right)
         ax.set_xticks(xticks, xticks)  # type: ignore
@@ -156,16 +156,16 @@ def plot_relative_ranks(
             ax.step(
                 x=x,
                 y=y,
-                color=COLOR_MARKER_DICT[algorithm],
+                color=COLOR_MARKER_DICT.get(algorithm, "black"),
                 linewidth=1,
                 where="post",
-                label=ALGORITHMS[algorithm],
+                label=ALGORITHMS.get(algorithm, algorithm)
             )
             ax.fill_between(
                 x,
                 y - std,  # type: ignore
                 y + std,  # type: ignore
-                color=COLOR_MARKER_DICT[algorithm],
+                color=COLOR_MARKER_DICT.get(algorithm, "black")
                 alpha=0.1,
                 step="post",
             )
@@ -236,7 +236,7 @@ def plot_incumbent_traces(
         benchmark_results = results[benchmark]
 
         ax = axs[i]
-        xlabel = X_LABEL[xaxis] if is_last_row(i, nrows, ncols) else None
+        xlabel = X_LABEL.get(xaxis, xaxis) if is_last_row(i, nrows, ncols) else None
         ylabel = Y_LABEL if is_first_column(i, ncols) else None
 
         _x_range: tuple[int, int]
@@ -358,8 +358,8 @@ def plot_incumbent_traces(
             ax.step(
                 x,
                 y_mean,
-                label=ALGORITHMS[algorithm],
-                color=COLOR_MARKER_DICT[algorithm],
+                label=ALGORITHMS.get(algorithm, algorithm),
+                color=COLOR_MARKER_DICT.get(algorithm, "black"),
                 linestyle="-",
                 linewidth=1,
                 where="post",
