@@ -562,7 +562,7 @@ if __name__ == "__main__":
         x_together=args.x_together,
         plot_default=args.plot_default,
         plot_optimum=args.plot_optimum,
-        extension=args.extension,
+        extension=args.ext,
         dpi=args.dpi,
     )
 
