@@ -386,8 +386,8 @@ def plot_incumbent_traces(
 def main(
     experiment_group: str,
     algorithms: list[str],
-    benchmarks: list[str],
-    filename: str,
+    prefix: str,
+    incumbent_trace_benchmarks: dict[str, list[str]] | None = None,
     base_path: Path | None = DEFAULT_BASE_PATH,
     relative_rankings: dict[str, dict[str, list[str]]] | None = None,
     parallel: bool = True,
@@ -403,7 +403,10 @@ def main(
         base_path = DEFAULT_BASE_PATH
 
     # Collect all benchmarks from the relative_rankings and the benchmarks
-    all_benchmarks: set[str] = set(benchmarks)
+    all_benchmarks: set[str] = set()
+    if incumbent_trace_benchmarks:
+        all_benchmarks.update(incumbent_trace_benchmarks)
+
     if relative_rankings:
         for _, plot_benchmarks in relative_rankings.items():
             for _, subplot_benchmarks in plot_benchmarks.items():
@@ -434,23 +437,25 @@ def main(
     print(f"[{now()}] Done! Duration {time.time() - starttime:.3f}...")
 
     # Incumbent traces
-    if len(benchmarks) > 0:
+    if incumbent_trace_benchmarks:
         for yaxis in yaxes:
-            fig = plot_incumbent_traces(
-                results=results.select(benchmarks=benchmarks),
-                plot_default=plot_default,
-                plot_optimum=plot_optimum,
-                yaxis=yaxis,  # type: ignore
-                xaxis=xaxis,  # type: ignore
-                x_range=x_range,
-            )
+            for plot_title, _benches in incumbent_trace_benchmarks.items():
+                fig = plot_incumbent_traces(
+                    results=results.select(benchmarks=_benches),
+                    plot_default=plot_default,
+                    plot_optimum=plot_optimum,
+                    yaxis=yaxis,  # type: ignore
+                    xaxis=xaxis,  # type: ignore
+                    x_range=x_range,
+                )
 
-            _filename = f"{filename}.{extension}"
+                _plot_title = plot_title.replace(" ", "-")
+                _filename = f"{prefix}-{_plot_title}.{extension}"
 
-            filepath = plot_dir / "incumbent_traces" / yaxis / _filename
-            filepath.parent.mkdir(parents=True, exist_ok=True)
-            fig.savefig(filepath, bbox_inches="tight", dpi=dpi)
-            print(f"Saved to {_filename} to {filepath}")
+                filepath = plot_dir / "incumbent_traces" / yaxis / _filename
+                filepath.parent.mkdir(parents=True, exist_ok=True)
+                fig.savefig(filepath, bbox_inches="tight", dpi=dpi)
+                print(f"Saved to {_filename} to {filepath}")
 
     # Relative ranking plots
     if relative_rankings:
@@ -469,7 +474,8 @@ def main(
                     x_together=x_together,
                 )
 
-                _filename = f"{filename}-{plot_title}.{extension}"
+                _plot_title = plot_title.replace(" ", "-")
+                _filename = f"{prefix}-{_plot_title}.{extension}"
 
                 filepath = plot_dir / "relative-rankings" / yaxis / _filename
                 filepath.parent.mkdir(parents=True, exist_ok=True)
@@ -477,29 +483,42 @@ def main(
                 print(f"Saved to {_filename} to {filepath}")
 
 
-
 def parse_args() -> Namespace:
     plt.rcParams.update(RC_PARAMS)
     parser = ArgumentParser(description="mf-prior-exp plotting")
 
-    parser.add_argument("--filename", type=str, default=None)
+    parser.add_argument("--prefix", type=str, default=None)
 
     parser.add_argument("--experiment_group", type=str, required=True)
-    parser.add_argument("--algorithms", nargs="+", default=[])
-    parser.add_argument("--benchmarks", nargs="+", default=[])
+    parser.add_argument("--algorithms", nargs="+", type=str, required=True)
+    parser.add_argument(
+        "--incumbent-trace-benchmarks",
+        nargs="+",
+        type=json.loads,
+        default=None,
+        required=False,
+        help=(
+            "Expects a json dict like:\n"
+            "{\n"
+            "   'plot_title1': ['benchmark1', 'benchmark2', ...] },\n"
+            "   'plot_title2': ['benchmark3', 'benchmark4', ...] },\n"
+            "   ...,\n"
+            "}"
+        ),
+    )
     parser.add_argument(
         "--relative-rankings",
         type=json.loads,
         default=None,
         required=False,
         help=(
-            "Expects a dict like:\n"
+            "Expects a json dict like:\n"
             "{\n"
             "   'plot_title1': {'subtitle1': ['benchmark', ...], 'subtitle2': ['benchmark', ...]} },\n"
             "   'plot_title2': {'subtitle1': ['benchmark', ...], 'subtitle2': ['benchmark', ...]} },\n"
             "   ...,\n"
             "}"
-        )
+        ),
     )
 
     parser.add_argument("--base_path", type=Path, default=None)
@@ -531,8 +550,8 @@ if __name__ == "__main__":
     main(
         experiment_group=args.experiment_group,
         algorithms=args.algorithms,
-        benchmarks=args.benchmarks,
-        filename=args.filename,
+        incumbent_trace_benchmarks=args.incumbent_trace_benchmarks,
+        prefix=args.prefix,
         base_path=args.base_path,
         relative_rankings=args.relative_rankings,
         parallel=args.parallel,
@@ -542,5 +561,5 @@ if __name__ == "__main__":
         plot_default=args.plot_default,
         plot_optimum=args.plot_optimum,
         extension=args.extension,
-        dpi=args.dpi
+        dpi=args.dpi,
     )
