@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import json
 import operator
-import pickle
 from dataclasses import dataclass, replace
 from functools import reduce
 from itertools import accumulate, chain, groupby, product, starmap

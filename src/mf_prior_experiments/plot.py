@@ -7,11 +7,7 @@ import time
 from argparse import ArgumentParser, Namespace
 from pathlib import Path
 
-import matplotlib.pyplot as plt
 import numpy as np
-import pandas as pd
-import seaborn as sns
-from scipy import stats
 from typing_extensions import Literal
 
 from .plot_styles import (
@@ -40,8 +36,8 @@ def now() -> str:
 
 
 def reorganize_legend(
-    fig: plt.Figure,
-    axs: list[plt.Axes],
+    fig,
+    axs,
     to_front: list[str],
     bbox_to_anchor: tuple[float, float],
     ncol: int,
@@ -83,8 +79,11 @@ def plot_relative_ranks(
     plot_title: str | None = None,
     x_together: float | None = None,
     x_range: tuple[int, int] | None = None,
-) -> plt.Figure:
+):
     """Plot relative ranks of the incumbent over time."""
+    import pandas as pd
+    import seaborn as sns
+    import matplotlib.pyplot as plt
 
     # For now we always want it flat...
     row_length = 100
@@ -204,7 +203,12 @@ def plot_incumbent_traces(
     ] = "cumulated_fidelity",
     x_range: tuple[int, int] | None = None,
     dynamic_y_lim: bool = False,
-) -> plt.Figure:
+):
+    import pandas as pd
+    import seaborn as sns
+    from scipy import stats
+    import matplotlib.pyplot as plt
+
     benchmarks = results.benchmarks
     algorithms = results.algorithms
     bench_configs = results.benchmark_configs
@@ -398,6 +402,9 @@ def main(
     extension: str = "png",
     dpi: int = 200,
 ) -> None:
+    import matplotlib.pyplot as plt
+    plt.rcParams.update(RC_PARAMS)
+
     if base_path is None:
         base_path = DEFAULT_BASE_PATH
 
@@ -466,7 +473,6 @@ def main(
 
 
 def parse_args() -> Namespace:
-    plt.rcParams.update(RC_PARAMS)
     parser = ArgumentParser(description="mf-prior-exp plotting")
 
     parser.add_argument("--prefix", type=str, default=None)
