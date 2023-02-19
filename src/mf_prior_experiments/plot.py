@@ -547,6 +547,8 @@ def parse_args() -> Namespace:
 
 if __name__ == "__main__":
     args = parse_args()
+    print("Plotting with args:")
+    print(args)
     main(
         experiment_group=args.experiment_group,
         algorithms=args.algorithms,
