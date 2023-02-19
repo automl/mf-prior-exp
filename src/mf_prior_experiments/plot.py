@@ -615,7 +615,7 @@ if __name__ == "__main__":
             relative_rankings=args.relative_rankings,
             x_range_it=args.x_range_it,
             x_range_rr=args.x_range_rr,
-            x_together_rr=args.x_together,
+            x_together_rr=args.x_together_rr,
             plot_default=args.plot_default,
             plot_optimum=args.plot_optimum,
             extension=args.ext,
