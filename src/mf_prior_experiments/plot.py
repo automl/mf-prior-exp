@@ -576,17 +576,25 @@ if __name__ == "__main__":
     args = parse_args()
     print("Plotting with args:")
     print(args)
-    main(
-        experiment_group=args.experiment_group,
-        algorithms=args.algorithms,
-        incumbent_trace_benchmarks=args.incumbent_traces,
-        prefix=args.prefix,
-        base_path=args.base_path,
-        relative_rankings=args.relative_rankings,
-        x_range=args.x_range,
-        x_together=args.x_together,
-        plot_default=args.plot_default,
-        plot_optimum=args.plot_optimum,
-        extension=args.ext,
-        dpi=args.dpi,
-    )
+    if args.collect:
+        collect(
+            experiment_group=args.experiment_group,
+            base_path=args.bas_path,
+            n_workers=args.n_workers,
+            parallel=args.parallel
+        )
+    else:
+        main(
+            experiment_group=args.experiment_group,
+            algorithms=args.algorithms,
+            incumbent_trace_benchmarks=args.incumbent_traces,
+            prefix=args.prefix,
+            base_path=args.base_path,
+            relative_rankings=args.relative_rankings,
+            x_range=args.x_range,
+            x_together=args.x_together,
+            plot_default=args.plot_default,
+            plot_optimum=args.plot_optimum,
+            extension=args.ext,
+            dpi=args.dpi,
+        )
