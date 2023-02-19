@@ -245,7 +245,7 @@ def plot_incumbent_traces(
             xmax = max(getattr(r, xaxis) for r in benchmark_results.iter_results())
             _x_range = (math.floor(xmin), math.ceil(xmax))
         else:
-            _x_range = x_range
+            _x_range = tuple(x_range)  # type: ignore
 
         left, right = _x_range
 
