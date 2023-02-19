@@ -48,6 +48,9 @@ def all_possibilities(
 
     seeds = {int(p.name.split("=")[1]) for p in RESULTS_DIR.glob("*/*/seed=*")}
     seeds = seeds - ignore_seeds
+    print(f"benchmarks={benchmarks}")
+    print(f"algorithms={algorithms}")
+    print(f"seeds={seeds}")
     return benchmarks, algorithms, seeds
 
 
