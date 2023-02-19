@@ -104,8 +104,6 @@ def _with_continuations(a: AlgorithmResults) -> AlgorithmResults:
 def _with_cumulative_fidelity(
     a: AlgorithmResults, n_workers: int | None = None, algo_name: str | None = None
 ) -> AlgorithmResults:
-    if algo_name:
-        print(f"cumulative_fidelity algo: {algo_name}")
     return a.with_cumulative_fidelity(n_workers=n_workers)
 
 
@@ -627,7 +625,6 @@ class AlgorithmResults(Mapping[int, Trace]):
     def with_cumulative_fidelity(self, n_workers: int | None = None) -> AlgorithmResults:
         traces = {}
         for seed, trace in self.traces.items():
-            print(f"cumulative_fidelity seed: {seed}")
             traces[seed] = trace.with_cumulative_fidelity(n_workers=n_workers)
         return replace(self, traces=traces)
 
@@ -1003,7 +1000,6 @@ class ExperimentResults(Mapping[str, BenchmarkResults]):
     ) -> ExperimentResults:
         results = {}
         for k, v in self.results.items():
-            print(f"Cumulative fidelity for {k}")
             results[k] = v.with_cumulative_fidelity(n_workers=n_workers, pool=pool)
 
         return replace(self, results=results)
