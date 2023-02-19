@@ -152,8 +152,8 @@ def _algorithm_results(path: Path, seeds: list[int] | None) -> AlgorithmResults:
     return AlgorithmResults.load(path, seeds=seeds)
 
 
-def _trace_results(path: Path) -> Trace:
-    return Trace.load(path)
+def _trace_results(path: Path, benchmark: str, algorithm: str, seed: int) -> tuple[str, str, int, Trace]:
+    return benchmark, algorithm, seed, Trace.load(path)
 
 
 @dataclass
@@ -969,20 +969,22 @@ class ExperimentResults(Mapping[str, BenchmarkResults]):
         if pool is None:
             pool = Parallel(n_jobs=1)
 
-        results: dict[str, dict[str, list[Trace]]] = {
+        items = list(product(benchmarks, algorithms, seeds))
+        paths = [_path(b, a, s) for b, a, s in items]
+        if ignore_missing:
+            paths = [p for p in paths if p.exists()]
+
+        parallel_results: list[tuple[str, str, int, Trace]] = pool(
+            delayed(_trace_results)(path) for path in paths
+        )  # type: ignore
+        results = {
             benchmark: {
-                algorithm: pool(
-                    delayed(_trace_results)(_path(benchmark, algorithm, seed))
-                    for seed in seeds
-                    if (
-                        not ignore_missing
-                        or (ignore_missing and _path(benchmark, algorithm, seed).exists())
-                    )
-                )
-                for algorithm in algorithms
+                algorithm: {
+                    seed: trace
+                }
             }
-            for benchmark in benchmarks
-        }  # type: ignore
+            for benchmark, algorithm, seed, trace in parallel_results
+        }
 
         return cls(
             name=name,
@@ -992,9 +994,9 @@ class ExperimentResults(Mapping[str, BenchmarkResults]):
                 benchmark: BenchmarkResults(
                     {
                         algo: AlgorithmResults(
-                            {seed: trace for seed, trace in enumerate(traces)}
+                            {seed: trace for seed, trace in algo_results.items()}
                         )
-                        for algo, traces in benchmark_results.items()
+                        for algo, algo_results in benchmark_results.items()
                     }
                 )
                 for benchmark, benchmark_results in results.items()
