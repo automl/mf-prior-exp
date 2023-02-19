@@ -579,7 +579,7 @@ if __name__ == "__main__":
     if args.collect:
         collect(
             experiment_group=args.experiment_group,
-            base_path=args.bas_path,
+            base_path=args.base_path,
             n_workers=args.n_workers,
             parallel=args.parallel
         )
