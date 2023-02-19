@@ -76,7 +76,7 @@ def fetch_results(
         base_path / "src" / "mf_prior_experiments" / "configs" / "benchmark"
     )
     if parallel:
-        pool = Parallel(backend="multiprocessing", n_jobs=-1, verbose=100)
+        pool = Parallel(backend="multiprocessing", n_jobs=-1)
     else:
         pool = None
 
