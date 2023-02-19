@@ -81,9 +81,9 @@ def plot_relative_ranks(
     x_range: tuple[int, int] | None = None,
 ):
     """Plot relative ranks of the incumbent over time."""
+    import matplotlib.pyplot as plt
     import pandas as pd
     import seaborn as sns
-    import matplotlib.pyplot as plt
 
     # For now we always want it flat...
     row_length = 100
@@ -204,10 +204,10 @@ def plot_incumbent_traces(
     x_range: tuple[int, int] | None = None,
     dynamic_y_lim: bool = False,
 ):
+    import matplotlib.pyplot as plt
     import pandas as pd
     import seaborn as sns
     from scipy import stats
-    import matplotlib.pyplot as plt
 
     benchmarks = results.benchmarks
     algorithms = results.algorithms
@@ -477,6 +477,9 @@ def parse_args() -> Namespace:
 
     parser.add_argument("--prefix", type=str, default=None)
     parser.add_argument("--collect", action="store_true")
+    parser.add_argument("--collect-ignore-benchmarks", type=str, nargs="+", default=None, required=False)
+    parser.add_argument("--collect-ignore-algorithms", type=str, nargs="+", default=None, required=False)
+    parser.add_argument("--collect-ignore-seeds", type=int, nargs="+", default=None, required=False)
 
     parser.add_argument("--experiment_group", type=str, required=True)
     parser.add_argument("--algorithms", nargs="+", type=str, default=None)
@@ -538,6 +541,9 @@ def collect(
     base_path: Path,
     n_workers: int,
     parallel: bool = True,
+    ignore_benchmarks: set[str] | None = None,
+    ignore_seeds: set[int] | None = None,
+    ignore_algorithms: set[str] | None = None,
 ) -> None:
     if base_path is None:
         base_path = DEFAULT_BASE_PATH
@@ -552,7 +558,8 @@ def collect(
 
     print(f"[{now()}] Processing ...")
     all_benchmarks, all_algorithms, all_seeds = all_possibilities(
-        experiment_group, base_path
+        experiment_group, base_path, ignore_benchmarks=ignore_benchmarks,
+        ignore_seeds=ignore_seeds, ignore_algorithms=ignore_algorithms,
     )
     results = fetch_results(
         experiment_group=experiment_group,
@@ -580,11 +587,17 @@ if __name__ == "__main__":
     print("Plotting with args:")
     print(args)
     if args.collect:
+        ignore_benchmarks = set(args.ignore_benchmarks) if args.ignore_benchmarks else None
+        ignore_algorithms = set(args.ignore_algorithms) if args.ignore_algorithms else None
+        ignore_seeds = set(args.ignore_seeds) if args.ignore_seeds else None
         collect(
             experiment_group=args.experiment_group,
             base_path=args.base_path,
             n_workers=args.n_workers,
-            parallel=args.parallel
+            parallel=args.parallel,
+            ignore_benchmarks=ignore_benchmarks,
+            ignore_algorithms=ignore_algorithms,
+            ignore_seeds=ignore_seeds,
         )
     else:
         main(

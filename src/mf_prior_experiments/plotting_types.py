@@ -25,11 +25,23 @@ def now() -> str:
 def all_possibilities(
     experiment_group: str,
     base_path: Path,
+    ignore_benchmarks: set[str] | None = None,
+    ignore_algorithms: set[str] | None = None,
+    ignore_seeds: set[int] | None = None,
 ) -> tuple[set[str], set[str], set[int]]:
+    ignore_benchmarks = ignore_benchmarks or set()
+    ignore_algorithms = ignore_algorithms or set()
+    ignore_seeds = ignore_seeds or set()
     RESULTS_DIR = base_path / "results" / experiment_group
+
     benchmarks = {p.name.split("=")[1] for p in RESULTS_DIR.glob("benchmark=*")}
+    benchmarks = benchmarks - ignore_benchmarks
+
     algorithms = {p.name.split("=")[1] for p in RESULTS_DIR.glob("*/algorithm=*")}
+    algorithms = algorithms - ignore_algorithms
+
     seeds = {int(p.name.split("=")[1]) for p in RESULTS_DIR.glob("*/*/seed=*")}
+    seeds = seeds = ignore_seeds
     return benchmarks, algorithms, seeds
 
 
