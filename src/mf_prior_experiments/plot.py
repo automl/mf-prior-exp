@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 import math
+import pickle
 import time
 from argparse import ArgumentParser, Namespace
 from pathlib import Path
@@ -24,7 +25,7 @@ from .plot_styles import (
     Y_LIMITS,
     get_xticks,
 )
-from .plotting_types import ExperimentResults, fetch_results
+from .plotting_types import ExperimentResults, all_possibilities, fetch_results
 
 HERE = Path(__file__).parent.absolute()
 DEFAULT_BASE_PATH = HERE.parent.parent
@@ -385,13 +386,11 @@ def plot_incumbent_traces(
 
 def main(
     experiment_group: str,
-    algorithms: list[str],
     prefix: str,
+    algorithms: list[str] | None = None,
     incumbent_trace_benchmarks: dict[str, list[str]] | None = None,
     base_path: Path | None = DEFAULT_BASE_PATH,
     relative_rankings: dict[str, dict[str, list[str]]] | None = None,
-    parallel: bool = True,
-    n_workers: int = 1,
     plot_default: bool = True,
     plot_optimum: bool = True,
     x_range: tuple[int, int] | None = None,
@@ -402,40 +401,22 @@ def main(
     if base_path is None:
         base_path = DEFAULT_BASE_PATH
 
-    # Collect all benchmarks from the relative_rankings and the benchmarks
-    all_benchmarks: set[str] = set()
-    if incumbent_trace_benchmarks:
-        for benches in incumbent_trace_benchmarks.values():
-            all_benchmarks.update(benches)
-
-    if relative_rankings:
-        for _, plot_benchmarks in relative_rankings.items():
-            for _, subplot_benchmarks in plot_benchmarks.items():
-                all_benchmarks.update(subplot_benchmarks)
+    if algorithms is None:
+        raise ValueError("Must specify --algorithms")
 
     plot_dir = base_path / "plots" / experiment_group
-
     xaxis = "cumulated_fidelity"
     yaxes = ["loss", "max_fidelity_loss"]
 
-    # Fetch the results we need
-    starttime = time.time()
-    print(f"[{now()}] Processing ...")
-    results = fetch_results(
-        experiment_group=experiment_group,
-        benchmarks=list(all_benchmarks),
-        algorithms=algorithms,
-        base_path=base_path,  # Base path of the repo
-        parallel=parallel,  # Whether to process in parallel
-        n_workers=n_workers,  # Flag to indicate if it was a parallel setup
-        continuations=True,  # Continue on fidelities from configurations
-        cumulate_fidelities=True,  # Accumulate fidelities in the indices
-        xaxis=xaxis,  # The x-axis to use
-        rescale_xaxis="max_fidelity",  # We always rescale the xaxis by max_fidelity
-        incumbent_value="loss",  # The incumbent is deteremined by the loss
-        incumbents_only=True,  # We only want incumbent traces in our results
-    )
-    print(f"[{now()}] Done! Duration {time.time() - starttime:.3f}...")
+    CACHE = base_path / "results" / experiment_group / ".plot_cache.pkl"
+    if not CACHE.exists():
+        raise RuntimeError(f"No cache found at {CACHE}, run `--collect` first")
+
+    print("-" * 50)
+    print(f"Using cache at {CACHE}")
+    print("-" * 50)
+    with CACHE.open("rb") as f:
+        results = pickle.load(f)
 
     # Incumbent traces
     if incumbent_trace_benchmarks:
@@ -489,9 +470,10 @@ def parse_args() -> Namespace:
     parser = ArgumentParser(description="mf-prior-exp plotting")
 
     parser.add_argument("--prefix", type=str, default=None)
+    parser.add_argument("--collect", action="store_true")
 
     parser.add_argument("--experiment_group", type=str, required=True)
-    parser.add_argument("--algorithms", nargs="+", type=str, required=True)
+    parser.add_argument("--algorithms", nargs="+", type=str, default=None)
     parser.add_argument(
         "--incumbent_traces",
         type=json.loads,
@@ -545,6 +527,45 @@ def parse_args() -> Namespace:
     return args
 
 
+def collect(
+    experiment_group: str,
+    base_path: Path,
+    n_workers: int,
+    parallel: bool = True,
+) -> None:
+    if base_path is None:
+        base_path = DEFAULT_BASE_PATH
+
+    CACHE = base_path / "results" / experiment_group / ".plot_cache.pkl"
+    CACHE.parent.mkdir(exist_ok=True, parents=True)
+
+    # Fetch the results we need
+    starttime = time.time()
+
+    xaxis = "cumulated_fidelity"
+
+    print(f"[{now()}] Processing ...")
+    all_benchmarks, all_algorithms = all_possibilities(experiment_group, base_path)
+    results = fetch_results(
+        experiment_group=experiment_group,
+        benchmarks=list(all_benchmarks),
+        algorithms=list(all_algorithms),
+        base_path=base_path,  # Base path of the repo
+        parallel=parallel,  # Whether to process in parallel
+        n_workers=n_workers,  # Flag to indicate if it was a parallel setup
+        continuations=True,  # Continue on fidelities from configurations
+        cumulate_fidelities=True,  # Accumulate fidelities in the indices
+        xaxis=xaxis,  # The x-axis to use
+        rescale_xaxis="max_fidelity",  # We always rescale the xaxis by max_fidelity
+        incumbent_value="loss",  # The incumbent is deteremined by the loss
+        incumbents_only=True,  # We only want incumbent traces in our results
+    )
+    with CACHE.open("wb") as f:
+        pickle.dump(results, f)
+
+    print(f"[{now()}] Done! Duration {time.time() - starttime:.3f}...")
+
+
 if __name__ == "__main__":
     args = parse_args()
     print("Plotting with args:")
@@ -556,8 +577,6 @@ if __name__ == "__main__":
         prefix=args.prefix,
         base_path=args.base_path,
         relative_rankings=args.relative_rankings,
-        parallel=args.parallel,
-        n_workers=args.n_workers,
         x_range=args.x_range,
         x_together=args.x_together,
         plot_default=args.plot_default,
@@ -565,4 +584,3 @@ if __name__ == "__main__":
         extension=args.ext,
         dpi=args.dpi,
     )
-

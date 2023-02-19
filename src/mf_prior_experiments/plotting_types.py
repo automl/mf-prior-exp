@@ -21,6 +21,27 @@ if TYPE_CHECKING:
     import mfpbench
 
 
+def all_possibilities(
+    experiment_group: str, base_path: Path
+) -> tuple[set[str], set[str]]:
+    RESULTS_DIR = base_path / "results" / experiment_group
+    benchmark_paths = list(
+        path for path in RESULTS_DIR.iterdir() if path.name.startswith("benchmark=")
+    )
+    benchmarks: set[str] = set(path.name.split("=")[1] for path in benchmark_paths)
+    algorithms: set[str] = set()
+    for benchmark_path in benchmark_paths:
+        algorithms.update(
+            [
+                path.name.split("=")[1]
+                for path in benchmark_path.iterdir()
+                if path.name.startswith("algorithm=")
+            ]
+        )
+
+    return benchmarks, algorithms
+
+
 def fetch_results(
     experiment_group: str,
     benchmarks: list[str],
@@ -37,26 +58,16 @@ def fetch_results(
     xaxis: Literal[
         "cumulated_fidelity", "end_time_since_global_start"
     ] = "cumulated_fidelity",
-    use_cache: bool = False,
-    collect: bool = False,
 ) -> ExperimentResults:
     BENCHMARK_CONFIG_DIR = (
         base_path / "src" / "mf_prior_experiments" / "configs" / "benchmark"
     )
-    RESULTS_DIR = base_path / "results" / experiment_group
-    CACHE = base_path / "results" / experiment_group / ".plot_cache.pkl"
-    CACHE.parent.mkdir(exist_ok=True, parents=True)
-    if use_cache and CACHE.exists():
-        print("-" * 50)
-        print(f"Using cache at {CACHE}")
-        print("-" * 50)
-        with CACHE.open("rb") as f:
-            return pickle.load(f)
-
     if parallel:
         pool = Parallel(backend="multiprocessing", n_jobs=-1)
     else:
         pool = None
+
+    RESULTS_DIR = base_path / "results" / experiment_group
 
     experiment_results = ExperimentResults.load(
         name=experiment_group,
@@ -87,10 +98,6 @@ def fetch_results(
         experiment_results = experiment_results.rescale_xaxis(
             xaxis=xaxis, by=rescale_xaxis, pool=pool
         )
-
-    if collect:
-        with CACHE.open("wb") as f:
-            pickle.dump(experiment_results, f)
 
     return experiment_results
 
@@ -1080,8 +1087,7 @@ class ExperimentResults(Mapping[str, BenchmarkResults]):
         else:
             benchmark_set = set(benchmarks)
             benchmarks = sorted(
-                benchmark_set,
-                key=lambda b, benchmarks=benchmarks: benchmarks.index(b)
+                benchmark_set, key=lambda b, benchmarks=benchmarks: benchmarks.index(b)
             )
 
         selected_results = {
