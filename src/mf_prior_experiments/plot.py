@@ -223,8 +223,13 @@ def plot_incumbent_traces(
         c.optimum is not None for c in bench_configs.values()
     )
 
-    nrows = np.ceil(len(benchmarks) / 4).astype(int)
-    ncols = min(len(benchmarks), 4)
+    if len(benchmarks) == 6:
+        nrows = 2
+        ncols = 3
+    else:
+        nrows = np.ceil(len(benchmarks) / 4).astype(int)
+        ncols = min(len(benchmarks), 4)
+
     legend_ncol = len(algorithms) + sum([plot_default, plot_optimum])
     figsize = (4 * ncols, 3 * nrows)
 
