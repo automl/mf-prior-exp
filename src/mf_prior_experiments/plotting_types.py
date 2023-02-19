@@ -975,7 +975,7 @@ class ExperimentResults(Mapping[str, BenchmarkResults]):
             paths = [p for p in paths if p.exists()]
 
         parallel_results: list[tuple[str, str, int, Trace]] = pool(
-            delayed(_trace_results)(path) for path in paths
+            delayed(_trace_results)(path, b, a, s) for path, (b, a, s) in zip(paths, items)
         )  # type: ignore
         results = {
             benchmark: {
