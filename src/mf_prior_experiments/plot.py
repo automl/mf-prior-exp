@@ -405,7 +405,8 @@ def main(
     # Collect all benchmarks from the relative_rankings and the benchmarks
     all_benchmarks: set[str] = set()
     if incumbent_trace_benchmarks:
-        all_benchmarks.update(incumbent_trace_benchmarks)
+        for benches in incumbent_trace_benchmarks.values():
+            all_benchmarks.update(benches)
 
     if relative_rankings:
         for _, plot_benchmarks in relative_rankings.items():
