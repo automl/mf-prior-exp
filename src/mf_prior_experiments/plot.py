@@ -476,10 +476,12 @@ def parse_args() -> Namespace:
     parser = ArgumentParser(description="mf-prior-exp plotting")
 
     parser.add_argument("--prefix", type=str, default=None)
+
     parser.add_argument("--collect", action="store_true")
     parser.add_argument("--collect-ignore-benchmarks", type=str, nargs="+", default=None, required=False)
     parser.add_argument("--collect-ignore-algorithms", type=str, nargs="+", default=None, required=False)
     parser.add_argument("--collect-ignore-seeds", type=int, nargs="+", default=None, required=False)
+    parser.add_argument("--collect-ignore-missing", action="store_true")
 
     parser.add_argument("--experiment_group", type=str, required=True)
     parser.add_argument("--algorithms", nargs="+", type=str, default=None)
