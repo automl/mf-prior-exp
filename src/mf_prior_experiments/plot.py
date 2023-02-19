@@ -494,7 +494,6 @@ def parse_args() -> Namespace:
     parser.add_argument("--algorithms", nargs="+", type=str, required=True)
     parser.add_argument(
         "--incumbent_traces",
-        nargs="+",
         type=json.loads,
         default=None,
         required=False,
