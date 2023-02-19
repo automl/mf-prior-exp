@@ -438,7 +438,7 @@ def main(
                     x_range=x_range,
                 )
 
-                _plot_title = plot_title.replace(" ", "-")
+                _plot_title = plot_title.lstrip().rstrip().replace(" ", "-")
                 _filename = f"{prefix}-{_plot_title}.{extension}"
 
                 filepath = plot_dir / "incumbent_traces" / yaxis / _filename
@@ -452,7 +452,6 @@ def main(
             for plot_title, plot_benchmarks in relative_rankings.items():
                 fig = plot_relative_ranks(
                     algorithms=algorithms,
-                    plot_title=plot_title,
                     subtitle_results={
                         sub_title: results.select(benchmarks=_benches)
                         for sub_title, _benches in plot_benchmarks.items()
@@ -463,7 +462,7 @@ def main(
                     x_together=x_together,
                 )
 
-                _plot_title = plot_title.replace(" ", "-")
+                _plot_title = plot_title.lstrip().rstrip().replace(" ", "-")
                 _filename = f"{prefix}-{_plot_title}.{extension}"
 
                 filepath = plot_dir / "relative-rankings" / yaxis / _filename
