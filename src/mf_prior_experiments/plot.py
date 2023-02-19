@@ -587,9 +587,9 @@ if __name__ == "__main__":
     print("Plotting with args:")
     print(args)
     if args.collect:
-        ignore_benchmarks = set(args.ignore_benchmarks) if args.ignore_benchmarks else None
-        ignore_algorithms = set(args.ignore_algorithms) if args.ignore_algorithms else None
-        ignore_seeds = set(args.ignore_seeds) if args.ignore_seeds else None
+        ignore_benchmarks = set(args.collect_ignore_benchmarks) if args.collect_ignore_benchmarks else None
+        ignore_algorithms = set(args.collect_ignore_algorithms) if args.collect_ignore_algorithms else None
+        ignore_seeds = set(args.collect_ignore_seeds) if args.collect_ignore_seeds else None
         collect(
             experiment_group=args.experiment_group,
             base_path=args.base_path,
