@@ -255,7 +255,7 @@ def plot_incumbent_traces(
             y_values = [
                 getattr(result, yaxis)
                 for result in benchmark_results.iter_results()
-                if getattr(results, xaxis) >= left and getattr(results, xaxis) <= right
+                if getattr(results, xaxis) >= left and getattr(result, xaxis) <= right
             ]
             y_min, y_max = min(y_values), max(y_values)
             dy = abs(y_max - y_min)
