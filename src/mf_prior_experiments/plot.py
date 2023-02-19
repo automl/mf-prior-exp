@@ -271,10 +271,8 @@ def plot_incumbent_traces(
                 ax.set_ylim(down, up)
 
         ax.set_xlim(left=left, right=right)
-        if (left, right) == (1, 12):
-            xticks = [1, 3, 5, 8, 12]
-        else:
-            xticks = np.linspace(left, right, 5, dtype=int, endpoint=True).tolist()
+
+        xticks = get_xticks(_x_range)
         ax.set_xticks(xticks, xticks)
 
         ax.set_title(
