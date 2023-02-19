@@ -395,8 +395,10 @@ def main(
     relative_rankings: dict[str, dict[str, list[str]]] | None = None,
     plot_default: bool = True,
     plot_optimum: bool = True,
-    x_range: tuple[int, int] | None = None,
-    x_together: float | None = None,
+    dynamic_y_lim: bool = False,
+    x_range_it: tuple[int, int] | None = None,
+    x_range_rr: tuple[int, int] | None = None,
+    x_together_rr: float | None = None,
     extension: str = "png",
     dpi: int = 200,
 ) -> None:
@@ -433,7 +435,8 @@ def main(
                     plot_optimum=plot_optimum,
                     yaxis=yaxis,  # type: ignore
                     xaxis=xaxis,  # type: ignore
-                    x_range=x_range,
+                    x_range=x_range_it,
+                    dynamic_y_lim=dynamic_y_lim,
                 )
 
                 _plot_title = plot_title.lstrip().rstrip().replace(" ", "-")
@@ -456,8 +459,8 @@ def main(
                     },
                     yaxis=yaxis,
                     xaxis=xaxis,
-                    x_range=x_range,
-                    x_together=x_together,
+                    x_range=x_range_rr,
+                    x_together=x_together_rr,
                 )
 
                 _plot_title = plot_title.lstrip().rstrip().replace(" ", "-")
@@ -514,19 +517,20 @@ def parse_args() -> Namespace:
     parser.add_argument("--base_path", type=Path, default=None)
     parser.add_argument("--n_workers", type=int, default=1)
     parser.add_argument("--budget", nargs="+", type=float, default=None)
-    parser.add_argument("--x_range", nargs=2, type=float, default=None)
-    parser.add_argument("--x_together", type=float, default=None)
+    parser.add_argument("--x_range_it", nargs=2, type=float, default=None)
+    parser.add_argument("--x_range_rr", nargs=2, type=float, default=None)
+    parser.add_argument("--x_together_rr", type=float, default=None)
 
     parser.add_argument("--dpi", type=int, default=200)
     parser.add_argument("--ext", type=str, choices=["pdf", "png"], default="png")
     parser.add_argument("--plot_default", action="store_true")
     parser.add_argument("--plot_optimum", action="store_true")
-    # parser.add_argument("--dynamic_y_lim", action="store_true")
+    parser.add_argument("--dynamic_y_lim", action="store_true")
     parser.add_argument("--parallel", action="store_true")
 
     args = parser.parse_args()
 
-    if args.x_together and args.x_range and args.x_together < args.x_range[0]:
+    if args.x_together_rr and args.x_range_rr and args.x_together_rr < args.x_range_rr[0]:
         raise ValueError("--x_together must be larger than --x_range[0]")
 
     if args.budget:
@@ -609,10 +613,12 @@ if __name__ == "__main__":
             prefix=args.prefix,
             base_path=args.base_path,
             relative_rankings=args.relative_rankings,
-            x_range=args.x_range,
-            x_together=args.x_together,
+            x_range_it=args.x_range_it,
+            x_range_rr=args.x_range_rr,
+            x_together_rr=args.x_together,
             plot_default=args.plot_default,
             plot_optimum=args.plot_optimum,
             extension=args.ext,
             dpi=args.dpi,
+            dynamic_y_lim=args.dynamic_y_lim,
         )
