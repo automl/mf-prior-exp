@@ -1,10 +1,10 @@
 from __future__ import annotations
 
+import json
 import math
-import sys
 import time
-from pathlib import Path
 from argparse import ArgumentParser, Namespace
+from pathlib import Path
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -18,11 +18,11 @@ from .styles import (
     BENCHMARK_COLORS,
     COLOR_MARKER_DICT,
     DATASETS,
+    RC_PARAMS,
     X_LABEL,
     Y_LABEL,
     Y_LIMITS,
     get_xticks,
-    RC_PARAMS,
 )
 from .types import ExperimentResults, fetch_results
 
@@ -78,47 +78,25 @@ def plot_relative_ranks(
     algorithms: list[str],
     yaxis: str,
     xaxis: str,
-    good_corr_good_prior: ExperimentResults | None = None,
-    good_corr_bad_prior: ExperimentResults | None = None,
-    bad_corr_good_prior: ExperimentResults | None = None,
-    bad_corr_bad_prior: ExperimentResults | None = None,
-    pairwise_plots: tuple[tuple[str, ExperimentResults], tuple[str, ExperimentResults]]
-    | None = None,
+    subtitle_results: dict[str, ExperimentResults],
+    plot_title: str | None = None,
     x_together: float | None = None,
     x_range: tuple[int, int] | None = None,
 ) -> plt.Figure:
     """Plot relative ranks of the incumbent over time."""
 
-    if pairwise_plots:
-        assert good_corr_good_prior is None
-        assert good_corr_bad_prior is None
-        assert bad_corr_good_prior is None
-        assert bad_corr_bad_prior is None
-        subplots = {title: results for title, results in pairwise_plots}
-    else:
-        assert good_corr_good_prior is not None
-        assert good_corr_bad_prior is not None
-        assert bad_corr_good_prior is not None
-        assert bad_corr_bad_prior is not None
-        subplots = {
-            "good corr. & good prior": good_corr_good_prior,
-            "good corr. & bad prior": good_corr_bad_prior,
-            "bad corr. & good prior": bad_corr_good_prior,
-            "bad corr. & bad prior": bad_corr_bad_prior,
-        }
+    # For now we always want it flat...
+    row_length = 100
 
-    for key, value in subplots.items():
-        print(key, value.results.keys())
-
-    ncols = len(subplots)
-    nrows = 1
+    ncols = len(subtitle_results)
+    nrows = math.ceil(ncols / row_length)
     figsize = (ncols * 4, nrows * 3)
     legend_ncol = len(algorithms)
 
     fig, _axs = plt.subplots(nrows, ncols, figsize=figsize)
     axs: list[plt.Axes] = list(_axs.flatten())
 
-    for col, ((subtitle, results), ax) in enumerate(zip(subplots.items(), axs)):
+    for col, ((subtitle, results), ax) in enumerate(zip(subtitle_results.items(), axs)):
         _x_range: tuple[int, int]
         if x_range is None:
             xmin = min(getattr(r, xaxis) for r in results.iter_results())
@@ -155,8 +133,8 @@ def plot_relative_ranks(
             # everything in the x-axis before the x_together index
             # so that it lines up with the above
             if x_together is not None:
-                means = means.loc[x_together:]
-                stds = stds.loc[x_together:]
+                means = means.loc[x_together:]  # type: ignore
+                stds = stds.loc[x_together:]  # type: ignore
             elif x_together is None:
                 # Otherwise, we just use whatever the xaxis cutoff is
                 means = means.loc[left:]
@@ -206,6 +184,9 @@ def plot_relative_ranks(
 
     for item in legend.legendHandles:
         item.set_linewidth(2)
+
+    if plot_title:
+        fig.suptitle(plot_title)
 
     fig.tight_layout(pad=0, h_pad=0.5)
     return fig
@@ -317,9 +298,12 @@ def plot_incumbent_traces(
                 "mfh3_good_prior-good",
                 "mfh3_terrible_prior-good",
                 "mfh6_good_prior-good",
-                "mfh6_terrible_prior-good"
+                "mfh6_terrible_prior-good",
             ]
-            if "random_search_prior" in algorithms and benchmark in mfh_good_prior_benchmarks:
+            if (
+                "random_search_prior" in algorithms
+                and benchmark in mfh_good_prior_benchmarks
+            ):
                 random_search_results = benchmark_results["random_search_prior"]
                 values = random_search_results.df(index=xaxis, values=yaxis)
                 prior_error = values.iloc[0].mean(axis=0)
@@ -399,23 +383,31 @@ def plot_incumbent_traces(
     return fig
 
 
-def main():
-    args = parse_args()
+def main(
+    experiment_group: str,
+    algorithms: list[str],
+    benchmarks: list[str],
+    filename: str,
+    base_path: Path | None = DEFAULT_BASE_PATH,
+    relative_rankings: dict[str, dict[str, list[str]]] | None = None,
+    parallel: bool = True,
+    n_workers: int = 1,
+    plot_default: bool = True,
+    plot_optimum: bool = True,
+    x_range: tuple[int, int] | None = None,
+    x_together: float | None = None,
+    extension: str = "png",
+    dpi: int = 200,
+) -> None:
+    if base_path is None:
+        base_path = DEFAULT_BASE_PATH
 
-    experiment_group: str = args.experiment_group
-    algorithms: list[str] = args.algorithms
-    base_path: Path = args.base_path or DEFAULT_BASE_PATH
-
-    benchmarks: set[str]
-    benchmarks = set(
-        [
-            *args.rr_good_corr_good_prior,
-            *args.rr_good_corr_bad_prior,
-            *args.rr_bad_corr_good_prior,
-            *args.rr_bad_corr_bad_prior,
-            *args.benchmarks,
-        ]
-    )
+    # Collect all benchmarks from the relative_rankings and the benchmarks
+    all_benchmarks: set[str] = set(benchmarks)
+    if relative_rankings:
+        for _, plot_benchmarks in relative_rankings.items():
+            for _, subplot_benchmarks in plot_benchmarks.items():
+                all_benchmarks.update(subplot_benchmarks)
 
     plot_dir = base_path / "plots" / experiment_group
 
@@ -427,128 +419,63 @@ def main():
     print(f"[{now()}] Processing ...")
     results = fetch_results(
         experiment_group=experiment_group,
-        benchmarks=list(benchmarks),
+        benchmarks=list(all_benchmarks),
         algorithms=algorithms,
         base_path=base_path,  # Base path of the repo
-        parallel=args.parallel,  # Whether to process in parallel
-        n_workers=args.n_workers,  # Flag to indicate if it was a parallel setup
+        parallel=parallel,  # Whether to process in parallel
+        n_workers=n_workers,  # Flag to indicate if it was a parallel setup
         continuations=True,  # Continue on fidelities from configurations
         cumulate_fidelities=True,  # Accumulate fidelities in the indices
         xaxis=xaxis,  # The x-axis to use
         rescale_xaxis="max_fidelity",  # We always rescale the xaxis by max_fidelity
         incumbent_value="loss",  # The incumbent is deteremined by the loss
         incumbents_only=True,  # We only want incumbent traces in our results
-        use_cache=args.use_cache,  # Specify we want to use cached results
-        collect=args.collect,  # Specify we only want to collect
     )
     print(f"[{now()}] Done! Duration {time.time() - starttime:.3f}...")
 
-    # If we are just collecting results, then exit out now
-    if args.collect:
-        print("Collected results and cached!")
-        sys.exit(0)
-
     # Incumbent traces
-    if len(args.benchmarks) > 0:
+    if len(benchmarks) > 0:
         for yaxis in yaxes:
             fig = plot_incumbent_traces(
-                results=results.select(benchmarks=args.benchmarks),
-                plot_default=args.plot_default,
-                plot_optimum=args.plot_optimum,
+                results=results.select(benchmarks=benchmarks),
+                plot_default=plot_default,
+                plot_optimum=plot_optimum,
                 yaxis=yaxis,  # type: ignore
                 xaxis=xaxis,  # type: ignore
-                x_range=args.x_range,
+                x_range=x_range,
             )
 
-            filename = f"{args.filename}.{args.ext}"
-            filepath = plot_dir / "incumbent_traces" / yaxis / filename
+            _filename = f"{filename}.{extension}"
+
+            filepath = plot_dir / "incumbent_traces" / yaxis / _filename
             filepath.parent.mkdir(parents=True, exist_ok=True)
-            fig.savefig(filepath, bbox_inches="tight", dpi=args.dpi)
-            print(f"Saved to {filename} to {filepath}")
+            fig.savefig(filepath, bbox_inches="tight", dpi=dpi)
+            print(f"Saved to {_filename} to {filepath}")
 
     # Relative ranking plots
-    # If one is set, the rest is set
-    if len(args.rr_good_corr_good_prior) > 0:
+    if relative_rankings:
         for yaxis in yaxes:
-            fig = plot_relative_ranks(
-                algorithms=algorithms,
-                good_corr_good_prior=results.select(
-                    benchmarks=args.rr_good_corr_good_prior
-                ),
-                good_corr_bad_prior=results.select(
-                    benchmarks=args.rr_good_corr_bad_prior
-                ),
-                bad_corr_good_prior=results.select(
-                    benchmarks=args.rr_bad_corr_good_prior
-                ),
-                bad_corr_bad_prior=results.select(benchmarks=args.rr_bad_corr_bad_prior),
-                yaxis=yaxis,
-                xaxis=xaxis,
-                x_range=args.x_range,
-                x_together=args.x_together,
-            )
+            for plot_title, plot_benchmarks in relative_rankings.items():
+                fig = plot_relative_ranks(
+                    algorithms=algorithms,
+                    plot_title=plot_title,
+                    subtitle_results={
+                        sub_title: results.select(benchmarks=_benches)
+                        for sub_title, _benches in plot_benchmarks.items()
+                    },
+                    yaxis=yaxis,
+                    xaxis=xaxis,
+                    x_range=x_range,
+                    x_together=x_together,
+                )
 
-            filename = f"{args.filename}.{args.ext}"
-            filepath = plot_dir / "relative_ranks" / yaxis / filename
-            filepath.parent.mkdir(parents=True, exist_ok=True)
-            fig.savefig(filepath, bbox_inches="tight", dpi=args.dpi)
-            print(f"Saved to {filename} to {filepath}")
+                _filename = f"{filename}-{plot_title}.{extension}"
 
-        # We also do a relative ranking plot in two sections
-        # aggrgating by prior kind
-        good_prior_benchmarks = [
-            *args.rr_good_corr_good_prior,
-            *args.rr_bad_corr_good_prior,
-        ]
-        bad_prior_benchmarks = [*args.rr_good_corr_bad_prior, *args.rr_bad_corr_bad_prior]
-        print(f"good_prior_benchmarks={good_prior_benchmarks}")
-        print(f"bad_prior_benchmarks={bad_prior_benchmarks}")
+                filepath = plot_dir / "relative-rankings" / yaxis / _filename
+                filepath.parent.mkdir(parents=True, exist_ok=True)
+                fig.savefig(filepath, bbox_inches="tight", dpi=dpi)
+                print(f"Saved to {_filename} to {filepath}")
 
-        for yaxis in yaxes:
-            fig = plot_relative_ranks(
-                algorithms=algorithms,
-                pairwise_plots=(
-                    ("good prior", results.select(benchmarks=good_prior_benchmarks)),
-                    ("bad prior", results.select(benchmarks=bad_prior_benchmarks)),
-                ),
-                yaxis=yaxis,
-                xaxis=xaxis,
-                x_range=args.x_range,
-                x_together=args.x_together,
-            )
-            filename = f"{args.filename}-benchmarks-by-prior.{args.ext}"
-            filepath = plot_dir / "relative_ranks" / yaxis / filename
-            filepath.parent.mkdir(parents=True, exist_ok=True)
-            fig.savefig(filepath, bbox_inches="tight", dpi=args.dpi)
-            print(f"Saved to {filename} to {filepath}")
-
-        # We also do a relative ranking plot in two sections
-        # aggrgating by correlation kind
-        good_corr_benchmarks = [
-            *args.rr_good_corr_good_prior,
-            *args.rr_good_corr_bad_prior,
-        ]
-        bad_corr_benchmarks = [*args.rr_bad_corr_good_prior, *args.rr_bad_corr_bad_prior]
-        print(f"good_corr_benchmarks={good_corr_benchmarks}")
-        print(f"bad_corr_benchmarks={bad_corr_benchmarks}")
-
-        for yaxis in yaxes:
-            fig = plot_relative_ranks(
-                algorithms=algorithms,
-                pairwise_plots=(
-                    ("good corr.", results.select(benchmarks=good_corr_benchmarks)),
-                    ("bad corr.", results.select(benchmarks=bad_corr_benchmarks)),
-                ),
-                yaxis=yaxis,
-                xaxis=xaxis,
-                x_range=args.x_range,
-                x_together=args.x_together,
-            )
-            filename = f"{args.filename}-benchmarks-by-correlation.{args.ext}"
-            filepath = plot_dir / "relative_ranks" / yaxis / filename
-            filepath.parent.mkdir(parents=True, exist_ok=True)
-            fig.savefig(filepath, bbox_inches="tight", dpi=args.dpi)
-            print(f"Saved to {filename} to {filepath}")
 
 
 def parse_args() -> Namespace:
@@ -556,17 +483,24 @@ def parse_args() -> Namespace:
     parser = ArgumentParser(description="mf-prior-exp plotting")
 
     parser.add_argument("--filename", type=str, default=None)
-    parser.add_argument("--collect", action="store_true")
-    parser.add_argument("--use-cache", action="store_true")
 
     parser.add_argument("--experiment_group", type=str, required=True)
     parser.add_argument("--algorithms", nargs="+", default=[])
-
     parser.add_argument("--benchmarks", nargs="+", default=[])
-    parser.add_argument("--rr-good-corr-good-prior", nargs="+", default=[])
-    parser.add_argument("--rr-good-corr-bad-prior", nargs="+", default=[])
-    parser.add_argument("--rr-bad-corr-good-prior", nargs="+", default=[])
-    parser.add_argument("--rr-bad-corr-bad-prior", nargs="+", default=[])
+    parser.add_argument(
+        "--relative-rankings",
+        type=json.loads,
+        default=None,
+        required=False,
+        help=(
+            "Expects a dict like:\n"
+            "{\n"
+            "   'plot_title1': {'subtitle1': ['benchmark', ...], 'subtitle2': ['benchmark', ...]} },\n"
+            "   'plot_title2': {'subtitle1': ['benchmark', ...], 'subtitle2': ['benchmark', ...]} },\n"
+            "   ...,\n"
+            "}"
+        )
+    )
 
     parser.add_argument("--base_path", type=Path, default=None)
     parser.add_argument("--n_workers", type=int, default=1)
@@ -578,39 +512,35 @@ def parse_args() -> Namespace:
     parser.add_argument("--ext", type=str, choices=["pdf", "png"], default="png")
     parser.add_argument("--plot_default", action="store_true")
     parser.add_argument("--plot_optimum", action="store_true")
-    #parser.add_argument("--dynamic_y_lim", action="store_true")
+    # parser.add_argument("--dynamic_y_lim", action="store_true")
     parser.add_argument("--parallel", action="store_true")
 
     args = parser.parse_args()
 
-    if args.collect and args.use_cache:
-        raise ValueError("Can't use --collect with --use-cache")
-
-    if not args.collect and args.filename is None:
-        raise ValueError("Must specify --filename unless using --collect")
-
     if args.x_together and args.x_range and args.x_together < args.x_range[0]:
         raise ValueError("--x_together must be larger than --x_range[0]")
-
-    if not args.collect and len(args.algorithms) == 0:
-        raise ValueError("Must specify --algorithms unless using --collect")
 
     if args.budget:
         raise ValueError("CD plots (which use --budget) not supported yet")
 
-    benches = [
-        args.rr_good_corr_good_prior,
-        args.rr_good_corr_bad_prior,
-        args.rr_bad_corr_good_prior,
-        args.rr_bad_corr_bad_prior,
-    ]
-    if any(len(b) > 0 for b in benches) and not all(len(b) > 0 for b in benches):
-        raise ValueError("Must specify all --rr args for relative rankings")
-
-        #if not len(list(flatten(benches))) == len(set(flatten(benches))):
-        #raise ValueError("Benchmarks in --rr must all be unique\n")
-
     return args
 
+
 if __name__ == "__main__":
-    main()
+    args = parse_args()
+    main(
+        experiment_group=args.experiment_group,
+        algorithms=args.algorithms,
+        benchmarks=args.benchmarks,
+        filename=args.filename,
+        base_path=args.base_path,
+        relative_rankings=args.relative_rankings,
+        parallel=args.parallel,
+        n_workers=args.n_workers,
+        x_range=args.x_range,
+        x_together=args.x_together,
+        plot_default=args.plot_default,
+        plot_optimum=args.plot_optimum,
+        extension=args.extension,
+        dpi=args.dpi
+    )

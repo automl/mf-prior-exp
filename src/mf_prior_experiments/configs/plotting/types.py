@@ -1080,19 +1080,23 @@ class ExperimentResults(Mapping[str, BenchmarkResults]):
         seeds: list[int] | None = None,
     ) -> ExperimentResults:
         if benchmarks is None:
-            benchmarks_set = set(self.benchmarks)
+            benchmarks = list(set(self.benchmarks))
         else:
-            benchmarks_set = set(benchmarks)
+            benchmark_set = set(benchmarks)
+            benchmarks = sorted(
+                benchmark_set,
+                key=lambda b, benchmarks=benchmarks: benchmarks.index(b)
+            )
 
         selected_results = {
             name: benchmark.select(algorithms=algorithms, seeds=seeds)
             for name, benchmark in self.results.items()
-            if name in benchmarks_set
+            if name in benchmarks
         }
         benchmark_configs = {
             name: config
             for name, config in self.benchmark_configs.items()
-            if name in benchmarks_set
+            if name in benchmarks
         }
 
         if algorithms is None:
@@ -1101,7 +1105,7 @@ class ExperimentResults(Mapping[str, BenchmarkResults]):
         return replace(
             self,
             name=self.name,
-            benchmarks=list(benchmarks_set),
+            benchmarks=benchmarks,
             algorithms=algorithms,
             results=selected_results,
             benchmark_configs=benchmark_configs,
