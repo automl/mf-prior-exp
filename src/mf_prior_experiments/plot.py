@@ -13,7 +13,7 @@ import seaborn as sns
 from scipy import stats
 from typing_extensions import Literal
 
-from .styles import (
+from .plot_styles import (
     ALGORITHMS,
     BENCHMARK_COLORS,
     COLOR_MARKER_DICT,
@@ -24,7 +24,7 @@ from .styles import (
     Y_LIMITS,
     get_xticks,
 )
-from .types import ExperimentResults, fetch_results
+from .plotting_types import ExperimentResults, fetch_results
 
 HERE = Path(__file__).parent.absolute()
 DEFAULT_BASE_PATH = HERE.parent.parent
@@ -563,3 +563,4 @@ if __name__ == "__main__":
         extension=args.extension,
         dpi=args.dpi,
     )
+
