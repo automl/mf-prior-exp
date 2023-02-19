@@ -29,19 +29,25 @@ def all_possibilities(
     ignore_algorithms: set[str] | None = None,
     ignore_seeds: set[int] | None = None,
 ) -> tuple[set[str], set[str], set[int]]:
+    import re
     ignore_benchmarks = ignore_benchmarks or set()
     ignore_algorithms = ignore_algorithms or set()
     ignore_seeds = ignore_seeds or set()
+
+    def is_ignored(s: str, ignore: set[str]) -> bool:
+        return any(re.match(i, s) for i in ignore)
+
+
     RESULTS_DIR = base_path / "results" / experiment_group
 
     benchmarks = {p.name.split("=")[1] for p in RESULTS_DIR.glob("benchmark=*")}
-    benchmarks = benchmarks - ignore_benchmarks
+    benchmarks = {b for b in benchmarks if not is_ignored(b, ignore_benchmarks)}
 
     algorithms = {p.name.split("=")[1] for p in RESULTS_DIR.glob("*/algorithm=*")}
-    algorithms = algorithms - ignore_algorithms
+    algorithms = {a for a in algorithms if not is_ignored(a, ignore_algorithms)}
 
     seeds = {int(p.name.split("=")[1]) for p in RESULTS_DIR.glob("*/*/seed=*")}
-    seeds = seeds = ignore_seeds
+    seeds = seeds - ignore_seeds
     return benchmarks, algorithms, seeds
 
 
