@@ -37,7 +37,6 @@ def all_possibilities(
     def is_ignored(s: str, ignore: set[str]) -> bool:
         return any(re.match(i, s) for i in ignore)
 
-
     RESULTS_DIR = base_path / "results" / experiment_group
 
     benchmarks = {p.name.split("=")[1] for p in RESULTS_DIR.glob("benchmark=*")}
@@ -71,6 +70,7 @@ def fetch_results(
     xaxis: Literal[
         "cumulated_fidelity", "end_time_since_global_start"
     ] = "cumulated_fidelity",
+    ignore_missing: bool = False,
 ) -> ExperimentResults:
     BENCHMARK_CONFIG_DIR = (
         base_path / "src" / "mf_prior_experiments" / "configs" / "benchmark"
@@ -91,6 +91,7 @@ def fetch_results(
         seeds=seeds,
         benchmark_config_dir=BENCHMARK_CONFIG_DIR,
         pool=pool,
+        ignore_missing=ignore_missing,
     )
 
     if continuations:
@@ -952,6 +953,7 @@ class ExperimentResults(Mapping[str, BenchmarkResults]):
         seeds: list[int] | None = None,
         benchmark_config_dir: Path,
         pool: Parallel | None = None,
+        ignore_missing: bool = False,
     ) -> ExperimentResults:
         if seeds is None:
             seeds = sorted(int(p.name.split("=")[1]) for p in path.glob("*/*/seed=*"))
@@ -972,6 +974,10 @@ class ExperimentResults(Mapping[str, BenchmarkResults]):
                 algorithm: pool(
                     delayed(_trace_results)(_path(benchmark, algorithm, seed))
                     for seed in seeds
+                    if (
+                        not ignore_missing
+                        or (ignore_missing and _path(benchmark, algorithm, seed).exists())
+                    )
                 )
                 for algorithm in algorithms
             }

@@ -541,6 +541,7 @@ def collect(
     base_path: Path,
     n_workers: int,
     parallel: bool = True,
+    ignore_missing: bool = False,
     ignore_benchmarks: set[str] | None = None,
     ignore_seeds: set[int] | None = None,
     ignore_algorithms: set[str] | None = None,
@@ -575,6 +576,7 @@ def collect(
         rescale_xaxis="max_fidelity",  # We always rescale the xaxis by max_fidelity
         incumbent_value="loss",  # The incumbent is deteremined by the loss
         incumbents_only=True,  # We only want incumbent traces in our results
+        ignore_missing=ignore_missing,
     )
     with CACHE.open("wb") as f:
         pickle.dump(results, f)
@@ -595,6 +597,7 @@ if __name__ == "__main__":
             base_path=args.base_path,
             n_workers=args.n_workers,
             parallel=args.parallel,
+            ignore_missing=args.collect_ignore_missing,
             ignore_benchmarks=ignore_benchmarks,
             ignore_algorithms=ignore_algorithms,
             ignore_seeds=ignore_seeds,
