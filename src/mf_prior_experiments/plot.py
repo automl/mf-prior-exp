@@ -426,11 +426,11 @@ def main(
         results = pickle.load(f)
 
     # Incumbent traces
-    if incumbent_trace_benchmarks:
+    if incumbent_trace_benchmarks is not None:
         for yaxis in yaxes:
             for plot_title, _benches in incumbent_trace_benchmarks.items():
                 fig = plot_incumbent_traces(
-                    results=results.select(benchmarks=_benches),
+                    results=results.select(benchmarks=_benches, algorithms=algorithms),
                     plot_default=plot_default,
                     plot_optimum=plot_optimum,
                     yaxis=yaxis,  # type: ignore
@@ -447,13 +447,13 @@ def main(
                 print(f"Saved to {_filename} to {filepath}")
 
     # Relative ranking plots
-    if relative_rankings:
+    if relative_rankings is not None:
         for yaxis in yaxes:
             for plot_title, plot_benchmarks in relative_rankings.items():
                 fig = plot_relative_ranks(
                     algorithms=algorithms,
                     subtitle_results={
-                        sub_title: results.select(benchmarks=_benches)
+                        sub_title: results.select(benchmarks=_benches, algorithms=algorithms)
                         for sub_title, _benches in plot_benchmarks.items()
                     },
                     yaxis=yaxis,
