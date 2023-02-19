@@ -374,6 +374,7 @@ COLOR_MARKER_DICT = {
     "priorband": "blue",
     "priorband-50": "darkseagreen",
     "priorband_bo": "purple",
+    "priorband_bo-50": "firebrick",
     "priorband_crossover_constant_linear": "darkkhaki",
     "priorband_crossover_decay_linear": "orangered",
     "priorband_crossover_dynamic": "deeppink",
