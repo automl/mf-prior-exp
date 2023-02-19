@@ -27,9 +27,9 @@ def all_possibilities(
     base_path: Path,
 ) -> tuple[set[str], set[str], set[int]]:
     RESULTS_DIR = base_path / "results" / experiment_group
-    benchmarks = {p.name.split("=")[1] for p in RESULTS_DIR.glob("**/benchmark=*")}
-    algorithms = {p.name.split("=")[1] for p in RESULTS_DIR.glob("**/algorithm=*")}
-    seeds = {int(p.name.split("=")[1]) for p in RESULTS_DIR.glob("**/seed=*")}
+    benchmarks = {p.name.split("=")[1] for p in RESULTS_DIR.glob("benchmark=*")}
+    algorithms = {p.name.split("=")[1] for p in RESULTS_DIR.glob("*/algorithm=*")}
+    seeds = {int(p.name.split("=")[1]) for p in RESULTS_DIR.glob("*/*/seed=*")}
     return benchmarks, algorithms, seeds
 
 
@@ -933,7 +933,7 @@ class ExperimentResults(Mapping[str, BenchmarkResults]):
         pool: Parallel | None = None,
     ) -> ExperimentResults:
         if seeds is None:
-            seeds = sorted(int(p.name.split("=")[1]) for p in path.glob("**/seed=*"))
+            seeds = sorted(int(p.name.split("=")[1]) for p in path.glob("*/*/seed=*"))
 
         def _path(benchmark_: str, algorithm_: str, seed_: int) -> Path:
             return (
