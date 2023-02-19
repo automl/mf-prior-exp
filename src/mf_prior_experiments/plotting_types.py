@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import time
 import json
 import operator
 from dataclasses import dataclass, replace
@@ -8,8 +9,6 @@ from itertools import accumulate, chain, groupby, product, starmap
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, Iterator, Mapping, Sequence, overload
 
-import numpy as np
-import pandas as pd
 import yaml  # type: ignore
 from joblib import Parallel, delayed
 from more_itertools import all_equal, flatten, pairwise
@@ -18,7 +17,10 @@ from yaml import CLoader as Loader
 
 if TYPE_CHECKING:
     import mfpbench
+    import pandas as pd
 
+def now() -> str:
+    return time.strftime("%H:%M:%S", time.localtime())
 
 def all_possibilities(
     experiment_group: str,
@@ -59,6 +61,7 @@ def fetch_results(
 
     RESULTS_DIR = base_path / "results" / experiment_group
 
+    print(f"[{now()}]--- Loading results ---", flush=True)
     experiment_results = ExperimentResults.load(
         name=experiment_group,
         path=RESULTS_DIR,
@@ -70,21 +73,25 @@ def fetch_results(
     )
 
     if continuations:
+        print(f"[{now()}]--- Calculating Continuations ---", flush=True)
         experiment_results = experiment_results.with_continuations(pool=pool)
 
     if cumulate_fidelities:
+        print(f"[{now()}]--- Cumulating fidelities ---", flush=True)
         # fidelities: [1, 1, 3, 1, 9] -> [1, 2, 5, 6, 15]
         experiment_results = experiment_results.with_cumulative_fidelity(
             pool=pool, n_workers=n_workers
         )
 
     if incumbents_only:
+        print(f"[{now()}]--- Getting incumbent traces ---", flush=True)
         # For now we only allow incumbent traces over "loss"
         experiment_results = experiment_results.incumbent_trace(
             xaxis=xaxis, yaxis=incumbent_value, pool=pool
         )
 
     if rescale and rescale_xaxis:
+        print(f"[{now()}]--- Rescaling ---", flush=True)
         assert rescale_xaxis == "max_fidelity", "All we allow for now"
         experiment_results = experiment_results.rescale_xaxis(
             xaxis=xaxis, by=rescale_xaxis, pool=pool
@@ -310,6 +317,7 @@ class Trace(Sequence[Result]):
 
     @property
     def df(self) -> pd.DataFrame:
+        import pandas as pd
         df = pd.DataFrame(
             data=[
                 {
@@ -497,6 +505,7 @@ class Trace(Sequence[Result]):
         return replace(self, results=results)
 
     def series(self, index: str, values: str, name: str | None = None) -> pd.Series:
+        import pandas as pd
         indicies = [getattr(r, index) for r in self.results]
         vals = [getattr(r, values) for r in self.results]
         series = pd.Series(vals, index=indicies, name=name).sort_index()
@@ -663,6 +672,7 @@ class AlgorithmResults(Mapping[int, Trace]):
         seeds: int | list[int] | None = None,
     ) -> pd.DataFrame | pd.Series:
         """Return a dataframe with the traces."""
+        import pandas as pd
         if seeds is None:
             traces = self.traces
         elif isinstance(seeds, int):
@@ -780,6 +790,7 @@ class BenchmarkResults(Mapping[str, AlgorithmResults]):
         indices: Sequence[float] | None = None,
     ) -> pd.DataFrame:
         """Rank results for each algorithm on this benchmark for a certain seed."""
+        import pandas as pd
         # NOTE: Everything here is in the context of a given seed for this
         # benchmark
         # {
@@ -818,6 +829,7 @@ class BenchmarkResults(Mapping[str, AlgorithmResults]):
         # them to share the same set of indicies. Hence
         # we allow this as an option.
         if indices is not None:
+            import numpy as np
             missing_indices = set(indices) - set(df.index)
             for index in missing_indices:
                 df.loc[index] = np.nan
@@ -1093,6 +1105,7 @@ class ExperimentResults(Mapping[str, BenchmarkResults]):
         return set().union(*bench_seeds)
 
     def ranks(self, *, xaxis: str, yaxis: str) -> tuple[pd.DataFrame, pd.DataFrame]:
+        import pandas as pd
         indices = self.indices(xaxis=xaxis, sort=False)
         seeds = self.seeds()
         benchmarks = self.benchmarks
