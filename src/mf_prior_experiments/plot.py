@@ -492,7 +492,7 @@ def parse_args() -> Namespace:
     parser.add_argument("--experiment_group", type=str, required=True)
     parser.add_argument("--algorithms", nargs="+", type=str, required=True)
     parser.add_argument(
-        "--incumbent-trace-benchmarks",
+        "--incumbent_traces",
         nargs="+",
         type=json.loads,
         default=None,
@@ -507,7 +507,7 @@ def parse_args() -> Namespace:
         ),
     )
     parser.add_argument(
-        "--relative-rankings",
+        "--relative_rankings",
         type=json.loads,
         default=None,
         required=False,
@@ -552,7 +552,7 @@ if __name__ == "__main__":
     main(
         experiment_group=args.experiment_group,
         algorithms=args.algorithms,
-        incumbent_trace_benchmarks=args.incumbent_trace_benchmarks,
+        incumbent_trace_benchmarks=args.incumbent_traces,
         prefix=args.prefix,
         base_path=args.base_path,
         relative_rankings=args.relative_rankings,
