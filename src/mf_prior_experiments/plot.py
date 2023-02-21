@@ -400,15 +400,12 @@ def tablify(
     import pandas as pd
     n_algorithms = len(results.algorithms)
     n_budgets = len(xs)
-    print("before getting table results")
     means, stds = results.table_results(xs=xs, yaxis=yaxis)
 
     # We'll just insert results into here later
     final_table = means.copy()
-    print("In here?")
 
     for budget in xs:
-        print(budget)
         budget_means = means[budget]
         budget_stds = stds[budget]
         assert budget_means is not None
@@ -421,7 +418,7 @@ def tablify(
         assert isinstance(idx_min, pd.Series)
         for i, algo in idx_min.items():
             str_version.loc[i, algo] = f"\\bm{str_version.loc[i, algo]}"
-        final_table[f"{budget}x"] = "$" + str_version + "$"
+        final_table[budget] = "$" + str_version + "$"
 
     table_str = final_table.to_latex(
         escape=False,
@@ -523,13 +520,9 @@ def main(
                 fig.savefig(filepath, bbox_inches="tight", dpi=dpi)
                 print(f"Saved to {_filename} to {filepath}")
 
-    print(table_benchmarks)
-    print(table_xs)
-    print(yaxes)
     if table_benchmarks is not None:
         assert table_xs is not None
         for yaxis in yaxes:
-            print(f"Making tables for {yaxis}")
             table_str = tablify(
                 results=results.select(
                     algorithms=algorithms,
