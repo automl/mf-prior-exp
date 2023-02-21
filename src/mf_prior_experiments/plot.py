@@ -406,6 +406,7 @@ def tablify(
     final_table = means.copy()
 
     for budget in xs:
+        print(budget)
         budget_means = means[budget]
         budget_stds = stds[budget]
         assert budget_means is not None
@@ -420,12 +421,14 @@ def tablify(
             str_version.loc[i, algo] = f"\\bm{str_version.loc[i, algo]}"
         final_table[f"{budget}x"] = "$" + str_version + "$"
 
-    return final_table.to_latex(
+    table_str = final_table.to_latex(
         escape=False,
         bold_rows=True,
         multicolumn_format="l | " + " | ".join(["c" * n_algorithms] * n_budgets),
         column_format="c",
     )  # type: ignore
+    assert table_str is not None
+    return table_str
 
 
 def main(
