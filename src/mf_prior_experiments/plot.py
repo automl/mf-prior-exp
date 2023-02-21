@@ -518,7 +518,11 @@ def main(
                 fig.savefig(filepath, bbox_inches="tight", dpi=dpi)
                 print(f"Saved to {_filename} to {filepath}")
 
+    print(table_benchmarks)
+    print(table_xs)
+    print(yaxes)
     if table_benchmarks is not None:
+        print("Making tables")
         assert table_xs is not None
         for yaxis in yaxes:
             table_str = tablify(
