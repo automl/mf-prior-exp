@@ -16,6 +16,7 @@ from .plot_styles import (
     COLOR_MARKER_DICT,
     DATASETS,
     RC_PARAMS,
+    BENCH_TABLE_NAMES,
     X_LABEL,
     Y_LABEL,
     Y_LIMITS,
@@ -417,14 +418,26 @@ def tablify(
         idx_min = budget_means.idxmin(axis=1)
         assert isinstance(idx_min, pd.Series)
         for i, algo in idx_min.items():
-            str_version.loc[i, algo] = f"\\bm{str_version.loc[i, algo]}"
+            str_version.loc[i, algo] = "\\bm{" + str_version.loc[i, algo] + "}"
         final_table[budget] = "$" + str_version + "$"
+
+    # Rename benchmark names
+    final_table.rename(index=BENCH_TABLE_NAMES)
+
+    # Make sure to escape `_`
+    final_table.rename(index=lambda bench: bench.replace("_", "\\_"))
+
+    # Rename the budget top level columns
+    final_table.rename(columns=lambda budget: f"{budget}x", level=0)
+
+    # Rename the algorithms
+    final_table.rename(columns=ALGORITHMS, level=1)
 
     table_str = final_table.to_latex(
         escape=False,
         bold_rows=True,
-        multicolumn_format="l | " + " | ".join(["c" * n_algorithms] * n_budgets),
-        column_format="c",
+        column_format="l | " + " | ".join(["c" * n_algorithms] * n_budgets),
+        multicolumn_format="c",
     )  # type: ignore
     assert table_str is not None
     return table_str
@@ -487,7 +500,7 @@ def main(
                 )
 
                 _plot_title = plot_title.lstrip().rstrip().replace(" ", "-")
-                _filename = f"{prefix}-{_plot_title}.{extension}"
+                _filename = f"{prefix}-{_plot_title}-{yaxis}.{extension}"
 
                 filepath = plot_dir / "incumbent_traces" / yaxis / _filename
                 filepath.parent.mkdir(parents=True, exist_ok=True)
@@ -513,7 +526,7 @@ def main(
                 )
 
                 _plot_title = plot_title.lstrip().rstrip().replace(" ", "-")
-                _filename = f"{prefix}-{_plot_title}.{extension}"
+                _filename = f"{prefix}-{_plot_title}-{yaxis}.{extension}"
 
                 filepath = plot_dir / "relative-rankings" / yaxis / _filename
                 filepath.parent.mkdir(parents=True, exist_ok=True)
@@ -531,7 +544,7 @@ def main(
                 xs=table_xs,
                 yaxis=yaxis, # type: ignore
             )
-            _filename = f"{prefix}-table.tex"
+            _filename = f"{prefix}-table-{yaxis}.tex"
             filepath = plot_dir / "tables" / yaxis / _filename
             filepath.parent.mkdir(parents=True, exist_ok=True)
             with filepath.open("w") as f:
