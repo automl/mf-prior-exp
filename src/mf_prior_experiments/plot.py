@@ -525,9 +525,9 @@ def main(
     print(table_xs)
     print(yaxes)
     if table_benchmarks is not None:
-        print("Making tables")
         assert table_xs is not None
         for yaxis in yaxes:
+            print(f"Making tables for {yaxis}")
             table_str = tablify(
                 results=results.select(
                     algorithms=algorithms,
