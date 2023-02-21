@@ -159,7 +159,7 @@ def plot_relative_ranks(
                 color=COLOR_MARKER_DICT.get(algorithm, "black"),
                 linewidth=1,
                 where="post",
-                label=ALGORITHMS.get(algorithm, algorithm)
+                label=ALGORITHMS.get(algorithm, algorithm),
             )
             ax.fill_between(
                 x,
@@ -391,6 +391,43 @@ def plot_incumbent_traces(
     return fig
 
 
+def tablify(
+    results: ExperimentResults,
+    xs: list[int],
+    *,
+    yaxis: Literal["loss", "max_fidelity_loss"] = "loss",
+) -> str:
+    import pandas as pd
+    n_algorithms = len(results.algorithms)
+    n_budgets = len(xs)
+    means, stds = results.table_results(xs=xs, yaxis=yaxis)
+
+    # We'll just insert results into here later
+    final_table = means.copy()
+
+    for budget in xs:
+        budget_means = means[budget]
+        budget_stds = stds[budget]
+        assert budget_means is not None
+        assert budget_stds is not None
+
+        str_version = (
+            budget_means.round(3).astype(str) + "\\pm" + budget_stds.round(3).astype(str)
+        )
+        idx_min = budget_means.idxmin(axis=1)
+        assert isinstance(idx_min, pd.Series)
+        for i, algo in idx_min.items():
+            str_version.loc[i, algo] = f"\\bm{str_version.loc[i, algo]}"
+        final_table[f"{budget}x"] = "$" + str_version + "$"
+
+    return final_table.to_latex(
+        escape=False,
+        bold_rows=True,
+        multicolumn_format="l | " + " | ".join(["c" * n_algorithms] * n_budgets),
+        column_format="c",
+    )  # type: ignore
+
+
 def main(
     experiment_group: str,
     prefix: str,
@@ -398,6 +435,8 @@ def main(
     incumbent_trace_benchmarks: dict[str, list[str]] | None = None,
     base_path: Path | None = DEFAULT_BASE_PATH,
     relative_rankings: dict[str, dict[str, list[str]]] | None = None,
+    table_xs: list[int] | None = None,
+    table_benchmarks: list[str] | None = None,
     plot_default: bool = True,
     plot_optimum: bool = True,
     dynamic_y_lim: bool = False,
@@ -408,6 +447,7 @@ def main(
     dpi: int = 200,
 ) -> None:
     import matplotlib.pyplot as plt
+
     plt.rcParams.update(RC_PARAMS)
 
     if base_path is None:
@@ -459,7 +499,9 @@ def main(
                 fig = plot_relative_ranks(
                     algorithms=algorithms,
                     subtitle_results={
-                        sub_title: results.select(benchmarks=_benches, algorithms=algorithms)
+                        sub_title: results.select(
+                            benchmarks=_benches, algorithms=algorithms
+                        )
                         for sub_title, _benches in plot_benchmarks.items()
                     },
                     yaxis=yaxis,
@@ -476,6 +518,23 @@ def main(
                 fig.savefig(filepath, bbox_inches="tight", dpi=dpi)
                 print(f"Saved to {_filename} to {filepath}")
 
+    if table_benchmarks is not None:
+        assert table_xs is not None
+        for yaxis in yaxes:
+            table_str = tablify(
+                results=results.select(
+                    algorithms=algorithms,
+                    benchmarks=table_benchmarks,
+                ),
+                xs=table_xs,
+                yaxis=yaxis, # type: ignore
+            )
+            _filename = f"{prefix}-table.tex"
+            filepath = plot_dir / "tables" / yaxis / _filename
+            filepath.parent.mkdir(parents=True, exist_ok=True)
+            with filepath.open("w") as f:
+                f.write(table_str)
+            print(f"Saved table {_filename} to {filepath}")
 
 def parse_args() -> Namespace:
     parser = ArgumentParser(description="mf-prior-exp plotting")
@@ -483,9 +542,15 @@ def parse_args() -> Namespace:
     parser.add_argument("--prefix", type=str, default=None)
 
     parser.add_argument("--collect", action="store_true")
-    parser.add_argument("--collect-ignore-benchmarks", type=str, nargs="+", default=None, required=False)
-    parser.add_argument("--collect-ignore-algorithms", type=str, nargs="+", default=None, required=False)
-    parser.add_argument("--collect-ignore-seeds", type=int, nargs="+", default=None, required=False)
+    parser.add_argument(
+        "--collect-ignore-benchmarks", type=str, nargs="+", default=None, required=False
+    )
+    parser.add_argument(
+        "--collect-ignore-algorithms", type=str, nargs="+", default=None, required=False
+    )
+    parser.add_argument(
+        "--collect-ignore-seeds", type=int, nargs="+", default=None, required=False
+    )
     parser.add_argument("--collect-ignore-missing", action="store_true")
 
     parser.add_argument("--experiment_group", type=str, required=True)
@@ -517,6 +582,20 @@ def parse_args() -> Namespace:
             "   ...,\n"
             "}"
         ),
+    )
+    parser.add_argument(
+        "--table_benchmarks",
+        type=str,
+        nargs="+",
+        default=None,
+        required=False,
+    )
+    parser.add_argument(
+        "--table_xs",
+        type=float,
+        nargs="+",
+        default=None,
+        required=False,
     )
 
     parser.add_argument("--base_path", type=Path, default=None)
@@ -567,8 +646,11 @@ def collect(
 
     print(f"[{now()}] Processing ...")
     all_benchmarks, all_algorithms, all_seeds = all_possibilities(
-        experiment_group, base_path, ignore_benchmarks=ignore_benchmarks,
-        ignore_seeds=ignore_seeds, ignore_algorithms=ignore_algorithms,
+        experiment_group,
+        base_path,
+        ignore_benchmarks=ignore_benchmarks,
+        ignore_seeds=ignore_seeds,
+        ignore_algorithms=ignore_algorithms,
     )
     results = fetch_results(
         experiment_group=experiment_group,
@@ -597,9 +679,19 @@ if __name__ == "__main__":
     print("Plotting with args:")
     print(args)
     if args.collect:
-        ignore_benchmarks = set(args.collect_ignore_benchmarks) if args.collect_ignore_benchmarks else None
-        ignore_algorithms = set(args.collect_ignore_algorithms) if args.collect_ignore_algorithms else None
-        ignore_seeds = set(args.collect_ignore_seeds) if args.collect_ignore_seeds else None
+        ignore_benchmarks = (
+            set(args.collect_ignore_benchmarks)
+            if args.collect_ignore_benchmarks
+            else None
+        )
+        ignore_algorithms = (
+            set(args.collect_ignore_algorithms)
+            if args.collect_ignore_algorithms
+            else None
+        )
+        ignore_seeds = (
+            set(args.collect_ignore_seeds) if args.collect_ignore_seeds else None
+        )
         collect(
             experiment_group=args.experiment_group,
             base_path=args.base_path,
@@ -626,4 +718,6 @@ if __name__ == "__main__":
             extension=args.ext,
             dpi=args.dpi,
             dynamic_y_lim=args.dynamic_y_lim,
+            table_xs=args.table_xs,
+            table_benchmarks=args.table_benchmarks,
         )

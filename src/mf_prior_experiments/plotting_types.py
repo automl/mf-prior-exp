@@ -1,8 +1,8 @@
 from __future__ import annotations
 
-import time
 import json
 import operator
+import time
 from dataclasses import dataclass, replace
 from functools import reduce
 from itertools import accumulate, chain, groupby, product, starmap
@@ -19,8 +19,10 @@ if TYPE_CHECKING:
     import mfpbench
     import pandas as pd
 
+
 def now() -> str:
     return time.strftime("%H:%M:%S", time.localtime())
+
 
 def all_possibilities(
     experiment_group: str,
@@ -30,6 +32,7 @@ def all_possibilities(
     ignore_seeds: set[int] | None = None,
 ) -> tuple[set[str], set[str], set[int]]:
     import re
+
     ignore_benchmarks = ignore_benchmarks or set()
     ignore_algorithms = ignore_algorithms or set()
     ignore_seeds = ignore_seeds or set()
@@ -152,7 +155,9 @@ def _algorithm_results(path: Path, seeds: list[int] | None) -> AlgorithmResults:
     return AlgorithmResults.load(path, seeds=seeds)
 
 
-def _trace_results(path: Path, benchmark: str, algorithm: str, seed: int) -> tuple[str, str, int, Trace]:
+def _trace_results(
+    path: Path, benchmark: str, algorithm: str, seed: int
+) -> tuple[str, str, int, Trace]:
     return benchmark, algorithm, seed, Trace.load(path)
 
 
@@ -337,9 +342,22 @@ class Trace(Sequence[Result]):
         xs = [getattr(r, xaxis) for r in self.results]
         return xs if not sort else sorted(xs)
 
+    def result_at(self, *, yaxis: str, budget: float) -> float:
+        """Get the result at a given budget, ffill as needed."""
+        index_not_over = -1
+        for i, result in enumerate(self.results):
+            assert result.cumulated_fidelity is not None
+            if result.cumulated_fidelity > budget:
+                break
+            index_not_over = i
+        result_closest_to_budget = self.results[index_not_over]
+
+        return getattr(result_closest_to_budget, yaxis)
+
     @property
     def df(self) -> pd.DataFrame:
         import pandas as pd
+
         df = pd.DataFrame(
             data=[
                 {
@@ -528,6 +546,7 @@ class Trace(Sequence[Result]):
 
     def series(self, index: str, values: str, name: str | None = None) -> pd.Series:
         import pandas as pd
+
         indicies = [getattr(r, index) for r in self.results]
         vals = [getattr(r, values) for r in self.results]
         series = pd.Series(vals, index=indicies, name=name).sort_index()
@@ -695,6 +714,7 @@ class AlgorithmResults(Mapping[int, Trace]):
     ) -> pd.DataFrame | pd.Series:
         """Return a dataframe with the traces."""
         import pandas as pd
+
         if seeds is None:
             traces = self.traces
         elif isinstance(seeds, int):
@@ -813,6 +833,7 @@ class BenchmarkResults(Mapping[str, AlgorithmResults]):
     ) -> pd.DataFrame:
         """Rank results for each algorithm on this benchmark for a certain seed."""
         import pandas as pd
+
         # NOTE: Everything here is in the context of a given seed for this
         # benchmark
         # {
@@ -852,6 +873,7 @@ class BenchmarkResults(Mapping[str, AlgorithmResults]):
         # we allow this as an option.
         if indices is not None:
             import numpy as np
+
             missing_indices = set(indices) - set(df.index)
             for index in missing_indices:
                 df.loc[index] = np.nan
@@ -971,14 +993,11 @@ class ExperimentResults(Mapping[str, BenchmarkResults]):
 
         # path, benchmark, algorithm, seed
         items = (
-            (_path(b, a, s), b, a, s) for b, a, s in
-            product(benchmarks, algorithms, seeds)
+            (_path(b, a, s), b, a, s)
+            for b, a, s in product(benchmarks, algorithms, seeds)
         )
         if ignore_missing:
-            items = (
-                (p, b, a, s) for p, b, a, s in items
-                if p.exists()
-            )
+            items = ((p, b, a, s) for p, b, a, s in items if p.exists())
 
         parallel_results: list[tuple[str, str, int, Trace]] = pool(
             delayed(_trace_results)(p, b, a, s) for p, b, a, s in items
@@ -1137,6 +1156,7 @@ class ExperimentResults(Mapping[str, BenchmarkResults]):
 
     def ranks(self, *, xaxis: str, yaxis: str) -> tuple[pd.DataFrame, pd.DataFrame]:
         import pandas as pd
+
         indices = self.indices(xaxis=xaxis, sort=False)
         seeds = self.seeds()
         benchmarks = self.benchmarks
@@ -1164,3 +1184,42 @@ class ExperimentResults(Mapping[str, BenchmarkResults]):
             stds[algorithm] = algorithm_results.sem(axis=1).rename(algorithm)
 
         return means, stds
+
+    def table_results(
+        self,
+        *,
+        xs: list[int],
+        yaxis: str,
+    ) -> tuple[pd.DataFrame, pd.DataFrame]:
+        import pandas as pd
+
+        budgets = xs
+        benchmarks = self.benchmarks
+        algorithms = self.algorithms
+        seeds = self.seeds()
+
+        # Sorry for the complex pandas magic, this made sense at
+        # the time of writing
+        dataframes_by_seed = {
+            seed: pd.DataFrame(
+                {
+                    (budget, algorithm): [
+                        self.results[benchmark]
+                        .results[algorithm]
+                        .traces[seed]
+                        .result_at(budget=budget, yaxis=yaxis)
+                        for benchmark in benchmarks
+                    ]
+                    for budget, algorithm in product(budgets, algorithms)
+                },
+                index=benchmarks
+            )
+            for seed in seeds
+        }
+        for df in dataframes_by_seed.values():
+            df.columns = pd.MultiIndex.from_tuples(df.columns)
+
+        results_grouped_by_benchmarks = pd.concat(dataframes_by_seed.values()).groupby(level=0)
+        means = results_grouped_by_benchmarks.agg("mean")
+        stds = results_grouped_by_benchmarks.agg("std")
+        return means, stds  # type: ignore
