@@ -422,16 +422,16 @@ def tablify(
         final_table[budget] = "$" + str_version + "$"
 
     # Rename benchmark names
-    final_table.rename(index=BENCH_TABLE_NAMES)
+    final_table.rename(index=BENCH_TABLE_NAMES, inplace=True)
 
     # Make sure to escape `_`
-    final_table.rename(index=lambda bench: bench.replace("_", "\\_"))
+    final_table.rename(index=lambda bench: bench.replace("_", "\\_"), inplace=True)
 
     # Rename the budget top level columns
-    final_table.rename(columns=lambda budget: f"{budget}x", level=0)
+    final_table.rename(columns=lambda budget: f"{budget}x", level=0, inplace=True)
 
     # Rename the algorithms
-    final_table.rename(columns=ALGORITHMS, level=1)
+    final_table.rename(columns=ALGORITHMS, level=1, inplace=True)
 
     table_str = final_table.to_latex(
         escape=False,
