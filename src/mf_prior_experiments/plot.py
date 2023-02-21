@@ -400,10 +400,12 @@ def tablify(
     import pandas as pd
     n_algorithms = len(results.algorithms)
     n_budgets = len(xs)
+    print("before getting table results")
     means, stds = results.table_results(xs=xs, yaxis=yaxis)
 
     # We'll just insert results into here later
     final_table = means.copy()
+    print("In here?")
 
     for budget in xs:
         print(budget)
