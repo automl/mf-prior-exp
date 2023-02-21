@@ -1194,7 +1194,7 @@ class ExperimentResults(Mapping[str, BenchmarkResults]):
         import pandas as pd
 
         budgets = xs
-        benchmarks = self.benchmarks
+        benchmarks = sorted(self.benchmarks)
         algorithms = self.algorithms
         seeds = self.seeds()
 
