@@ -2,15 +2,13 @@ from __future__ import annotations
 
 import json
 import operator
-import pickle
+import time
 from dataclasses import dataclass, replace
 from functools import reduce
 from itertools import accumulate, chain, groupby, product, starmap
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, Iterator, Mapping, Sequence, overload
 
-import numpy as np
-import pandas as pd
 import yaml  # type: ignore
 from joblib import Parallel, delayed
 from more_itertools import all_equal, flatten, pairwise
@@ -19,6 +17,43 @@ from yaml import CLoader as Loader
 
 if TYPE_CHECKING:
     import mfpbench
+    import pandas as pd
+
+
+def now() -> str:
+    return time.strftime("%H:%M:%S", time.localtime())
+
+
+def all_possibilities(
+    experiment_group: str,
+    base_path: Path,
+    ignore_benchmarks: set[str] | None = None,
+    ignore_algorithms: set[str] | None = None,
+    ignore_seeds: set[int] | None = None,
+) -> tuple[set[str], set[str], set[int]]:
+    import re
+
+    ignore_benchmarks = ignore_benchmarks or set()
+    ignore_algorithms = ignore_algorithms or set()
+    ignore_seeds = ignore_seeds or set()
+
+    def is_ignored(s: str, ignore: set[str]) -> bool:
+        return any(re.match(i, s) for i in ignore)
+
+    RESULTS_DIR = base_path / "results" / experiment_group
+
+    benchmarks = {p.name.split("=")[1] for p in RESULTS_DIR.glob("benchmark=*")}
+    benchmarks = {b for b in benchmarks if not is_ignored(b, ignore_benchmarks)}
+
+    algorithms = {p.name.split("=")[1] for p in RESULTS_DIR.glob("*/algorithm=*")}
+    algorithms = {a for a in algorithms if not is_ignored(a, ignore_algorithms)}
+
+    seeds = {int(p.name.split("=")[1]) for p in RESULTS_DIR.glob("*/*/seed=*")}
+    seeds = seeds - ignore_seeds
+    print(f"benchmarks={benchmarks}")
+    print(f"algorithms={algorithms}")
+    print(f"seeds={seeds}")
+    return benchmarks, algorithms, seeds
 
 
 def fetch_results(
@@ -26,6 +61,7 @@ def fetch_results(
     benchmarks: list[str],
     algorithms: list[str],
     base_path: Path,
+    seeds: list[int] | None = None,
     n_workers: int = 1,
     parallel: bool = True,
     continuations: bool = True,
@@ -37,60 +73,54 @@ def fetch_results(
     xaxis: Literal[
         "cumulated_fidelity", "end_time_since_global_start"
     ] = "cumulated_fidelity",
-    use_cache: bool = False,
-    collect: bool = False,
+    ignore_missing: bool = False,
 ) -> ExperimentResults:
     BENCHMARK_CONFIG_DIR = (
         base_path / "src" / "mf_prior_experiments" / "configs" / "benchmark"
     )
-    RESULTS_DIR = base_path / "results" / experiment_group
-    CACHE = base_path / "results" / experiment_group / ".plot_cache.pkl"
-    CACHE.parent.mkdir(exist_ok=True, parents=True)
-    if use_cache and CACHE.exists():
-        print("-" * 50)
-        print(f"Using cache at {CACHE}")
-        print("-" * 50)
-        with CACHE.open("rb") as f:
-            return pickle.load(f)
-
     if parallel:
         pool = Parallel(backend="multiprocessing", n_jobs=-1)
     else:
         pool = None
 
+    RESULTS_DIR = base_path / "results" / experiment_group
+
+    print(f"[{now()}]--- Loading results ---", flush=True)
     experiment_results = ExperimentResults.load(
         name=experiment_group,
         path=RESULTS_DIR,
         benchmarks=benchmarks,
         algorithms=algorithms,
+        seeds=seeds,
         benchmark_config_dir=BENCHMARK_CONFIG_DIR,
         pool=pool,
+        ignore_missing=ignore_missing,
     )
 
     if continuations:
+        print(f"[{now()}]--- Calculating Continuations ---", flush=True)
         experiment_results = experiment_results.with_continuations(pool=pool)
 
     if cumulate_fidelities:
+        print(f"[{now()}]--- Cumulating fidelities ---", flush=True)
         # fidelities: [1, 1, 3, 1, 9] -> [1, 2, 5, 6, 15]
         experiment_results = experiment_results.with_cumulative_fidelity(
             pool=pool, n_workers=n_workers
         )
 
     if incumbents_only:
+        print(f"[{now()}]--- Getting incumbent traces ---", flush=True)
         # For now we only allow incumbent traces over "loss"
         experiment_results = experiment_results.incumbent_trace(
             xaxis=xaxis, yaxis=incumbent_value, pool=pool
         )
 
     if rescale and rescale_xaxis:
+        print(f"[{now()}]--- Rescaling ---", flush=True)
         assert rescale_xaxis == "max_fidelity", "All we allow for now"
         experiment_results = experiment_results.rescale_xaxis(
             xaxis=xaxis, by=rescale_xaxis, pool=pool
         )
-
-    if collect:
-        with CACHE.open("wb") as f:
-            pickle.dump(experiment_results, f)
 
     return experiment_results
 
@@ -104,8 +134,6 @@ def _with_continuations(a: AlgorithmResults) -> AlgorithmResults:
 def _with_cumulative_fidelity(
     a: AlgorithmResults, n_workers: int | None = None, algo_name: str | None = None
 ) -> AlgorithmResults:
-    if algo_name:
-        print(f"cumulative_fidelity algo: {algo_name}")
     return a.with_cumulative_fidelity(n_workers=n_workers)
 
 
@@ -127,8 +155,10 @@ def _algorithm_results(path: Path, seeds: list[int] | None) -> AlgorithmResults:
     return AlgorithmResults.load(path, seeds=seeds)
 
 
-def _trace_results(path: Path) -> Trace:
-    return Trace.load(path)
+def _trace_results(
+    path: Path, benchmark: str, algorithm: str, seed: int
+) -> tuple[str, str, int, Trace]:
+    return benchmark, algorithm, seed, Trace.load(path)
 
 
 @dataclass
@@ -312,8 +342,22 @@ class Trace(Sequence[Result]):
         xs = [getattr(r, xaxis) for r in self.results]
         return xs if not sort else sorted(xs)
 
+    def result_at(self, *, yaxis: str, budget: float) -> float:
+        """Get the result at a given budget, ffill as needed."""
+        index_not_over = -1
+        for i, result in enumerate(self.results):
+            assert result.cumulated_fidelity is not None
+            if result.cumulated_fidelity > budget:
+                break
+            index_not_over = i
+        result_closest_to_budget = self.results[index_not_over]
+
+        return getattr(result_closest_to_budget, yaxis)
+
     @property
     def df(self) -> pd.DataFrame:
+        import pandas as pd
+
         df = pd.DataFrame(
             data=[
                 {
@@ -501,6 +545,8 @@ class Trace(Sequence[Result]):
         return replace(self, results=results)
 
     def series(self, index: str, values: str, name: str | None = None) -> pd.Series:
+        import pandas as pd
+
         indicies = [getattr(r, index) for r in self.results]
         vals = [getattr(r, values) for r in self.results]
         series = pd.Series(vals, index=indicies, name=name).sort_index()
@@ -627,7 +673,6 @@ class AlgorithmResults(Mapping[int, Trace]):
     def with_cumulative_fidelity(self, n_workers: int | None = None) -> AlgorithmResults:
         traces = {}
         for seed, trace in self.traces.items():
-            print(f"cumulative_fidelity seed: {seed}")
             traces[seed] = trace.with_cumulative_fidelity(n_workers=n_workers)
         return replace(self, traces=traces)
 
@@ -668,6 +713,8 @@ class AlgorithmResults(Mapping[int, Trace]):
         seeds: int | list[int] | None = None,
     ) -> pd.DataFrame | pd.Series:
         """Return a dataframe with the traces."""
+        import pandas as pd
+
         if seeds is None:
             traces = self.traces
         elif isinstance(seeds, int):
@@ -785,6 +832,8 @@ class BenchmarkResults(Mapping[str, AlgorithmResults]):
         indices: Sequence[float] | None = None,
     ) -> pd.DataFrame:
         """Rank results for each algorithm on this benchmark for a certain seed."""
+        import pandas as pd
+
         # NOTE: Everything here is in the context of a given seed for this
         # benchmark
         # {
@@ -823,6 +872,8 @@ class BenchmarkResults(Mapping[str, AlgorithmResults]):
         # them to share the same set of indicies. Hence
         # we allow this as an option.
         if indices is not None:
+            import numpy as np
+
             missing_indices = set(indices) - set(df.index)
             for index in missing_indices:
                 df.loc[index] = np.nan
@@ -924,25 +975,10 @@ class ExperimentResults(Mapping[str, BenchmarkResults]):
         seeds: list[int] | None = None,
         benchmark_config_dir: Path,
         pool: Parallel | None = None,
+        ignore_missing: bool = False,
     ) -> ExperimentResults:
         if seeds is None:
-            first_benchmark = benchmarks[0]
-            random_search_path = (
-                path / f"benchmark={first_benchmark}" / "algorithm=random_search"
-            )
-            random_search_prior_path = (
-                path / f"benchmark={first_benchmark}" / "algorithm=random_search_prior"
-            )
-            if random_search_path.exists():
-                seeds = [int(s.name.split("=")[1]) for s in random_search_path.iterdir()]
-            elif random_search_prior_path.exists():
-                seeds = [
-                    int(s.name.split("=")[1]) for s in random_search_prior_path.iterdir()
-                ]
-            else:
-                raise ValueError(
-                    "random_search[_prior] wasnt evaluated, can't determine seed count"
-                )
+            seeds = sorted(int(p.name.split("=")[1]) for p in path.glob("*/*/seed=*"))
 
         def _path(benchmark_: str, algorithm_: str, seed_: int) -> Path:
             return (
@@ -955,16 +991,21 @@ class ExperimentResults(Mapping[str, BenchmarkResults]):
         if pool is None:
             pool = Parallel(n_jobs=1)
 
-        results: dict[str, dict[str, list[Trace]]] = {
-            benchmark: {
-                algorithm: pool(
-                    delayed(_trace_results)(_path(benchmark, algorithm, seed))
-                    for seed in seeds
-                )
-                for algorithm in algorithms
-            }
-            for benchmark in benchmarks
-        }  # type: ignore
+        # path, benchmark, algorithm, seed
+        items = (
+            (_path(b, a, s), b, a, s)
+            for b, a, s in product(benchmarks, algorithms, seeds)
+        )
+        if ignore_missing:
+            items = ((p, b, a, s) for p, b, a, s in items if p.exists())
+
+        parallel_results: list[tuple[str, str, int, Trace]] = pool(
+            delayed(_trace_results)(p, b, a, s) for p, b, a, s in items
+        )  # type: ignore
+
+        results = {}
+        for benchmark, algorithm, seed, trace in parallel_results:
+            results.setdefault(benchmark, {}).setdefault(algorithm, {})[seed] = trace
 
         return cls(
             name=name,
@@ -974,9 +1015,9 @@ class ExperimentResults(Mapping[str, BenchmarkResults]):
                 benchmark: BenchmarkResults(
                     {
                         algo: AlgorithmResults(
-                            {seed: trace for seed, trace in enumerate(traces)}
+                            {seed: trace for seed, trace in algo_results.items()}
                         )
-                        for algo, traces in benchmark_results.items()
+                        for algo, algo_results in benchmark_results.items()
                     }
                 )
                 for benchmark, benchmark_results in results.items()
@@ -1003,7 +1044,6 @@ class ExperimentResults(Mapping[str, BenchmarkResults]):
     ) -> ExperimentResults:
         results = {}
         for k, v in self.results.items():
-            print(f"Cumulative fidelity for {k}")
             results[k] = v.with_cumulative_fidelity(n_workers=n_workers, pool=pool)
 
         return replace(self, results=results)
@@ -1080,19 +1120,22 @@ class ExperimentResults(Mapping[str, BenchmarkResults]):
         seeds: list[int] | None = None,
     ) -> ExperimentResults:
         if benchmarks is None:
-            benchmarks_set = set(self.benchmarks)
+            benchmarks = list(set(self.benchmarks))
         else:
-            benchmarks_set = set(benchmarks)
+            benchmark_set = set(benchmarks)
+            benchmarks = sorted(
+                benchmark_set, key=lambda b, benchmarks=benchmarks: benchmarks.index(b)
+            )
 
         selected_results = {
             name: benchmark.select(algorithms=algorithms, seeds=seeds)
             for name, benchmark in self.results.items()
-            if name in benchmarks_set
+            if name in benchmarks
         }
         benchmark_configs = {
             name: config
             for name, config in self.benchmark_configs.items()
-            if name in benchmarks_set
+            if name in benchmarks
         }
 
         if algorithms is None:
@@ -1101,7 +1144,7 @@ class ExperimentResults(Mapping[str, BenchmarkResults]):
         return replace(
             self,
             name=self.name,
-            benchmarks=list(benchmarks_set),
+            benchmarks=benchmarks,
             algorithms=algorithms,
             results=selected_results,
             benchmark_configs=benchmark_configs,
@@ -1112,6 +1155,8 @@ class ExperimentResults(Mapping[str, BenchmarkResults]):
         return set().union(*bench_seeds)
 
     def ranks(self, *, xaxis: str, yaxis: str) -> tuple[pd.DataFrame, pd.DataFrame]:
+        import pandas as pd
+
         indices = self.indices(xaxis=xaxis, sort=False)
         seeds = self.seeds()
         benchmarks = self.benchmarks
@@ -1139,3 +1184,42 @@ class ExperimentResults(Mapping[str, BenchmarkResults]):
             stds[algorithm] = algorithm_results.sem(axis=1).rename(algorithm)
 
         return means, stds
+
+    def table_results(
+        self,
+        *,
+        xs: list[int],
+        yaxis: str,
+    ) -> tuple[pd.DataFrame, pd.DataFrame]:
+        import pandas as pd
+
+        budgets = xs
+        benchmarks = sorted(self.benchmarks)
+        algorithms = self.algorithms
+        seeds = self.seeds()
+
+        # Sorry for the complex pandas magic, this made sense at
+        # the time of writing
+        dataframes_by_seed = {
+            seed: pd.DataFrame(
+                {
+                    (budget, algorithm): [
+                        self.results[benchmark]
+                        .results[algorithm]
+                        .traces[seed]
+                        .result_at(budget=budget, yaxis=yaxis)
+                        for benchmark in benchmarks
+                    ]
+                    for budget, algorithm in product(budgets, algorithms)
+                },
+                index=benchmarks
+            )
+            for seed in seeds
+        }
+        for df in dataframes_by_seed.values():
+            df.columns = pd.MultiIndex.from_tuples(df.columns)
+
+        results_grouped_by_benchmarks = pd.concat(dataframes_by_seed.values()).groupby(level=0)
+        means = results_grouped_by_benchmarks.agg("mean")
+        stds = results_grouped_by_benchmarks.agg("std")
+        return means, stds  # type: ignore
