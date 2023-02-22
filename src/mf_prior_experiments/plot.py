@@ -438,7 +438,15 @@ def tablify(
         bold_rows=True,
         column_format="l | " + " | ".join(["c" * n_algorithms] * n_budgets),
         multicolumn_format="c",
+        caption="{\\color{red}(TODO)Dummy Caption}",
+        label = "table:dummy_label"
     )  # type: ignore
+
+    latex_str_header = "\\begin{center}\n\\scalebox{0.57}{"
+    latex_str_footer = "} % end of scalebox \n\\end{center}"
+
+    table_str = latex_str_header + table_str + latex_str_footer
+
     assert table_str is not None
     return table_str
 
