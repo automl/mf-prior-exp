@@ -401,7 +401,9 @@ def tablify(
     import pandas as pd
     n_algorithms = len(results.algorithms)
     n_budgets = len(xs)
-    means, stds = results.table_results(xs=xs, yaxis=yaxis)
+
+    prior_order = ["good", "medium", "at25", "bad"]
+    means, stds = results.table_results(xs=xs, yaxis=yaxis, sort_order=prior_order)
 
     # We'll just insert results into here later
     final_table = means.copy()

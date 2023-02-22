@@ -1190,11 +1190,17 @@ class ExperimentResults(Mapping[str, BenchmarkResults]):
         *,
         xs: list[int],
         yaxis: str,
+        sort_order: list[str],
     ) -> tuple[pd.DataFrame, pd.DataFrame]:
         import pandas as pd
 
         budgets = xs
-        benchmarks = sorted(self.benchmarks)
+
+        def prior_order(b: str) -> int:
+            prior = b.split("-")[-1]
+            return sort_order.index(prior)
+
+        benchmarks = sorted(self.benchmarks, key=prior_order)
         algorithms = self.algorithms
         seeds = self.seeds()
 
