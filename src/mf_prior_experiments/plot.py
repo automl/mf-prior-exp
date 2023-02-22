@@ -428,7 +428,7 @@ def tablify(
     final_table.rename(index=lambda bench: bench.replace("_", "\\_"), inplace=True)
 
     # Rename the budget top level columns
-    final_table.rename(columns=lambda budget: f"{budget}x", level=0, inplace=True)
+    final_table.rename(columns=lambda budget: f"{int(budget)}x", level=0, inplace=True)
 
     # Rename the algorithms
     final_table.rename(columns=ALGORITHMS, level=1, inplace=True)
