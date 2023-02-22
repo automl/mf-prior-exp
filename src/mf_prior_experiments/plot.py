@@ -440,12 +440,12 @@ def tablify(
         bold_rows=True,
         column_format="l | " + " | ".join(["c" * n_algorithms] * n_budgets),
         multicolumn_format="c",
-        caption="{\\color{red}(TODO)Dummy Caption}",
-        label = "table:dummy_label"
     )  # type: ignore
 
-    latex_str_header = "\\begin{center}\n\\scalebox{0.57}{"
-    latex_str_footer = "} % end of scalebox \n\\end{center}"
+    latex_str_header = "\\begin{table}\n\\caption{{\color{red}(TODO)Dummy Caption}}\n" \
+                       "\\label{table:dummy_label}\n\\begin{center}\n\\scalebox{0.5}{\n" \
+                       "\\centering\n"
+    latex_str_footer = "} % end of scalebox\n\\end{center}\n\\end{table}\n"
 
     table_str = latex_str_header + table_str + latex_str_footer
 
