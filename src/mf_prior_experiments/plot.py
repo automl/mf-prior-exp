@@ -445,7 +445,7 @@ def tablify(
 
     latex_str_header = "\n".join([
         r"\begin{table}",
-        r"\caption{{\color{red}(TODO)Dummy Caption}}",
+        r"\caption{\input{captions/" + f"{prefix}-table-{yaxis}" + r"}}",
         r"\label{table:" + f"{prefix}-table-{yaxis}" + r"}",
         r"\begin{center}",
         r"\scalebox{0.55}{",
