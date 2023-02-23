@@ -443,7 +443,7 @@ def tablify(
     )  # type: ignore
 
     latex_str_header = "\\begin{table}\n\\caption{{\color{red}(TODO)Dummy Caption}}\n" \
-                       "\\label{table:dummy_label}\n\\begin{center}\n\\scalebox{0.5}{\n" \
+                       "\\label{table:dummy_label}\n\\begin{center}\n\\scalebox{0.55}{\n" \
                        "\\centering\n"
     latex_str_footer = "} % end of scalebox\n\\end{center}\n\\end{table}\n"
 
