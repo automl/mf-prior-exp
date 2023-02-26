@@ -1196,11 +1196,8 @@ class ExperimentResults(Mapping[str, BenchmarkResults]):
 
         budgets = xs
 
-        def prior_order(b: str) -> int:
-            prior = b.split("-")[-1]
-            return sort_order.index(prior)
 
-        benchmarks = sorted(self.benchmarks, key=prior_order)
+        benchmarks = self.benchmarks
         algorithms = self.algorithms
         seeds = self.seeds()
 
@@ -1228,4 +1225,11 @@ class ExperimentResults(Mapping[str, BenchmarkResults]):
         results_grouped_by_benchmarks = pd.concat(dataframes_by_seed.values()).groupby(level=0)
         means = results_grouped_by_benchmarks.agg("mean")
         stds = results_grouped_by_benchmarks.agg("std")
+
+        def prior_order(index: pd.Index) -> pd.Index:
+            prior_name = lambda bench_name: bench_name.rsplit("-", 1)[-1]
+            return index.map(lambda bench_name: sort_order.index(prior_name(bench_name)))
+
+        means.sort_index(inplace=True, key=prior_order)
+        stds.sort_index(inplace=True, key=prior_order)
         return means, stds  # type: ignore

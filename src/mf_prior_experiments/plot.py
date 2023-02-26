@@ -395,6 +395,7 @@ def plot_incumbent_traces(
 def tablify(
     results: ExperimentResults,
     xs: list[int],
+    prefix: str,
     *,
     yaxis: Literal["loss", "max_fidelity_loss"] = "loss",
 ) -> str:
@@ -442,14 +443,23 @@ def tablify(
         multicolumn_format="c",
     )  # type: ignore
 
-    latex_str_header = "\\begin{table}\n\\caption{{\color{red}(TODO)Dummy Caption}}\n" \
-                       "\\label{table:dummy_label}\n\\begin{center}\n\\scalebox{0.55}{\n" \
-                       "\\centering\n"
-    latex_str_footer = "} % end of scalebox\n\\end{center}\n\\end{table}\n"
-
-    table_str = latex_str_header + table_str + latex_str_footer
+    latex_str_header = "\n".join([
+        r"\begin{table}",
+        r"\caption{\input{captions/" + f"{prefix}-table-{yaxis}" + r"}}",
+        r"\label{table:" + f"{prefix}-table-{yaxis}" + r"}",
+        r"\begin{center}",
+        r"\scalebox{0.55}{",
+        r"\centering\n",
+    ])
+    latex_str_footer = "\n".join([
+        r"} % end of scalebox",
+        r"\end{center}",
+        r"\end{table}"
+    ])
 
     assert table_str is not None
+    table_str = latex_str_header + table_str + latex_str_footer
+
     return table_str
 
 
