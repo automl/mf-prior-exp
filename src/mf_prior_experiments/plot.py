@@ -499,67 +499,80 @@ def main(
     if incumbent_trace_benchmarks is not None:
         for yaxis in yaxes:
             for plot_title, _benches in incumbent_trace_benchmarks.items():
-                fig = plot_incumbent_traces(
-                    results=results.select(benchmarks=_benches, algorithms=algorithms),
-                    plot_default=plot_default,
-                    plot_optimum=plot_optimum,
-                    yaxis=yaxis,  # type: ignore
-                    xaxis=xaxis,  # type: ignore
-                    x_range=x_range_it,
-                    dynamic_y_lim=dynamic_y_lim,
-                )
+                try:
+                    fig = plot_incumbent_traces(
+                        results=results.select(benchmarks=_benches, algorithms=algorithms),
+                        plot_default=plot_default,
+                        plot_optimum=plot_optimum,
+                        yaxis=yaxis,  # type: ignore
+                        xaxis=xaxis,  # type: ignore
+                        x_range=x_range_it,
+                        dynamic_y_lim=dynamic_y_lim,
+                    )
 
-                _plot_title = plot_title.lstrip().rstrip().replace(" ", "-")
-                _filename = f"{prefix}-{_plot_title}-{yaxis}.{extension}"
+                    _plot_title = plot_title.lstrip().rstrip().replace(" ", "-")
+                    _filename = f"{prefix}-{_plot_title}-{yaxis}.{extension}"
 
-                filepath = plot_dir / "incumbent_traces" / yaxis / _filename
-                filepath.parent.mkdir(parents=True, exist_ok=True)
-                fig.savefig(filepath, bbox_inches="tight", dpi=dpi)
-                print(f"Saved to {_filename} to {filepath}")
+                    filepath = plot_dir / "incumbent_traces" / yaxis / _filename
+                    filepath.parent.mkdir(parents=True, exist_ok=True)
+                    fig.savefig(filepath, bbox_inches="tight", dpi=dpi)
+                    print(f"Saved to {_filename} to {filepath}")
+                except Exception as e:
+                    print("FAILED!")
+                    print(repr(e))
 
     # Relative ranking plots
     if relative_rankings is not None:
         for yaxis in yaxes:
             for plot_title, plot_benchmarks in relative_rankings.items():
-                fig = plot_relative_ranks(
-                    algorithms=algorithms,
-                    subtitle_results={
-                        sub_title: results.select(
-                            benchmarks=_benches, algorithms=algorithms
-                        )
-                        for sub_title, _benches in plot_benchmarks.items()
-                    },
-                    yaxis=yaxis,
-                    xaxis=xaxis,
-                    x_range=x_range_rr,
-                    x_together=x_together_rr,
-                )
+                try:
+                    fig = plot_relative_ranks(
+                        algorithms=algorithms,
+                        subtitle_results={
+                            sub_title: results.select(
+                                benchmarks=_benches, algorithms=algorithms
+                            )
+                            for sub_title, _benches in plot_benchmarks.items()
+                        },
+                        yaxis=yaxis,
+                        xaxis=xaxis,
+                        x_range=x_range_rr,
+                        x_together=x_together_rr,
+                    )
 
-                _plot_title = plot_title.lstrip().rstrip().replace(" ", "-")
-                _filename = f"{prefix}-{_plot_title}-{yaxis}.{extension}"
+                    _plot_title = plot_title.lstrip().rstrip().replace(" ", "-")
+                    _filename = f"{prefix}-{_plot_title}-{yaxis}.{extension}"
 
-                filepath = plot_dir / "relative-rankings" / yaxis / _filename
-                filepath.parent.mkdir(parents=True, exist_ok=True)
-                fig.savefig(filepath, bbox_inches="tight", dpi=dpi)
-                print(f"Saved to {_filename} to {filepath}")
+                    filepath = plot_dir / "relative-rankings" / yaxis / _filename
+                    filepath.parent.mkdir(parents=True, exist_ok=True)
+                    fig.savefig(filepath, bbox_inches="tight", dpi=dpi)
+                    print(f"Saved to {_filename} to {filepath}")
+                except Exception as e:
+                    print("FAILED!")
+                    print(repr(e))
 
     if table_benchmarks is not None:
         assert table_xs is not None
         for yaxis in yaxes:
-            table_str = tablify(
-                results=results.select(
-                    algorithms=algorithms,
-                    benchmarks=table_benchmarks,
-                ),
-                xs=table_xs,
-                yaxis=yaxis, # type: ignore
-            )
-            _filename = f"{prefix}-table-{yaxis}.tex"
-            filepath = plot_dir / "tables" / yaxis / _filename
-            filepath.parent.mkdir(parents=True, exist_ok=True)
-            with filepath.open("w") as f:
-                f.write(table_str)
-            print(f"Saved table {_filename} to {filepath}")
+            try:
+                table_str = tablify(
+                    results=results.select(
+                        algorithms=algorithms,
+                        benchmarks=table_benchmarks,
+                    ),
+                    xs=table_xs,
+                    yaxis=yaxis, # type: ignore
+                )
+                _filename = f"{prefix}-table-{yaxis}.tex"
+                filepath = plot_dir / "tables" / yaxis / _filename
+                filepath.parent.mkdir(parents=True, exist_ok=True)
+                with filepath.open("w") as f:
+                    f.write(table_str)
+                print(f"Saved table {_filename} to {filepath}")
+            except Exception as e:
+                print("FAILED!")
+                print(repr(e))
+
 
 def parse_args() -> Namespace:
     parser = ArgumentParser(description="mf-prior-exp plotting")
