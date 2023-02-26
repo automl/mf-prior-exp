@@ -261,6 +261,22 @@ ALGORITHMS = {
     "priorband_noprior_inc_cr_linear": "HB+inc(Cr)",
     "priorband_noprior_inc_hs": "HB+inc(HS)",
     "priorband_noprior_inc_hs_linear": "HB+inc(HS)",
+    # post-mutation
+    "pb_hypersphere_dynamic_50": "PB-HS+Dyn+50",
+    "pb_hypersphere_dynamic_geometric": "PB-HS+Dyn+G",
+    "pb_hypersphere_dynamic_linear": "PB-HS+Dyn+L",
+    "pb_mutation_constant_50": "PB-Mu+Con+50",
+    "pb_mutation_constant_geometric": "PB-Mu+Con+G",
+    "pb_mutation_constant_linear": "PB-Mu+Con+L",
+    "pb_mutation_decay_50": "PB-Mu+Dec+50",
+    "pb_mutation_decay_geometric": "PB-Mu+Dec+G",
+    "pb_mutation_decay_linear": "PB-Mu+Dec+L",
+    "pb_mutation_dynamic_50": "PB-Mu+Dyn+50",
+    "pb_mutation_dynamic_50_bo": "PB-Mu+Dyn+50+BO",
+    "pb_mutation_dynamic_geometric": "PB-Mu+Dyn+G",
+    "pb_mutation_dynamic_geometric_bo": "PB-Mu+Dyn+G+BO",
+    "pb_mutation_dynamic_linear": "PB-Mu+Dyn+L",
+    "pb_mutation_dynamic_linear_bo": "PB-Mu+Dyn+L+BO",
 }
 
 DATASETS = {
@@ -446,6 +462,22 @@ COLOR_MARKER_DICT = {
     "priorband_crossover_decay_linear": "orangered",
     "priorband_crossover_dynamic": "deeppink",
     "priorband_hypersphere_dynamic_linear": "crimson",
+    # post-mutation
+    "pb_hypersphere_dynamic_50": "darkkhaki",
+    "pb_hypersphere_dynamic_geometric": "darkkhaki",
+    "pb_hypersphere_dynamic_linear": "darkkhaki",
+    "pb_mutation_constant_50": "crimson",
+    "pb_mutation_constant_geometric": "crimson",
+    "pb_mutation_constant_linear": "crimson",
+    "pb_mutation_decay_50": "purple",
+    "pb_mutation_decay_geometric": "purple",
+    "pb_mutation_decay_linear": "purple",
+    "pb_mutation_dynamic_50": "darkseagreen",
+    "pb_mutation_dynamic_50_bo": "darkseagreen",
+    "pb_mutation_dynamic_geometric": "blue",
+    "pb_mutation_dynamic_geometric_bo": "blue",
+    "pb_mutation_dynamic_linear": "orangered",
+    "pb_mutation_dynamic_linear_bo": "orangered",
 }
 
 
