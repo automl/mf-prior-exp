@@ -277,6 +277,10 @@ ALGORITHMS = {
     "pb_mutation_dynamic_geometric_bo": "PB-Mu+Dyn+G+BO",
     "pb_mutation_dynamic_linear": "PB-Mu+Dyn+L",
     "pb_mutation_dynamic_linear_bo": "PB-Mu+Dyn+L+BO",
+    "asha_pb_mut_geom_dyna": "ASHA-PB-Mu+Dyn+G",
+    "asha_hb_pb_mut_geom_dyna": "Async-HB-PB-Mu+Dyn+G",
+    "asha_hb_pb_mut_geom_dyna_bo_rung": "Mobster-PB-Mu+Dyn+G",
+    "asha_hb_pb_mut_geom_dyna_bo_joint": "Mobster-PB-Mu+Dyn+G(j)",
 }
 
 DATASETS = {
@@ -478,6 +482,10 @@ COLOR_MARKER_DICT = {
     "pb_mutation_dynamic_geometric_bo": "blue",
     "pb_mutation_dynamic_linear": "orangered",
     "pb_mutation_dynamic_linear_bo": "orangered",
+    "asha_pb_mut_geom_dyna": "seagreen",
+    "asha_hb_pb_mut_geom_dyna": "indigo",
+    "asha_hb_pb_mut_geom_dyna_bo_rung": "tomato",
+    "asha_hb_pb_mut_geom_dyna_bo_joint": "greenyellow",
 }
 
 
