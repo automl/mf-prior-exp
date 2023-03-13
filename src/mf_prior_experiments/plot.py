@@ -571,6 +571,7 @@ def main(
                         benchmarks=table_benchmarks,
                     ),
                     xs=table_xs,
+                    prefix=prefix,
                     yaxis=yaxis, # type: ignore
                 )
                 _filename = f"{prefix}-table-{yaxis}.tex"
