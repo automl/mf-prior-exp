@@ -246,7 +246,7 @@ ALGORITHMS = {
     "priorband_crossover_constant_linear": "PriorBand(Const.)",
     "priorband_crossover_decay": "PB(Cr+decay)",
     "priorband_crossover_decay_linear": "PriorBand(Decay)",
-    "priorband_crossover_dynamic": "PriorBand(Geom.)",
+    "priorband_crossover_dynamic": "PB-Cr+Dyn+G",
     "priorband_crossover_dynamic_linear": "PriorBand",  # "PB(Cr+dyna+linear)",
     "priorband_hypersphere_constant": "PB(HS+const.)",
     "priorband_hypersphere_constant_linear": "PB(HS+const)",
