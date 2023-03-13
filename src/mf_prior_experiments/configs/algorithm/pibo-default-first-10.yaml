@@ -6,5 +6,6 @@ searcher:
   _partial_: true  # To not instantiate the class directly as required by neps
   _target_: neps.optimizers.BayesianOptimization
   disable_priors: False
+  prior_confidence: medium  # crucial parameter as defaults don't account for it
   sample_default_first: True
   initial_design_size: 10  # specific to the 10x setting
