@@ -6,6 +6,7 @@ import pickle
 import time
 from argparse import ArgumentParser, Namespace
 from pathlib import Path
+import traceback
 
 import numpy as np
 from typing_extensions import Literal
@@ -529,7 +530,7 @@ def main(
                     print(f"Saved to {_filename} to {filepath}")
                 except Exception as e:
                     print("FAILED!")
-                    print(repr(e))
+                    print(traceback.format_exc())
 
     # Relative ranking plots
     if relative_rankings is not None:
@@ -559,7 +560,7 @@ def main(
                     print(f"Saved to {_filename} to {filepath}")
                 except Exception as e:
                     print("FAILED!")
-                    print(repr(e))
+                    print(traceback.format_exc())
 
     if table_benchmarks is not None:
         assert table_xs is not None
@@ -582,7 +583,7 @@ def main(
                 print(f"Saved table {_filename} to {filepath}")
             except Exception as e:
                 print("FAILED!")
-                print(repr(e))
+                print(traceback.format_exc())
 
 
 def parse_args() -> Namespace:

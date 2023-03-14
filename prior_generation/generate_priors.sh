@@ -3,7 +3,7 @@
 #SBATCH --cpus-per-task=1
 #SBATCH --time=0-01:00:00
 #SBATCH --mem=30G
-#SBATCH --partition=testbosch_cpu-cascadelake
+#SBATCH --partition=bosch_cpu-cascadelake
 #SBATCH --array 0-15
 #SBATCH --output logs/%a.log
 #SBATCH --error logs/%a.log
@@ -57,22 +57,22 @@ if [[ $selection == "mfh"* ]]; then
     #   defininition of "good" below with the optimum configuration.
     #   This is why we only have to use 1 sample as this sample will get replaced
     #   by the optimum
-    python -m mfpbench generate-priors \
-        --to "${PRIORDIR}" \
-        --seed "${SEED}" \
-        --nsamples "1" \
-        --only "${selection}" \
-        --priors "good:0:0:None" \
-        --use-hartmann-optimum "good"
+    #python -m mfpbench generate-priors \
+        #--to "${PRIORDIR}" \
+        #--seed "${SEED}" \
+        #--nsamples "1" \
+        #--only "${selection}" \
+        #--priors "good:0:0:None" \
+        #--use-hartmann-optimum "good"
 
     # [at25]
     # * Random search at 25 samples and take the best one, no noise
-    python -m mfpbench generate-priors \
-        --to "${PRIORDIR}" \
-        --seed "${SEED}" \
-        --nsamples "${AT_25}" \
-        --only "${selection}" \
-        --priors "at25:0:0:None" 
+    #python -m mfpbench generate-priors \
+        #--to "${PRIORDIR}" \
+        #--seed "${SEED}" \
+        #--nsamples "${AT_25}" \
+        #--only "${selection}" \
+        #--priors "at25:0:0:None" 
 
     # [Bad]
     # * Random search at 50k samples and take the worst
@@ -82,7 +82,7 @@ if [[ $selection == "mfh"* ]]; then
     #    --nsamples "${FIFTY_K}" \
     #    --only "${selection}" \
     #    --priors "bad:-1:0:None" 
-
+    echo "mfh"
 else
 
     # [Good]
@@ -95,22 +95,24 @@ else
 #        --priors "good:0:0.01:None"
 #
     # [Medium]
-    # * Find the optimum of 50k samples and perturb the config by 0.25
-#    python -m mfpbench generate-priors \
-#        --to "${PRIORDIR}" \
-#        --seed "${SEED}" \
-#        --nsamples "${FIFTY_K}" \
-#        --only "${selection}" \
-#        --priors "medium:0:0.25:None"
-#
-    # [at25]
-    # * Find the optimum of 25 random samples, no noise
+    # * Find the optimum of 50k samples
+    # * Noise will be added later in the benchmarks with
+    #   `perturb_prior=.250`
     python -m mfpbench generate-priors \
         --to "${PRIORDIR}" \
         --seed "${SEED}" \
-        --nsamples "${AT_25}" \
+        --nsamples "${FIFTY_K}" \
         --only "${selection}" \
-        --priors "at25:0:0:None"
+        --priors "medium:0:0:None"
+#
+    # [at25]
+    # * Find the optimum of 25 random samples, no noise
+    #python -m mfpbench generate-priors \
+        #--to "${PRIORDIR}" \
+        #--seed "${SEED}" \
+        #--nsamples "${AT_25}" \
+        #--only "${selection}" \
+        #--priors "at25:0:0:None"
 
     # [Bad]
     # * Find the worst of 50k samples, no noise

@@ -1,16 +1,16 @@
 name: lm1b_transformer_2048_prior-medium
-epsilon: 0.25
 api:
   name: lm1b_transformer_2048
   prior: medium
   datadir: ${hydra:runtime.cwd}/data/pd1-data
+  perturb_prior: 0.25
   _target_: mfpbench.get
   seed: ${seed}
   preload: true
-prior_highest_fidelity_error: 0.6060377359390259
-prior_lowest_error: 0.6060377359390259
-best_10_error: 0.6371834874153137
-best_25_error: 0.6371834874153137
-best_50_error: 0.6371834874153137
-best_90_error: 0.6371834874153137
+prior_highest_fidelity_error: 0.6062344908714294
+prior_lowest_error: 0.6057911515235901
+best_10_error: 0.6736579537391663
+best_25_error: 0.6645048260688782
+best_50_error: 0.6488862633705139
+best_90_error: 0.6126607060432434
 best_100_error: 0.6371834874153137
