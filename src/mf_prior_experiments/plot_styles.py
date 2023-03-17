@@ -270,6 +270,7 @@ ALGORITHMS = {
     "pb_mutation_constant_linear": "PB-Mu+Con+L",
     "pb_mutation_decay_50": "PB-Mu+Dec+50",
     "pb_mutation_decay_geometric": "PB-Mu+Dec+G",
+    "pb_mutation_decay_geometric_bo": "PB-Mu+Dec+G+BO",
     "pb_mutation_decay_linear": "PB-Mu+Dec+L",
     "pb_mutation_dynamic_50": "PB-Mu+Dyn+50",
     "pb_mutation_dynamic_50_bo": "PB-Mu+Dyn+50+BO",
@@ -278,9 +279,13 @@ ALGORITHMS = {
     "pb_mutation_dynamic_linear": "PB-Mu+Dyn+L",
     "pb_mutation_dynamic_linear_bo": "PB-Mu+Dyn+L+BO",
     "asha_pb_mut_geom_dyna": "ASHA-PB-Mu+Dyn+G",
+    "asha_pb_mut_geom_decay": "ASHA-PB-Mu+Dec+G",
     "asha_hb_pb_mut_geom_dyna": "Async-HB-PB-Mu+Dyn+G",
+    "asha_hb_pb_mut_geom_decay": "Async-HB-PB-Mu+Dec+G",
     "asha_hb_pb_mut_geom_dyna_bo_rung": "Mobster-PB-Mu+Dyn+G",
+    "asha_hb_pb_mut_geom_decay_bo_rung": "Mobster-PB-Mu+Dec+G",
     "asha_hb_pb_mut_geom_dyna_bo_joint": "Mobster-PB-Mu+Dyn+G(j)",
+    "asha_hb_pb_mut_geom_decay_bo_joint": "Mobster-PB-Mu+Dec+G(j)",
 }
 
 DATASETS = {
@@ -475,6 +480,7 @@ COLOR_MARKER_DICT = {
     "pb_mutation_constant_linear": "crimson",
     "pb_mutation_decay_50": "purple",
     "pb_mutation_decay_geometric": "purple",
+    "pb_mutation_decay_geometric_bo": "purple",
     "pb_mutation_decay_linear": "purple",
     "pb_mutation_dynamic_50": "darkseagreen",
     "pb_mutation_dynamic_50_bo": "darkseagreen",
@@ -483,9 +489,13 @@ COLOR_MARKER_DICT = {
     "pb_mutation_dynamic_linear": "orangered",
     "pb_mutation_dynamic_linear_bo": "orangered",
     "asha_pb_mut_geom_dyna": "seagreen",
+    "asha_pb_mut_geom_decay": "seagreen",
     "asha_hb_pb_mut_geom_dyna": "indigo",
+    "asha_hb_pb_mut_geom_decay": "indigo",
     "asha_hb_pb_mut_geom_dyna_bo_rung": "tomato",
+    "asha_hb_pb_mut_geom_decay_bo_rung": "tomato",
     "asha_hb_pb_mut_geom_dyna_bo_joint": "greenyellow",
+    "asha_hb_pb_mut_geom_decay_bo_joint": "greenyellow",
 }
 
 
