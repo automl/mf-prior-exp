@@ -5,19 +5,20 @@ import math
 import pickle
 import time
 from argparse import ArgumentParser, Namespace
+from concurrent.futures import Future, ProcessPoolExecutor
+from concurrent.futures import wait as wait_futures
 from pathlib import Path
-import traceback
 
 import numpy as np
 from typing_extensions import Literal
 
 from .plot_styles import (
     ALGORITHMS,
+    BENCH_TABLE_NAMES,
     BENCHMARK_COLORS,
     COLOR_MARKER_DICT,
     DATASETS,
     RC_PARAMS,
-    BENCH_TABLE_NAMES,
     X_LABEL,
     Y_LABEL,
     Y_LIMITS,
@@ -75,9 +76,11 @@ def reorganize_legend(
 
 def plot_relative_ranks(
     algorithms: list[str],
+    filepath: Path,
     yaxis: str,
     xaxis: str,
     subtitle_results: dict[str, ExperimentResults],
+    dpi: int = 200,
     plot_title: str | None = None,
     x_together: float | None = None,
     x_range: tuple[int, int] | None = None,
@@ -191,11 +194,14 @@ def plot_relative_ranks(
         fig.suptitle(plot_title)
 
     fig.tight_layout(pad=0, h_pad=0.5)
-    return fig
+    print(f"Saving relative-rank to {filepath}")
+    fig.savefig(filepath, bbox_inches="tight", dpi=dpi)
 
 
 def plot_incumbent_traces(
     results: ExperimentResults,
+    filepath: Path,
+    dpi: int = 200,
     plot_default: bool = True,
     plot_optimum: bool = True,
     yaxis: Literal["loss", "max_fidelity_loss"] = "loss",
@@ -390,17 +396,20 @@ def plot_incumbent_traces(
     sns.despine(fig)
     fig.tight_layout(pad=0, h_pad=0.5)
 
-    return fig
+    print(f"Saving incumbent trace to {filepath}")
+    fig.savefig(filepath, bbox_inches="tight", dpi=dpi)
 
 
 def tablify(
     results: ExperimentResults,
+    filepath: Path,
     xs: list[int],
     prefix: str,
     *,
     yaxis: Literal["loss", "max_fidelity_loss"] = "loss",
 ) -> str:
     import pandas as pd
+
     n_algorithms = len(results.algorithms)
     n_budgets = len(xs)
 
@@ -444,24 +453,30 @@ def tablify(
         multicolumn_format="c",
     )  # type: ignore
 
-    latex_str_header = "\n".join([
-        r"\begin{table}",
-        r"\caption{\input{captions/" + f"{prefix}-table-{yaxis}" + r"}}",
-        r"\label{table:" + f"{prefix}-table-{yaxis}" + r"}",
-        r"\begin{center}",
-        r"\scalebox{0.55}{",
-        r"\centering\n",
-    ])
-    latex_str_footer = "\n".join([
-        r"} % end of scalebox",
-        r"\end{center}",
-        r"\end{table}"
-    ])
+    latex_str_header = "\n".join(
+        [
+            r"\begin{table}",
+            r"\caption{\input{captions/" + f"{prefix}-table-{yaxis}" + r"}}",
+            r"\label{table:" + f"{prefix}-table-{yaxis}" + r"}",
+            r"\begin{center}",
+            r"\scalebox{0.55}{",
+            r"\centering\n",
+        ]
+    )
+    latex_str_footer = "\n".join(
+        [
+            r"} % end of scalebox",
+            r"\end{center}",
+            r"\end{table}",
+        ]
+    )
 
     assert table_str is not None
     table_str = latex_str_header + table_str + latex_str_footer
 
-    return table_str
+    print(f"Writing table to {filepath}")
+    with filepath.open("w") as f:
+        f.write(table_str)
 
 
 def main(
@@ -506,84 +521,95 @@ def main(
     with CACHE.open("rb") as f:
         results = pickle.load(f)
 
-    # Incumbent traces
-    if incumbent_trace_benchmarks is not None:
-        for yaxis in yaxes:
-            for plot_title, _benches in incumbent_trace_benchmarks.items():
-                try:
-                    fig = plot_incumbent_traces(
-                        results=results.select(benchmarks=_benches, algorithms=algorithms),
-                        plot_default=plot_default,
-                        plot_optimum=plot_optimum,
-                        yaxis=yaxis,  # type: ignore
-                        xaxis=xaxis,  # type: ignore
-                        x_range=x_range_it,
-                        dynamic_y_lim=dynamic_y_lim,
-                    )
+    # Implies it uses as many as cores available
+    executor = ProcessPoolExecutor(max_workers=None)
+    futures: list[Future] = []
+    path_lookup: dict[Future, Path] = {}
 
+    with executor:
+        if incumbent_trace_benchmarks is not None:
+            for yaxis in yaxes:
+                for plot_title, _benches in incumbent_trace_benchmarks.items():
                     _plot_title = plot_title.lstrip().rstrip().replace(" ", "-")
                     _filename = f"{prefix}-{_plot_title}-{yaxis}.{extension}"
-
                     filepath = plot_dir / "incumbent_traces" / yaxis / _filename
                     filepath.parent.mkdir(parents=True, exist_ok=True)
-                    fig.savefig(filepath, bbox_inches="tight", dpi=dpi)
-                    print(f"Saved to {_filename} to {filepath}")
-                except Exception as e:
-                    print("FAILED!")
-                    print(traceback.format_exc())
 
-    # Relative ranking plots
-    if relative_rankings is not None:
-        for yaxis in yaxes:
-            for plot_title, plot_benchmarks in relative_rankings.items():
-                try:
-                    fig = plot_relative_ranks(
-                        algorithms=algorithms,
-                        subtitle_results={
+                    kwargs = {
+                        "results": results.select(
+                            benchmarks=_benches, algorithms=algorithms
+                        ),
+                        "filepath": filepath,
+                        "dpi": dpi,
+                        "plot_default": plot_default,
+                        "plot_optimum": plot_optimum,
+                        "yaxis": yaxis,  # type: ignore
+                        "xaxis": xaxis,  # type: ignore
+                        "x_range": x_range_it,
+                        "dynamic_y_lim": dynamic_y_lim,
+                    }
+                    future = executor.submit(plot_incumbent_traces, **kwargs)
+                    futures.append(future)
+                    path_lookup[future] = filepath
+
+        # Relative ranking plots
+        if relative_rankings is not None:
+            for yaxis in yaxes:
+                for plot_title, plot_benchmarks in relative_rankings.items():
+                    _plot_title = plot_title.lstrip().rstrip().replace(" ", "-")
+                    _filename = f"{prefix}-{_plot_title}-{yaxis}.{extension}"
+                    filepath = plot_dir / "relative-rankings" / yaxis / _filename
+                    filepath.parent.mkdir(parents=True, exist_ok=True)
+
+                    kwargs = {
+                        "algorithms": algorithms,
+                        "filepath": filepath,
+                        "dpi": dpi,
+                        "subtitle_results": {
                             sub_title: results.select(
                                 benchmarks=_benches, algorithms=algorithms
                             )
                             for sub_title, _benches in plot_benchmarks.items()
                         },
-                        yaxis=yaxis,
-                        xaxis=xaxis,
-                        x_range=x_range_rr,
-                        x_together=x_together_rr,
-                    )
+                        "yaxis": yaxis,
+                        "xaxis": xaxis,
+                        "x_range": x_range_rr,
+                        "x_together": x_together_rr,
+                    }
+                    future = executor.submit(plot_relative_ranks, **kwargs)
+                    futures.append(future)
+                    path_lookup[future] = filepath
 
-                    _plot_title = plot_title.lstrip().rstrip().replace(" ", "-")
-                    _filename = f"{prefix}-{_plot_title}-{yaxis}.{extension}"
-
-                    filepath = plot_dir / "relative-rankings" / yaxis / _filename
-                    filepath.parent.mkdir(parents=True, exist_ok=True)
-                    fig.savefig(filepath, bbox_inches="tight", dpi=dpi)
-                    print(f"Saved to {_filename} to {filepath}")
-                except Exception as e:
-                    print("FAILED!")
-                    print(traceback.format_exc())
-
-    if table_benchmarks is not None:
-        assert table_xs is not None
-        for yaxis in yaxes:
-            try:
-                table_str = tablify(
-                    results=results.select(
-                        algorithms=algorithms,
-                        benchmarks=table_benchmarks,
-                    ),
-                    xs=table_xs,
-                    prefix=prefix,
-                    yaxis=yaxis, # type: ignore
-                )
+        if table_benchmarks is not None:
+            assert table_xs is not None
+            for yaxis in yaxes:
                 _filename = f"{prefix}-table-{yaxis}.tex"
                 filepath = plot_dir / "tables" / yaxis / _filename
                 filepath.parent.mkdir(parents=True, exist_ok=True)
-                with filepath.open("w") as f:
-                    f.write(table_str)
-                print(f"Saved table {_filename} to {filepath}")
-            except Exception as e:
-                print("FAILED!")
-                print(traceback.format_exc())
+
+                kwargs = {
+                    "results": results.select(
+                        algorithms=algorithms,
+                        benchmarks=table_benchmarks,
+                    ),
+                    "filepath": filepath,
+                    "xs": table_xs,
+                    "prefix": prefix,
+                    "yaxis": yaxis,  # type: ignore
+                }
+                future = executor.submit(tablify, **kwargs)
+                futures.append(future)
+                path_lookup[future] = filepath
+
+        # Should wait until all futures are done here but we explicitly do so anyways
+        wait_futures(futures, return_when="ALL_COMPLETED")
+
+    # If any errors occured during plotting, make sure print them
+    for future in futures:
+        exception = future.exception()
+        if exception:
+            print(f"Future {future} raised an exception: {exception}")
+            print(f"No plot was saved at {path_lookup[future]}")
 
 
 def parse_args() -> Namespace:
