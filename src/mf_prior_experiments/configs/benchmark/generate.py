@@ -1,4 +1,8 @@
-"""Generates all possible benchmark configs from mfpbench."""
+"""Generates all possible benchmark configs from mfpbench.
+
+NB:
+    Search this file for TODO to find editing points
+"""
 from __future__ import annotations
 
 from itertools import product
@@ -26,11 +30,12 @@ HARTMANN_BENCHMARKS = [
     f"mfh{i}_{corr}" for i, corr in product([3, 6], ["terrible", "good"])
 ]
 
+# TODO: Edit as required
+PRIORS_TO_DO = ["medium"]
+MEDIUM_PERTURB_STRENGTH = 0.25
 
 def hartmann_configs() -> Iterator[tuple[str, dict[str, Any]]]:
 
-    # TODO: EDIT AS REQUIRED
-    PRIORS_TO_DO = ["good", "at25"]
     for name, prior in product(HARTMANN_BENCHMARKS, PRIORS_TO_DO):
         api: dict = {
             "name": name,
@@ -40,63 +45,75 @@ def hartmann_configs() -> Iterator[tuple[str, dict[str, Any]]]:
         if prior == "good":
             api.update({"noisy_prior": True, "prior_noise_scale": 0.250 })
 
+        if prior == "medium":
+            api.update({"perturb_prior": MEDIUM_PERTURB_STRENGTH})
+
         config_name = f"{name}_prior-{prior}"
         yield config_name, api
 
 
 def pd1_configs() -> Iterator[tuple[str, dict[str, Any]]]:
     datadir = "pd1-data"
-    PRIORS_TO_DO = ["at25"]
     for name, prior in product(PD1_DATASETS, PRIORS_TO_DO):
         config_name = f"{name}_prior-{prior}"
-        api = {
+        api: dict = {
             "name": name,
             "prior": prior,
             "datadir": "${hydra:runtime.cwd}/data/" + datadir,
         }
+
+        if prior == "medium":
+            api.update({"perturb_prior": MEDIUM_PERTURB_STRENGTH})
 
         yield config_name, api
 
 
 def lcbench_configs() -> Iterator[tuple[str, dict[str, Any]]]:
     datadir = "yahpo-gym-data"
-    PRIORS_TO_DO = ["at25"]
 
     for task_id, prior in product(LCBENCH_TASKS, PRIORS_TO_DO):
         bench = mfpbench._mapping["lcbench"]
 
         assert issubclass(bench, YAHPOBenchmark)
 
-        api = {
+        api: dict = {
             "name": "lcbench",
             "prior": prior,
             "datadir": "${hydra:runtime.cwd}/data/" + datadir,
             "task_id": task_id,
         }
+
+        if prior == "medium":
+            api.update({"perturb_prior": MEDIUM_PERTURB_STRENGTH})
+
         config_name = f"lcbench-{task_id}_prior-{prior}"
         yield config_name, api
 
 
 def jahs_configs() -> Iterator[tuple[str, dict[str, Any]]]:
     datadir = "jahs-bench-data"
-    PRIORS_TO_DO = ["at25"]
 
     for name, prior in product(JAHS_BENCHMARKS, PRIORS_TO_DO):
         config_name = f"{name}_prior-{prior}"
-        api = {
+        api: dict = {
             "name": name,
             "datadir": "${hydra:runtime.cwd}/data/" + datadir,
             "prior": prior,
         }
+
+        if prior == "medium":
+            api.update({"perturb_prior": MEDIUM_PERTURB_STRENGTH})
+
         yield config_name, api
 
 
 def configs() -> Iterator[tuple[Path, dict[str, Any]]]:
     """Generate all configs we might care about for the benchmark."""
+    # TODO: Edit as required
     generators: list[Callable[[], Iterator[tuple[str, dict[str, Any]]]]] = [
         lcbench_configs,
         jahs_configs,
-        hartmann_configs,
+        #hartmann_configs,
         pd1_configs,
     ]
     for generator in generators:
@@ -124,7 +141,8 @@ def configs() -> Iterator[tuple[Path, dict[str, Any]]]:
             kwargs = {
                 k: v
                 for k, v in config["api"].items()
-                if k not in ["datadir", "_target_", "seed"]  # We pass a real seed
+                # We pass a real seed and remove perturbations
+                if k not in ["datadir", "_target_", "seed", "perturb_prior"]
             }
 
             b = mfpbench.get(seed=CONFIGSPACE_SEED, **kwargs)
@@ -139,14 +157,12 @@ def configs() -> Iterator[tuple[Path, dict[str, Any]]]:
                 print(f"   - error {highest_fidelity_error}")
                 del b
 
-
-
             # We also give the best score of RS for 10, 25, 100
             # We remove information about the priors to keep it random
             # We also reload the benchmark at each iteration just because
             # sampling 100 and taking the first 25 is not the same
             # as sampling just 25
-            for key in ["prior", "noisy_prior", "prior_noise_scale"]:
+            for key in ["prior", "noisy_prior", "prior_noise_scale", "perturb_prior"]:
                 kwargs.pop(key, None)
 
             for i in (10, 25, 50, 90, 100):
