@@ -295,10 +295,10 @@ DATASETS = {
     "jahs_cifar10_prior-at25": "[-]CIFAR-10 (good)",
     "jahs_cifar10_prior-bad": "[-]CIFAR-10 (bad)",
     # jahs colorectal histology
-    "jahs_colorectal_histology_prior-good": "[+]Colorectal-Histology (ultra)",
-    "jahs_colorectal_histology_prior-medium": "[+]Colorectal-Histology (strong)",
-    "jahs_colorectal_histology_prior-at25": "[+]Colorectal-Histology (good)",
-    "jahs_colorectal_histology_prior-bad": "[+]Colorectal-Histology (bad)",
+    "jahs_colorectal_histology_prior-good": "[-]Colorectal-Histology (ultra)",
+    "jahs_colorectal_histology_prior-medium": "[-]Colorectal-Histology (strong)",
+    "jahs_colorectal_histology_prior-at25": "[-]Colorectal-Histology (good)",
+    "jahs_colorectal_histology_prior-bad": "[-]Colorectal-Histology (bad)",
     # jahs fashion_mnist
     "jahs_fashion_mnist_prior-good": "[-]Fashion-MNIST (ultra)",
     "jahs_fashion_mnist_prior-medium": "[-]Fashion-MNIST (strong)",
