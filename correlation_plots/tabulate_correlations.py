@@ -20,10 +20,10 @@ DEFAULT_BENCHMARKS = [
     "lcbench-168330",
     "lcbench-168910",
     "lcbench-189906",
-    "mfh3_good",
-    "mfh3_terrible",
-    "mfh6_good",
-    "mfh6_terrible",
+    #    "mfh3_good",
+    #"mfh3_terrible",
+    #"mfh6_good",
+    #"mfh6_terrible",
     "lm1b_transformer_2048",
     "translatewmt_xformer_64",
 ]
@@ -76,6 +76,9 @@ if __name__ == "__main__":
     zs = args.zs
     results_dir = args.results_dir
     benchmarks = args.benchmarks
+    if args.sort_by not in zs:
+        zs.append(args.sort_by)
+        zs = sorted(zs)
 
     assert all(0 <= z <= 1 for z in zs)
     assert results_dir.exists()
