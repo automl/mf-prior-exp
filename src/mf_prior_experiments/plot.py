@@ -464,16 +464,16 @@ def tablify(
     latex_str_header = "\n".join(
         [
             r"\begin{table}",
-            r"\caption{\input{captions/" + f"{prefix}-table-{yaxis}" + r"}}",
+            r"\caption{\protect\input{captions/" + f"{prefix}-table-{yaxis}" + r"}}",
             r"\label{table:" + f"{prefix}-table-{yaxis}" + r"}",
             r"\begin{center}",
             r"\scalebox{0.55}{",
-            r"\centering\n",
+            r"\centering",
         ]
     )
     latex_str_footer = "\n".join(
         [
-            r"} % end of scalebox",
+            r"}",
             r"\end{center}",
             r"\end{table}",
         ]
