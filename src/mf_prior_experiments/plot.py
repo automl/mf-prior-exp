@@ -323,6 +323,14 @@ def plot_incumbent_traces(
                 random_search_results = benchmark_results["random_search_prior"]
                 values = random_search_results.df(index=xaxis, values=yaxis)
                 prior_error = values.iloc[0].mean(axis=0)
+            elif (
+                "hyperband_prior" in algorithms
+                and benchmark in mfh_good_prior_benchmarks
+            ):
+                hyperband_prior_results = benchmark_results["hyperband_prior"]
+                values = hyperband_prior_results.df(index=xaxis, values=yaxis)
+                prior_error = values.iloc[0].mean(axis=0)
+
             else:
                 prior_error = benchmark_config.prior_error
 
