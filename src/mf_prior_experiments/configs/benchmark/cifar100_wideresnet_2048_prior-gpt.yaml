@@ -1,0 +1,15 @@
+name: cifar100_wideresnet_2048_prior-gpt
+api:
+  name: cifar100_wideresnet_2048
+  prior: at25
+  datadir: ${hydra:runtime.cwd}/data/pd1-data
+  _target_: mfpbench.get
+  seed: ${seed}
+  preload: true
+prior_highest_fidelity_error: None
+prior_lowest_error: None
+best_10_error: None
+best_25_error: None
+best_50_error: None
+best_90_error: None
+best_100_error: None
