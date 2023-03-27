@@ -1,0 +1,14 @@
+name: pb_mutation_decay_geometric-default-at-target
+mf: true
+run_function:
+  _target_: mf_prior_experiments.run.run_neps
+searcher:
+  _partial_: true  # To not instantiate the class directly as required by neps
+  _target_: neps.optimizers.multi_fidelity_prior.priorband.PriorBand
+  prior_weight_type: geometric
+  inc_sample_type: mutation
+  inc_style: decay
+  inc_mutation_rate: 0.5
+  inc_mutation_std: 0.25
+  model_based: False
+  sample_default_at_target: True
