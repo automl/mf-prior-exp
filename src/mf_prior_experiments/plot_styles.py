@@ -119,7 +119,7 @@ Y_LIMITS: dict[str, tuple[float | None, float | None]] = {
     "lcbench-126026_prior-bad": (None, 0.08),
     "lcbench-126026_prior-good": (None, 0.08),
     "lcbench-126026_prior-medium": (None, 0.08),
-    "lcbench-126026_prior-gpt": (0.01, 0.06),
+    "lcbench-126026_prior-gpt": (0.02, 0.06),
     "lcbench-167190_prior-at25": (None, 0.25),
     "lcbench-167190_prior-bad": (None, 0.3),
     "lcbench-167190_prior-good": (None, 0.25),
