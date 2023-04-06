@@ -1,4 +1,4 @@
-name: pb_mutation_decay_linear-default-at-target
+name: pb_mutation_dynamic_linear-default-at-target
 mf: true
 run_function:
   _target_: mf_prior_experiments.run.run_neps
