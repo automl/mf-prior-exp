@@ -12,3 +12,4 @@ searcher:
   inc_mutation_std: 0.25
   model_based: False
   sample_default_first: False
+  sample_default_at_target: False

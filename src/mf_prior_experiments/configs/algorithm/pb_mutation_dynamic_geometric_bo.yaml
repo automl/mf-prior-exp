@@ -13,3 +13,5 @@ searcher:
   model_based: True
   modelling_type: "joint"
   initial_design_size: 10
+  sample_default_first: True
+  sample_default_at_target: False

@@ -5,7 +5,11 @@ run_function:
 searcher:
   _partial_: true  # To not instantiate the class directly as required by neps
   _target_: neps.optimizers.multi_fidelity_prior.priorband.PriorBand
-  prior_weight_type: linear
-  inc_sample_type: crossover
+  prior_weight_type: geometric
+  inc_sample_type: mutation
   inc_style: dynamic
+  inc_mutation_rate: 0.5
+  inc_mutation_std: 0.25
   model_based: False
+  sample_default_first: True
+  sample_default_at_target: True
