@@ -172,7 +172,7 @@ Y_LABEL = "Error"
 GOOD_CORR_COLOR = "black"  # "green"
 BAD_CORR_COLOR = "black"  # "red"
 BENCHMARK_COLORS = {
-    # good corr
+    # high corr
     "translatewmt_xformer_64_prior-at25": GOOD_CORR_COLOR,
     "translatewmt_xformer_64_prior-bad": GOOD_CORR_COLOR,
     "lm1b_transformer_2048_prior-at25": GOOD_CORR_COLOR,
@@ -191,7 +191,7 @@ BENCHMARK_COLORS = {
     "mfh3_good_prior-bad": GOOD_CORR_COLOR,
     "mfh6_good_prior-good": GOOD_CORR_COLOR,
     "mfh6_good_prior-bad": GOOD_CORR_COLOR,
-    # bad corr
+    # low corr
     "cifar100_wideresnet_2048_prior-at25": BAD_CORR_COLOR,
     "cifar100_wideresnet_2048_prior-bad": BAD_CORR_COLOR,
     "imagenet_resnet_512_prior-at25": BAD_CORR_COLOR,
@@ -226,25 +226,25 @@ DATASETS = {
     "jahs_fashion_mnist_prior-at25": "[-]Fashion-MNIST (good)",
     "jahs_fashion_mnist_prior-bad": "[-]Fashion-MNIST (bad)",
     # mfh3 good
-    # "mfh3_good_prior-perfect-noisy0.25": "H3d (good corr-good prior)",
-    "mfh3_good_prior-good": "H3d (good corr-strong prior)",
-    "mfh3_good_prior-medium": "H3d (good corr-weak prior)",
-    "mfh3_good_prior-bad": "H3d (good corr-bad prior)",
+    # "mfh3_good_prior-perfect-noisy0.25": "H3d (high corr-good prior)",
+    "mfh3_good_prior-good": "H3d (high corr-good prior)",
+    "mfh3_good_prior-medium": "H3d (high corr-weak prior)",
+    "mfh3_good_prior-bad": "H3d (high corr-bad prior)",
     # mfh3 terrible
-    # "mfh3_terrible_prior-perfect-noisy0.25": "H3d (bad corr-good prior)",
-    "mfh3_terrible_prior-good": "H3d (bad corr-strong prior)",
-    "mfh3_terrible_prior-medium": "H3d (bad corr-weak prior)",
-    "mfh3_terrible_prior-bad": "H3d (bad corr-bad prior)",
+    # "mfh3_terrible_prior-perfect-noisy0.25": "H3d (low corr-good prior)",
+    "mfh3_terrible_prior-good": "H3d (low corr-good prior)",
+    "mfh3_terrible_prior-medium": "H3d (low corr-weak prior)",
+    "mfh3_terrible_prior-bad": "H3d (low corr-bad prior)",
     # mfh6 good
-    # "mfh6_good_prior-perfect-noisy0.25": "H6d (good corr-good prior)",
-    "mfh6_good_prior-good": "H6d (good corr-strong prior)",
-    "mfh6_good_prior-medium": "H6d (good corr-weak prior)",
-    "mfh6_good_prior-bad": "H6d (good corr-bad prior)",
+    # "mfh6_good_prior-perfect-noisy0.25": "H6d (high corr-good prior)",
+    "mfh6_good_prior-good": "H6d (high corr-good prior)",
+    "mfh6_good_prior-medium": "H6d (high corr-weak prior)",
+    "mfh6_good_prior-bad": "H6d (high corr-bad prior)",
     # mfh6 terrible
-    # "mfh6_terrible_prior-perfect-noisy0.25": "H6d (bad corr-good prior)",
-    "mfh6_terrible_prior-good": "H6d (bad corr-strong prior)",
-    "mfh6_terrible_prior-medium": "H6d (bad corr-weak prior)",
-    "mfh6_terrible_prior-bad": "H6d (bad corr-bad prior)",
+    # "mfh6_terrible_prior-perfect-noisy0.25": "H6d (low corr-good prior)",
+    "mfh6_terrible_prior-good": "H6d (low corr-good prior)",
+    "mfh6_terrible_prior-medium": "H6d (low corr-weak prior)",
+    "mfh6_terrible_prior-bad": "H6d (low corr-bad prior)",
     # lcbench-126026
     "lcbench-126026_prior-bad": "[-]LCBench-126026 (bad)",
     "lcbench-126026_prior-medium": "[-]LCBench-126026 (~opt)",
