@@ -4,6 +4,7 @@ import json
 import math
 import pickle
 import time
+import traceback
 from argparse import ArgumentParser, Namespace
 from concurrent.futures import Future, ProcessPoolExecutor
 from concurrent.futures import wait as wait_futures
@@ -33,6 +34,18 @@ DEFAULT_BASE_PATH = HERE.parent.parent
 is_last_row = lambda idx, nrows, ncols: idx >= (nrows - 1) * ncols
 HERE = Path(__file__).parent.absolute()
 is_first_column = lambda idx, ncols: idx % ncols == 0
+
+class with_traceback:
+
+    def __init__(self, f):
+        self.f = f
+
+    def __call__(self, *args, **kwargs):
+        try:
+            return self.f(*args, **kwargs)
+        except Exception as e:
+            tb = traceback.format_exc()
+            raise type(e)(f"{tb}\n{str(e)}") from e
 
 
 def now() -> str:
@@ -298,7 +311,7 @@ def plot_incumbent_traces(
 
         ax.set_title(
             DATASETS.get(benchmark, benchmark),
-            fontsize=20,
+            fontsize=15,
             color=BENCHMARK_COLORS.get(benchmark, "black"),
         )
 
@@ -571,7 +584,8 @@ def main(
                         "with_markers": with_markers,
                         "dynamic_y_lim": dynamic_y_lim,
                     }
-                    future = executor.submit(plot_incumbent_traces, **kwargs)
+                    func = with_traceback(plot_incumbent_traces)
+                    future = executor.submit(func, **kwargs)
                     futures.append(future)
                     path_lookup[future] = filepath
 
@@ -599,7 +613,8 @@ def main(
                         "x_range": x_range_rr,
                         "x_together": x_together_rr,
                     }
-                    future = executor.submit(plot_relative_ranks, **kwargs)
+                    func = with_traceback(plot_relative_ranks)
+                    future = executor.submit(func, **kwargs)
                     futures.append(future)
                     path_lookup[future] = filepath
 
@@ -620,7 +635,8 @@ def main(
                     "prefix": prefix,
                     "yaxis": yaxis,  # type: ignore
                 }
-                future = executor.submit(tablify, **kwargs)
+                func = with_traceback(tablify)
+                future = executor.submit(func, **kwargs)
                 futures.append(future)
                 path_lookup[future] = filepath
 
@@ -631,7 +647,7 @@ def main(
     for future in futures:
         exception = future.exception()
         if exception:
-            print(f"Future {future} raised an exception: {exception}")
+            print(f"Future raised an exception: {exception}")
             print(f"No plot was saved at {path_lookup[future]}")
 
 
