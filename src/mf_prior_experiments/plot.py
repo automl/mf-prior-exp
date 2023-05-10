@@ -289,12 +289,12 @@ def plot_incumbent_traces(
             y_values = [
                 getattr(result, yaxis)
                 for result in benchmark_results.iter_results()
-                if getattr(result, xaxis) >= left and getattr(result, xaxis) <= right
+                if left <= getattr(result, xaxis) <= right
             ]
             y_min, y_max = min(y_values), max(y_values)
             dy = abs(y_max - y_min)
 
-            plot_offset = 0.15
+            plot_offset = 0.10
             ax.set_ylim(y_min - dy * plot_offset, y_max + dy * plot_offset)
         else:
             ylims = Y_LIMITS.get(benchmark)
@@ -396,7 +396,7 @@ def plot_incumbent_traces(
             std_error = stats.sem(df.values, axis=1)
 
             # Slightly smaller marker than deafult
-            MARKERSIZE = 6
+            MARKERSIZE = 2
 
             ax.step(
                 x,
