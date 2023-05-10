@@ -7,7 +7,7 @@ from dataclasses import dataclass, replace
 from functools import reduce
 from itertools import accumulate, chain, groupby, product, starmap
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, Iterator, Mapping, Sequence, overload
+from typing import TYPE_CHECKING, Any, Iterator, Iterable, Mapping, Sequence, overload
 
 import yaml  # type: ignore
 from joblib import Parallel, delayed
@@ -1161,29 +1161,34 @@ class ExperimentResults(Mapping[str, BenchmarkResults]):
         seeds = self.seeds()
         benchmarks = self.benchmarks
 
+        # Get the ranks for each seed, benchmark possible
         ranks = {
-            (benchmark, seed): self.results[benchmark].ranks(
-                xaxis, yaxis, seed=seed, indices=indices
-            )
-            for benchmark, seed in product(benchmarks, seeds)
+            seed: {
+                benchmark: self.results[benchmark].ranks(
+                    xaxis, yaxis, seed=seed, indices=indices
+                )
+                for benchmark in benchmarks
+            }
+            for seed in seeds
         }
 
-        ranks_accumulated = reduce(operator.add, ranks.values())
-        means = ranks_accumulated / len(ranks)
+        # Utility to calculate the mean and the sem
+        def _mean(_dfs: Iterable[pd.DataFrame]) -> pd.DataFrame:
+            return pd.concat(_dfs).groupby(by=xaxis).mean()
 
-        stds = pd.DataFrame(columns=self.algorithms)
-        for algorithm in self.algorithms:
-            algorithm_ranks_per_benchmark_seed: list[pd.Series] = [
-                rank_df[algorithm].rename(f"benchmark-{benchmark}--seed-{seed}")  # type: ignore
-                for (benchmark, seed), rank_df in ranks.items()
-            ]
-            # Stack all the seed results as columns
-            algorithm_results = pd.concat(algorithm_ranks_per_benchmark_seed, axis=1)
+        def _sem(_dfs: Iterable[pd.DataFrame]) -> pd.DataFrame:
+            return pd.concat(_dfs).groupby(by=xaxis).sem()
 
-            # Take the standard error from the mean over all of them
-            stds[algorithm] = algorithm_results.sem(axis=1).rename(algorithm)
+        # Get mean across all benchmarks, for each seed
+        ranks_per_seed_averaged_over_benchmarks = {
+            seed: _mean(ranks[seed].values()) for seed in seeds
+        }
 
-        return means, stds
+        # Average over all seeds
+        mean_ranks = _mean(ranks_per_seed_averaged_over_benchmarks.values())
+        sem_ranks = _sem(ranks_per_seed_averaged_over_benchmarks.values())
+
+        return mean_ranks, sem_ranks
 
     def table_results(
         self,
@@ -1195,7 +1200,6 @@ class ExperimentResults(Mapping[str, BenchmarkResults]):
         import pandas as pd
 
         budgets = xs
-
 
         benchmarks = self.benchmarks
         algorithms = self.algorithms

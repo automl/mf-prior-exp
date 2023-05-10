@@ -515,6 +515,12 @@ DEFAULT_LINE_STYLE = {
     "dashes": (5, 10),
 }
 
+CUSTOM_MARKERS = {
+    "hyperband": "^",
+    "hyperband_prior": "v",
+    "hyperband_prior-50": ".",
+}
+
 RC_PARAMS = {
     "text.usetex": False,  # True,
     # "pgf.texsystem": "pdflatex",

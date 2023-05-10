@@ -16,6 +16,7 @@ from .plot_styles import (
     ALGORITHMS,
     BENCH_TABLE_NAMES,
     BENCHMARK_COLORS,
+    CUSTOM_MARKERS,
     COLOR_MARKER_DICT,
     DATASETS,
     RC_PARAMS,
@@ -116,7 +117,7 @@ def plot_relative_ranks(
         yticks = range(1, len(algorithms) + 1)
         center = (len(algorithms) + 1) / 2
 
-        ax.set_title(subtitle)
+        ax.set_title(subtitle, fontsize=18)
         ax.set_ylim(ymin, ymax)
         ax.set_xlabel(X_LABEL.get(xaxis, xaxis), fontsize=18, color=(0, 0, 0, 0.69))
         ax.set_yticks(yticks)  # type: ignore
@@ -209,7 +210,10 @@ def plot_incumbent_traces(
         "cumulated_fidelity",
         "end_time_since_global_start",
     ] = "cumulated_fidelity",
+    xaxis_label: str | None = None,
+    yaxis_label: str | None = None,
     x_range: tuple[int, int] | None = None,
+    with_markers: bool = False,
     dynamic_y_lim: bool = False,
 ):
     import matplotlib.pyplot as plt
@@ -249,8 +253,12 @@ def plot_incumbent_traces(
         benchmark_results = results[benchmark]
 
         ax = axs[i]
-        xlabel = X_LABEL.get(xaxis, xaxis) if is_last_row(i, nrows, ncols) else None
-        ylabel = Y_LABEL if is_first_column(i, ncols) else None
+        xlabel = xaxis_label if xaxis_label else X_LABEL.get(xaxis, xaxis)
+        xlabel = xlabel if is_last_row(i, nrows, ncols) else None
+
+        ylabel = yaxis_label if yaxis_label else Y_LABEL
+        ylabel = ylabel if is_first_column(i, ncols) else None
+
 
         _x_range: tuple[int, int]
         if x_range is None:
@@ -381,6 +389,7 @@ def plot_incumbent_traces(
                 color=COLOR_MARKER_DICT.get(algorithm, "black"),
                 linestyle="-",
                 linewidth=1,
+                marker=CUSTOM_MARKERS.get(algorithm) if with_markers else None,
                 where="post",
             )
             ax.fill_between(
@@ -502,6 +511,9 @@ def main(
     x_range_it: tuple[int, int] | None = None,
     x_range_rr: tuple[int, int] | None = None,
     x_together_rr: float | None = None,
+    with_markers: bool = False,
+    x_axis_label: str | None = None,
+    y_axis_label: str | None = None,
     extension: str = "png",
     dpi: int = 200,
 ) -> None:
@@ -554,6 +566,9 @@ def main(
                         "yaxis": yaxis,  # type: ignore
                         "xaxis": xaxis,  # type: ignore
                         "x_range": x_range_it,
+                        "xaxis_label": x_axis_label,
+                        "yaxis_label": y_axis_label,
+                        "with_markers": with_markers,
                         "dynamic_y_lim": dynamic_y_lim,
                     }
                     future = executor.submit(plot_incumbent_traces, **kwargs)
@@ -639,6 +654,7 @@ def parse_args() -> Namespace:
 
     parser.add_argument("--experiment_group", type=str, required=True)
     parser.add_argument("--algorithms", nargs="+", type=str, default=None)
+
     parser.add_argument(
         "--incumbent_traces",
         type=json.loads,
@@ -688,6 +704,9 @@ def parse_args() -> Namespace:
     parser.add_argument("--x_range_it", nargs=2, type=float, default=None)
     parser.add_argument("--x_range_rr", nargs=2, type=float, default=None)
     parser.add_argument("--x_together_rr", type=float, default=None)
+    parser.add_argument("--with_markers", type=bool, default=False)
+    parser.add_argument("--x_axis_label", type=str, default=None)
+    parser.add_argument("--y_axis_label", type=str, default=None)
 
     parser.add_argument("--dpi", type=int, default=200)
     parser.add_argument("--ext", type=str, choices=["pdf", "png"], default="png")
@@ -797,6 +816,9 @@ if __name__ == "__main__":
             x_range_it=args.x_range_it,
             x_range_rr=args.x_range_rr,
             x_together_rr=args.x_together_rr,
+            with_markers=args.with_markers,
+            x_axis_label=args.x_axis_label,
+            y_axis_label=args.y_axis_label,
             plot_default=args.plot_default,
             plot_optimum=args.plot_optimum,
             extension=args.ext,
