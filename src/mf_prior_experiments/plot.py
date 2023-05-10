@@ -720,7 +720,7 @@ def parse_args() -> Namespace:
     parser.add_argument("--x_range_it", nargs=2, type=float, default=None)
     parser.add_argument("--x_range_rr", nargs=2, type=float, default=None)
     parser.add_argument("--x_together_rr", type=float, default=None)
-    parser.add_argument("--with_markers", type=bool, default=False)
+    parser.add_argument("--with_markers", action="store_true")
     parser.add_argument("--x_axis_label", type=str, default=None)
     parser.add_argument("--y_axis_label", type=str, default=None)
 
