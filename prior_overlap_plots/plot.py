@@ -12,6 +12,8 @@ import matplotlib.pyplot as plt
 import pandas as pd
 import seaborn as sns
 
+sns.set_theme(style="whitegrid")
+
 HERE = Path(__file__).parent.absolute().resolve()
 BENCHMARK_DIR = HERE.parent / "src" / "mf_prior_experiments" / "configs" / "benchmark"
 BASEPATH = HERE.parent
@@ -19,6 +21,23 @@ RESULTS_DIR = BASEPATH / "results"
 PLOT_DIR = BASEPATH / "plots"
 
 T = TypeVar("T")
+
+def prior_renaming(benchmark: str, prior: str) -> str:
+    if benchmark.startswith("mfh"):
+        renamings = {
+            "good": "Near Optimum",
+            "at25": "Good",
+            "bad": "Bad",
+        }
+    else:
+        renamings = {
+            "medium": "Near optimum",
+            "at25": "Good",
+            "bad": "Bad",
+        }
+    return renamings.get(prior, prior)
+
+
 
 
 def partition(
@@ -33,41 +52,29 @@ def partition(
 @dataclass
 class PlotData:
     benchmark: str
-    # The left side of the violin
-    left: tuple[str, list[float]]
-    # The right side of the violin
-    right: tuple[str, list[float]]
+    priors: dict[str, list[float]]
 
     def __post_init__(self) -> None:
-        left_name, left_values = self.left
-        right_name, right_values = self.right
-
-        if len(left_values) != len(right_values):
-            shortest = min(len(left_values), len(right_values))
-            self.left = (left_name, left_values[:shortest])
-            self.right = (right_name, right_values[:shortest])
-
-            warn(
-                f"Length mismatchs,"
-                f" left={len(left_values)} | right={len(right_values)})."
-                f" Pruned to shortest={shortest}"
-            )
+        shortest = min(len(values) for values in self.priors.values())
+        if not all(len(values) == shortest for values in self.priors.values()):
+            warn(f"Length mismatchs, pruning to shortest={shortest}")
+            self.priors = {
+                name: values[:shortest]
+                for name, values in self.priors.items()
+            }
 
     @property
     def empty(self) -> bool:
-        return not any(self.left) or not any(self.right)
+        return not any(self.priors)
 
     def df(self) -> pd.DataFrame:
-        left_name, left_values = self.left
-        right_name, right_values = self.right
-        l_left = len(left_values)
-        l_right = len(right_values)
+        values = list(chain.from_iterable(self.priors.values()))
+        prior_names = list(chain.from_iterable([prior_renaming(self.benchmark, name)] * len(values) for name, values in self.priors.items()))
 
         return pd.DataFrame(
             {
-                "benchmark": self.benchmark,
-                "prior": [left_name] * l_left + [right_name] * l_right,
-                "error": left_values + right_values,
+                "prior": prior_names,
+                "error": values
             }
         )
 
@@ -117,42 +124,40 @@ def results(
     algo: str,
     seeds: list[int],
     group: str,
-    left_prior: str,
-    right_prior: str,
+    priors: list[str],
 ) -> PlotData:
+    if benchmark.startswith("mfh"):
+        # MFH has it's near optimum prior as good
+        priors = [p.replace("medium", "good") for p in priors]
+
     def get(p, s):
         return load_losses(benchmark, algo=algo, prior=p, seed=s, group=group)  # noqa
 
-    left_values = list(chain.from_iterable(get(left_prior, s) for s in seeds))
-    right_values = list(chain.from_iterable(get(right_prior, s) for s in seeds))
+    prior_evaluations = {
+        name: list(chain.from_iterable(get(name, s) for s in seeds))
+        for name in priors
+    }
 
     return PlotData(
         benchmark=benchmark,
-        left=(left_prior, left_values),
-        right=(right_prior, right_values),
+        priors=prior_evaluations
     )
 
 
 def plot(
     ax: plt.axes.Axes,
-    data: list[PlotData],
+    data: PlotData,
     normalization: str | None = None,
 ) -> None:
-    if normalization == "standard":
-        df = pd.concat([d.standard_normalized_df() for d in data])
-        ylabel = "Error (zscore normalized)"
-    elif normalization == "min-max":
-        df = pd.concat([d.min_max_normalized_df() for d in data])
-        ylabel = "Error (min-max normalized)"
-    else:
-        df = pd.concat([d.df() for d in data])
-        ylabel = "Error"
+    df = data.df()
+    sns.despine(bottom=True, left=True)
+
+    npriors = df["prior"].nunique()
 
     ax = sns.violinplot(
         data=df,
-        x="benchmark",
+        x="prior",
         y="error",
-        hue="prior",
         ax=ax,
         split=True,
         cut=0,
@@ -169,21 +174,24 @@ def plot(
         line.set_linewidth(1.8)
         line.set_color("black")
 
-    ax.set_ylabel(ylabel, fontsize=18, color=(0, 0, 0, 0.69))
-    # ax.set_xlabel("Benchmark", fontsize=18, color=(0, 0, 0, 0.69))
-    ax.xaxis.label.set_visible(False)
-    ax.legend(fontsize=15)
+    # ax.set_xlabel(xlabel, fontsize=18, color=(0, 0, 0, 0.69))
+    # ax.set_ylabel("Benchmark", fontsize=18, color=(0, 0, 0, 0.69))
+    # ax.legend(fontsize=15, loc="upper center", bbox_to_anchor=(0.5, -0.15), fancybox=True, ncol=npriors)
 
-    ax.tick_params(axis="both", which="major", labelsize=15, labelcolor=(0, 0, 0, 0.69))
-    for tick in ax.xaxis.get_major_ticks()[1::2]:
-        tick.set_pad(18)
+    #ax.tick_params(axis="both", which="major", labelsize=15, labelcolor=(0, 0, 0, 0.69))
+    x_axis = ax.axes.get_xaxis()
+    x_label = x_axis.get_label()
+    x_label.set_visible(False)
+
+    ax.set_title(data.benchmark)
+    #for tick in ax.xaxis.get_major_ticks()[1::2]:
+    #    tick.set_pad(18)
 
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="mf-prior-exp plotting for priors")
     parser.add_argument("--benchmarks", nargs="+", type=str, required=True)
-    parser.add_argument("--left-prior", type=str, required=True)
-    parser.add_argument("--right-prior", type=str, required=True)
+    parser.add_argument("--priors", type=str, nargs="+", required=True)
     parser.add_argument("--seeds", nargs="+", type=int, required=True)
     parser.add_argument("--group", type=str, required=True)
     parser.add_argument("--algo", type=str, required=True)
@@ -205,8 +213,7 @@ if __name__ == "__main__":
             algo=args.algo,
             seeds=args.seeds,
             group=args.group,
-            left_prior=args.left_prior,
-            right_prior=args.right_prior,
+            priors=args.priors,
         )
         for b in args.benchmarks
     ]
@@ -222,8 +229,13 @@ if __name__ == "__main__":
 
     normalization = None if args.normalization == "None" else args.normalization
 
-    fig, ax = plt.subplots()
-    plot(ax, success, normalization=normalization)
+    n_benchmarks = (len(success))
+    ncols = 4
+    nrows = ((n_benchmarks + 1) // ncols)
+
+    fig, axes = plt.subplots(nrows=nrows, ncols=ncols, sharey=False, figsize=(7 * ncols, 5.2 * nrows))
+    for data, ax in zip(success, axes.flatten()):
+        plot(ax, data, normalization=normalization)
 
     output_path = PLOT_DIR / args.group / f"{args.filename}.{args.ext}"
     fig.savefig(output_path, bbox_inches="tight", dpi=args.dpi)
