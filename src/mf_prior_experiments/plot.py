@@ -395,6 +395,9 @@ def plot_incumbent_traces(
             y_mean = df.mean(axis=1).values
             std_error = stats.sem(df.values, axis=1)
 
+            # Slightly smaller marker than deafult
+            MARKERSIZE = 6
+
             ax.step(
                 x,
                 y_mean,
@@ -403,6 +406,7 @@ def plot_incumbent_traces(
                 linestyle="-",
                 linewidth=1,
                 marker=CUSTOM_MARKERS.get(algorithm) if with_markers else None,
+                markersize=MARKERSIZE,
                 where="post",
             )
             ax.fill_between(
