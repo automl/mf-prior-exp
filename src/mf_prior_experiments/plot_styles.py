@@ -516,9 +516,11 @@ DEFAULT_LINE_STYLE = {
 }
 
 CUSTOM_MARKERS = {
+    "random_search": "o",
     "hyperband": "^",
     "hyperband_prior": "v",
     "hyperband_prior-50": ".",
+    "priorband": "*"
 }
 
 RC_PARAMS = {

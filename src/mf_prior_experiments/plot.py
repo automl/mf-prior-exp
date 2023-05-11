@@ -434,6 +434,178 @@ def plot_incumbent_traces(
     fig.savefig(filepath, bbox_inches="tight", dpi=dpi)
 
 
+def plot_single_incumbent_trace(
+    results: ExperimentResults,
+    filepath: Path,
+    title: str,
+    dpi: int = 200,
+    plot_default: bool = True,
+    yaxis: Literal["loss", "max_fidelity_loss"] = "loss",
+    xaxis: Literal[
+        "cumulated_fidelity",
+        "end_time_since_global_start",
+    ] = "cumulated_fidelity",
+    xaxis_label: str | None = None,
+    yaxis_label: str | None = None,
+    x_range: tuple[int, int] | None = None,
+    with_markers: bool = False,
+    dynamic_y_lim: bool = False,
+    # TODO
+    y_range: tuple[float, float] | None = None,
+    figsize: tuple[float, float] | None = (4, 3)
+):
+    if len(results.benchmarks) > 1:
+        raise ValueError("Only meant for plotting a single benchmark")
+
+    if y_range and dynamic_y_lim:
+        raise ValueError("Only one of `y_range` and `dynamic_y_lime`")
+
+    import matplotlib.pyplot as plt
+    import pandas as pd
+    import seaborn as sns
+    from scipy import stats
+
+    benchmark = results.benchmarks[0]
+    benchmark_results = results[benchmark]
+    algorithms = results.algorithms
+    benchmark_config = results.benchmark_configs[benchmark]
+    all_indices = pd.Index(results.indices(xaxis=xaxis, sort=False))
+
+    # We only enable the option if the benchmark has these recorded
+    plot_default = plot_default and benchmark_config.prior_error is not None
+
+    fig, ax = plt.subplots(figsize=figsize)
+    assert isinstance(ax, plt.Axes)
+
+
+    xlabel = xaxis_label if xaxis_label else X_LABEL.get(xaxis, xaxis)
+    ylabel = yaxis_label if yaxis_label else Y_LABEL
+
+
+    _x_range: tuple[int, int]
+    if x_range is None:
+        xmin = min(getattr(r, xaxis) for r in benchmark_results.iter_results())
+        xmax = max(getattr(r, xaxis) for r in benchmark_results.iter_results())
+        _x_range = (math.floor(xmin), math.ceil(xmax))
+    else:
+        _x_range = tuple(x_range)  # type: ignore
+
+    left, right = _x_range
+
+    # Now that we've plotted all algorithms for the benchmark,
+    # we need to set some dynamic limits
+    if y_range:
+        y_min, y_max = y_range
+        ax.set_ylim(y_min, y_max)
+    elif dynamic_y_lim:
+        y_values = [
+            getattr(result, yaxis)
+            for result in benchmark_results.iter_results()
+            if left <= getattr(result, xaxis) <= right
+        ]
+        y_min, y_max = min(y_values), max(y_values)
+        dy = abs(y_max - y_min)
+
+        plot_offset = 0.10
+        ax.set_ylim(y_min - dy * plot_offset, y_max + dy * plot_offset)
+    else:
+        ylims = Y_LIMITS.get(benchmark)
+        if ylims is None:
+            ax.set_ylim(auto=True)
+        else:
+            down, up = ylims
+            ax.set_ylim(down, up)
+
+    ax.set_xlim(left=left, right=right)
+
+    xticks = get_xticks(_x_range)
+    ax.set_xticks(xticks, xticks) # type: ignore
+
+    ax.set_title(
+        DATASETS.get(benchmark, benchmark),
+        fontsize=15,
+        color=BENCHMARK_COLORS.get(benchmark, "black"),
+    )
+
+    ax.set_xlabel(xlabel, fontsize=18, color=(0, 0, 0, 0.69))
+    ax.set_ylabel(ylabel, fontsize=18, color=(0, 0, 0, 0.69))
+
+    # Black with some alpha
+    ax.tick_params(
+        axis="both", which="major", labelsize=18, labelcolor=(0, 0, 0, 0.69)
+    )
+    ax.grid(True, which="both", ls="-", alpha=0.8)
+
+    if plot_default and benchmark_config.prior_error is not None:
+        ax.axhline(
+            benchmark_config.prior_error,  # type: ignore
+            color="black",
+            linestyle=":",
+            linewidth=1.0,
+            dashes=(5, 10),
+            label="Mode",
+        )
+
+    for algorithm in algorithms:
+        print("-" * 50)
+        print(f"Benchmark: {benchmark} | Algorithm: {algorithm}")
+        print("-" * 50)
+        df = benchmark_results[algorithm].df(index=xaxis, values=yaxis)
+        assert isinstance(df, pd.DataFrame)
+
+        missing_indices = all_indices.difference(df.index)
+        if missing_indices is not None:
+            for missing_i in missing_indices:
+                df.loc[missing_i] = np.nan
+
+        df = df.sort_index(ascending=True)
+        assert df is not None
+
+        df = df.fillna(method="ffill", axis=0)
+
+        x = df.index
+        y_mean = df.mean(axis=1).values
+        std_error = stats.sem(df.values, axis=1)
+
+        # Slightly smaller marker than deafult
+        MARKERSIZE = 4
+
+        ax.step(
+            x,
+            y_mean,
+            label=ALGORITHMS.get(algorithm, algorithm),
+            color=COLOR_MARKER_DICT.get(algorithm, "black"),
+            linestyle="-",
+            linewidth=1,
+            marker=CUSTOM_MARKERS.get(algorithm) if with_markers else None,
+            markersize=MARKERSIZE,
+            where="post",
+        )
+        ax.fill_between(
+            x,
+            y_mean - std_error,
+            y_mean + std_error,
+            color=COLOR_MARKER_DICT.get(algorithm, "black"),
+            alpha=0.1,
+            step="post",
+        )
+
+    bbox_y_mapping = {1: -0.20, 2: -0.11, 3: -0.07, 4: -0.05, 5: -0.04}
+    legend_ncol = len(algorithms) + (1 if plot_default else 0)
+    reorganize_legend(
+        fig=fig,
+        axs=ax,
+        to_front=["Mode"],
+        bbox_to_anchor=(0.5, bbox_y_mapping[1]),
+        ncol=legend_ncol,
+    )
+
+    sns.despine(fig)
+    fig.tight_layout(pad=0, h_pad=0.5)
+
+    print(f"Saving incumbent trace to {filepath}")
+    fig.savefig(filepath, bbox_inches="tight", dpi=dpi)
+
 def tablify(
     results: ExperimentResults,
     filepath: Path,
@@ -441,7 +613,7 @@ def tablify(
     prefix: str,
     *,
     yaxis: Literal["loss", "max_fidelity_loss"] = "loss",
-) -> str:
+) -> None:
     import pandas as pd
 
     n_algorithms = len(results.algorithms)
@@ -735,6 +907,11 @@ def parse_args() -> Namespace:
     parser.add_argument("--dynamic_y_lim", action="store_true")
     parser.add_argument("--parallel", action="store_true")
 
+    parser.add_argument("--single_inc_plot", action="store_true")
+    parser.add_argument("--single_inc_y_range", type=float, nargs=2, default=None)
+    parser.add_argument("--single_inc_figsize", type=float, nargs=2, default=None)
+    parser.add_argument("--single_inc_plot_title", type=str)
+
     args = parser.parse_args()
 
     if args.x_together_rr and args.x_range_rr and args.x_together_rr < args.x_range_rr[0]:
@@ -742,6 +919,9 @@ def parse_args() -> Namespace:
 
     if args.budget:
         raise ValueError("CD plots (which use --budget) not supported yet")
+
+    if args.single_inc_plot:
+        assert args.single_inc_plot_title is not None
 
     return args
 
@@ -825,6 +1005,62 @@ if __name__ == "__main__":
             ignore_algorithms=ignore_algorithms,
             ignore_seeds=ignore_seeds,
         )
+    elif args.single_inc_plot:
+        # TODO
+        import matplotlib.pyplot as plt
+
+        plt.rcParams.update(RC_PARAMS)
+        base_path = args.base_path
+
+        if base_path is None:
+            base_path = DEFAULT_BASE_PATH
+
+        if args.algorithms is None:
+            raise ValueError("Must specify --algorithms")
+
+        if len(args.benchmarks) > 1:
+            raise ValueError(
+                "Can only specify one benchmark for single incumbent plot"
+            )
+
+        benchmark = args.benchmarks[0]
+
+        plot_dir = base_path / "plots" / args.experiment_group
+        xaxis = "cumulated_fidelity"
+        yaxes = ["loss", "max_fidelity_loss"]
+
+        CACHE = base_path / "results" / args.experiment_group / ".plot_cache.pkl"
+        if not CACHE.exists():
+            raise RuntimeError(f"No cache found at {CACHE}, run `--collect` first")
+
+        print("-" * 50)
+        print(f"Using cache at {CACHE}")
+        print("-" * 50)
+        with CACHE.open("rb") as f:
+            results = pickle.load(f)
+
+        for yaxis in yaxes:
+            _plot_title = args.single_inc_plot_title.lstrip().rstrip().replace(" ", "-")
+            _filename = f"{args.prefix}-{_plot_title}-{yaxis}.{args.extension}"
+            filepath = plot_dir / "single_inc" / yaxis / _filename
+            filepath.parent.mkdir(parents=True, exist_ok=True)
+
+            plot_single_incumbent_trace(
+                results=results.select(benchmarks=[benchmark], algorithms=args.algorithms),
+                filepath=filepath,
+                dpi=args.dpi,
+                plot_default=args.plot_default,
+                yaxis=yaxis,  # type: ignore
+                xaxis=xaxis,
+                xaxis_label=args.xaxis_label,
+                yaxis_label=args.yaxis_label,
+                x_range=args.x_range,
+                with_markers=args.with_markers,
+                dynamic_y_lim=args.dynamic_y_lim,
+                y_range=args.single_inc_y_range,
+                figsize=args.single_inc_figsize,
+                title=args.single_inc_plot_title,
+            )
     else:
         main(
             experiment_group=args.experiment_group,
