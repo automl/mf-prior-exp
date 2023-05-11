@@ -1039,7 +1039,7 @@ if __name__ == "__main__":
 
         for yaxis in yaxes:
             _plot_title = args.single_inc_plot_title.lstrip().rstrip().replace(" ", "-")
-            _filename = f"{args.prefix}-{_plot_title}-{yaxis}.{args.extension}"
+            _filename = f"{args.prefix}-{_plot_title}-{yaxis}.{args.ext}"
             filepath = plot_dir / "single_inc" / yaxis / _filename
             filepath.parent.mkdir(parents=True, exist_ok=True)
 
