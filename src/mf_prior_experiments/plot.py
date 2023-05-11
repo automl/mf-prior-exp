@@ -78,7 +78,7 @@ def reorganize_legend(
     leg = fig.legend(
         handles_to_plot,
         labels_to_plot,
-        fontsize="xx-large",
+        fontsize="large",
         loc="lower center",
         bbox_to_anchor=bbox_to_anchor,
         ncol=ncol,
@@ -459,7 +459,7 @@ def plot_single_incumbent_trace(
         raise ValueError("Only meant for plotting a single benchmark")
 
     if y_range and dynamic_y_lim:
-        raise ValueError("Only one of `y_range` and `dynamic_y_lime`")
+        raise ValueError("Only one of `y_range` and `dynamic_y_lim`")
 
     import matplotlib.pyplot as plt
     import pandas as pd
@@ -1047,10 +1047,10 @@ if __name__ == "__main__":
                 plot_default=args.plot_default,
                 yaxis=yaxis,  # type: ignore
                 xaxis=xaxis,
+                y_range=args.single_inc_y_range,
                 x_range=args.x_range_it,
                 with_markers=args.with_markers,
                 dynamic_y_lim=args.dynamic_y_lim,
-                y_range=args.single_inc_y_range,
                 figsize=args.single_inc_figsize,
                 title=args.single_inc_plot_title,
             )
