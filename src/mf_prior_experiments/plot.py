@@ -59,7 +59,7 @@ def reorganize_legend(
     bbox_to_anchor: tuple[float, float],
     ncol: int,
 ) -> None:
-    ax = ax if isinstance(axs, plt.Axes) else axs[0]
+    ax = axs if isinstance(axs, plt.Axes) else axs[0]
     handles, labels = ax.get_legend_handles_labels()
     handles_to_plot, labels_to_plot = [], []  # type: ignore
     handles_default, labels_default = [], []  # type: ignore
