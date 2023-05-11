@@ -396,7 +396,7 @@ def plot_incumbent_traces(
             std_error = stats.sem(df.values, axis=1)
 
             # Slightly smaller marker than deafult
-            MARKERSIZE = 2
+            MARKERSIZE = 4
 
             ax.step(
                 x,
