@@ -81,6 +81,7 @@ def get_xticks(xrange: tuple[int, int], ticks: int = 5) -> list[int]:
         (1, 5): [1, 2, 3, 4, 5],
         (0, 20): [0, 5, 10, 15, 20],
         (1, 20): [1, 5, 10, 15, 20],
+        (1, 10): [1, 3, 5, 7, 10]
     }
     xticks = predefined.get(xrange)
     if xticks is None:
