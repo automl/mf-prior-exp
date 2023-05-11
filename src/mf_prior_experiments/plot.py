@@ -521,11 +521,7 @@ def plot_single_incumbent_trace(
     xticks = get_xticks(_x_range)
     ax.set_xticks(xticks, xticks) # type: ignore
 
-    ax.set_title(
-        DATASETS.get(benchmark, benchmark),
-        fontsize=15,
-        color=BENCHMARK_COLORS.get(benchmark, "black"),
-    )
+    ax.set_title(title, fontsize=18)
 
     ax.set_xlabel(xlabel, fontsize=18, color=(0, 0, 0, 0.69))
     ax.set_ylabel(ylabel, fontsize=18, color=(0, 0, 0, 0.69))
@@ -1050,8 +1046,6 @@ if __name__ == "__main__":
                 plot_default=args.plot_default,
                 yaxis=yaxis,  # type: ignore
                 xaxis=xaxis,
-                xaxis_label=args.xaxis_label,
-                yaxis_label=args.yaxis_label,
                 x_range=args.x_range,
                 with_markers=args.with_markers,
                 dynamic_y_lim=args.dynamic_y_lim,
