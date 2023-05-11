@@ -1046,7 +1046,7 @@ if __name__ == "__main__":
                 plot_default=args.plot_default,
                 yaxis=yaxis,  # type: ignore
                 xaxis=xaxis,
-                x_range=args.x_range,
+                x_range=args.x_range_it,
                 with_markers=args.with_markers,
                 dynamic_y_lim=args.dynamic_y_lim,
                 y_range=args.single_inc_y_range,
