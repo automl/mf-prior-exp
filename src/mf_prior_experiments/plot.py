@@ -911,6 +911,7 @@ def parse_args() -> Namespace:
     parser.add_argument("--single_inc_y_range", type=float, nargs=2, default=None)
     parser.add_argument("--single_inc_figsize", type=float, nargs=2, default=None)
     parser.add_argument("--single_inc_plot_title", type=str)
+    parser.add_argument("--single_inc_benchmark", type=str)
 
     args = parser.parse_args()
 
@@ -921,6 +922,7 @@ def parse_args() -> Namespace:
         raise ValueError("CD plots (which use --budget) not supported yet")
 
     if args.single_inc_plot:
+        assert args.single_inc_benchmark is not None
         assert args.single_inc_plot_title is not None
 
     return args
@@ -1018,12 +1020,8 @@ if __name__ == "__main__":
         if args.algorithms is None:
             raise ValueError("Must specify --algorithms")
 
-        if len(args.benchmarks) > 1:
-            raise ValueError(
-                "Can only specify one benchmark for single incumbent plot"
-            )
-
-        benchmark = args.benchmarks[0]
+        assert args.single_inc_benchmark is not None
+        benchmark = args.single_inc_benchmark
 
         plot_dir = base_path / "plots" / args.experiment_group
         xaxis = "cumulated_fidelity"
