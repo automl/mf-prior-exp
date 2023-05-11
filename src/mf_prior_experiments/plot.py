@@ -517,9 +517,9 @@ def plot_single_incumbent_trace(
             down, up = ylims
             ax.set_ylim(down, up)
 
-    ax.set_xlim(left=1, right=10)
+    ax.set_xlim(left=left, right=right)
 
-    xticks = [1, 3, 5, 7, 10]
+    xticks = get_xticks(_x_range)
     ax.set_xticks(xticks, xticks) # type: ignore
 
     ax.set_title(title, fontsize=18)
