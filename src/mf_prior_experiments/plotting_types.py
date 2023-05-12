@@ -1173,11 +1173,33 @@ class ExperimentResults(Mapping[str, BenchmarkResults]):
         }
 
         # Utility to calculate the mean and the sem
+        # Done by stacking all dataframes such that their index (i.e. cumulated fidelity)
+        # are duplicated.
+        #
+        #       Dataframe 1
+        # index | A1  A2  A3
+        #  1
+        #  2
+        #  3
+        #  1
+        #  2
+        #  3
+        #
+        # Then we move the index to be a column that we can then groupby
+        # which collects all dataframes with the same index together
+        #
+        # Groupby over multiple Dataframes [1, 2, 3]
+        # ---  index   dfs...
+        #  0       1   [A1 A2 A3], [A1 A2 A3]
+        #  1       2   [A1 A2 A3], [A1 A2 A3]
+        #  2       3   ...
+        #
+        # We can then just call mean and sem on them
         def _mean(_dfs: Iterable[pd.DataFrame]) -> pd.DataFrame:
-            return pd.concat(_dfs).groupby(by=xaxis).mean()
+            return pd.concat(_dfs).reset_index().groupby("index").mean()
 
         def _sem(_dfs: Iterable[pd.DataFrame]) -> pd.DataFrame:
-            return pd.concat(_dfs).groupby(by=xaxis).sem()
+            return pd.concat(_dfs).reset_index().groupby("index").sem()
 
         # Get mean across all benchmarks, for each seed
         ranks_per_seed_averaged_over_benchmarks = {
