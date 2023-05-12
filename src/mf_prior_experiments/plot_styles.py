@@ -521,7 +521,8 @@ CUSTOM_MARKERS = {
     "hyperband": "^",
     "hyperband_prior": "v",
     "hyperband_prior-50": ".",
-    "priorband": "*"
+    "priorband": "*",
+    "pb_mutation_dynamic_geometric-default-at-target": "*"
 }
 
 RC_PARAMS = {

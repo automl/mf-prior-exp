@@ -589,6 +589,8 @@ def plot_single_incumbent_trace(
             step="post",
         )
 
+    ax.set_yscale("log")
+
     bbox_y_mapping = {1: -0.20, 2: -0.11, 3: -0.07, 4: -0.05, 5: -0.04}
     legend_ncol = len(algorithms) + (1 if plot_default else 0)
     reorganize_legend(
