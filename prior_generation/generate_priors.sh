@@ -1,10 +1,10 @@
 #!/bin/bash
 #SBATCH --export=ALL
 #SBATCH --cpus-per-task=1
-#SBATCH --time=0-01:00:00
+#SBATCH --time=0-03:00:00
 #SBATCH --mem=30G
 #SBATCH --partition=bosch_cpu-cascadelake
-#SBATCH --array 0-15
+#SBATCH --array 0-4
 #SBATCH --output logs/%a.log
 #SBATCH --error logs/%a.log
 #SBATCH --job-name=priors-mfpbench
@@ -21,19 +21,9 @@ SEED=133077
 FIFTY_K=50000
 AT_25=25
 
+# NOTE: If editing this, make sure to change the array job thing above
 ARGS=(
-    "lcbench-126026"
-    "lcbench-167190"
-    "lcbench-168330"
-    "lcbench-168910"
     "lcbench-189906"
-    "jahs_cifar10"
-    "jahs_colorectal_histology"
-    "jahs_fashion_mnist"
-    "mfh3_terrible"
-    "mfh3_good"
-    "mfh6_terrible"
-    "mfh6_good"
     "lm1b_transformer_2048"
     "translatewmt_xformer_64"
     "cifar100_wideresnet_2048"
@@ -87,32 +77,32 @@ else
 
     # [Good]
     # * Find to optimum of 50k samples and perturb the config by 0.01
-#    python -m mfpbench generate-priors \
-#        --to "${PRIORDIR}" \
-#        --seed "${SEED}" \
-#        --nsamples "${FIFTY_K}" \
-#        --only "${selection}" \
-#        --priors "good:0:0.01:None"
-#
-    # [Medium]
-    # * Find the optimum of 50k samples
-    # * Noise will be added later in the benchmarks with
-    #   `perturb_prior=.250`
     python -m mfpbench generate-priors \
         --to "${PRIORDIR}" \
         --seed "${SEED}" \
         --nsamples "${FIFTY_K}" \
         --only "${selection}" \
-        --priors "medium:0:0:None"
+        --priors "good:0:0.01:None"
+
+    # [Medium]
+    # * Find the optimum of 50k samples
+    # * Noise will be added later in the benchmarks with
+    #   `perturb_prior=.250`
+#    python -m mfpbench generate-priors \
+#        --to "${PRIORDIR}" \
+#        --seed "${SEED}" \
+#        --nsamples "${FIFTY_K}" \
+#        --only "${selection}" \
+#        --priors "medium:0:0:None"
 #
     # [at25]
     # * Find the optimum of 25 random samples, no noise
-    #python -m mfpbench generate-priors \
-        #--to "${PRIORDIR}" \
-        #--seed "${SEED}" \
-        #--nsamples "${AT_25}" \
-        #--only "${selection}" \
-        #--priors "at25:0:0:None"
+#    python -m mfpbench generate-priors \
+#        --to "${PRIORDIR}" \
+#        --seed "${SEED}" \
+#        --nsamples "${AT_25}" \
+#        --only "${selection}" \
+#        --priors "at25:0:0:None"
 
     # [Bad]
     # * Find the worst of 50k samples, no noise
@@ -121,5 +111,5 @@ else
 #        --seed "${SEED}" \
 #        --nsamples "${FIFTY_K}" \
 #        --only "${selection}" \
-#        --priors "bad:0:0:None"
+#        --priors "bad:-1:0:None"
 fi

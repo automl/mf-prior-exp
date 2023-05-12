@@ -5,7 +5,7 @@ rm /work/dlclarge1/mallik-mf-prior/mf-prior-exp/src/mf-prior-bench/priors/*
 # LCBench
 EDIT: I just run them sequentially now
 Seems like running all the lcbenchs in parallel is causing some issues.
-My guess is trying to run YAHP-gym in parallel with its file based config
+My guess is trying to run YAHPO-gym in parallel with its file based config
 is causing some race conditions are some weirness to happen.
 
 Solution is run and just try those ones again
