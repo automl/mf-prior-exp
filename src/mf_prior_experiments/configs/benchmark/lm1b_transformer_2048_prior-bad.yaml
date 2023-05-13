@@ -1,5 +1,4 @@
 name: lm1b_transformer_2048_prior-bad
-epsilon: 0.0
 api:
   name: lm1b_transformer_2048
   prior: bad
@@ -7,10 +6,10 @@ api:
   _target_: mfpbench.get
   seed: ${seed}
   preload: true
-prior_highest_fidelity_error: 0.9097838997840881
-prior_lowest_error: 0.9092283844947815
-best_10_error: 0.6371834874153137
-best_25_error: 0.6371834874153137
-best_50_error: 0.6371834874153137
-best_90_error: 0.6371834874153137
-best_100_error: 0.6371834874153137
+prior_highest_fidelity_error: 0.9773454666137695
+prior_lowest_error: 0.9598390460014343
+best_10_error: 0.6740200519561768
+best_25_error: 0.6512572765350342
+best_50_error: 0.6556963324546814
+best_90_error: 0.6516356468200684
+best_100_error: 0.643229603767395
