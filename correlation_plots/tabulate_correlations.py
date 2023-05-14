@@ -20,10 +20,10 @@ DEFAULT_BENCHMARKS = [
     "lcbench-168330",
     "lcbench-168910",
     "lcbench-189906",
-    #    "mfh3_good",
-    #"mfh3_terrible",
-    #"mfh6_good",
-    #"mfh6_terrible",
+    "mfh3_good",
+    "mfh3_terrible",
+    "mfh6_good",
+    "mfh6_terrible",
     "lm1b_transformer_2048",
     "translatewmt_xformer_64",
 ]
@@ -69,6 +69,7 @@ if __name__ == "__main__":
     parser.add_argument("--results-dir", type=Path, default=RESULTS_DIR)
     parser.add_argument("--benchmarks", nargs="+", type=str, default=DEFAULT_BENCHMARKS)
     parser.add_argument("--no-mfh", action="store_true")
+    parser.add_argument("--no-lcbench", action="store_true")
     parser.add_argument("--split-at", type=float, default=0.6)
 
     args = parser.parse_args()
@@ -83,6 +84,11 @@ if __name__ == "__main__":
     assert all(0 <= z <= 1 for z in zs)
     assert results_dir.exists()
 
+    if args.no_mfh:
+        benchmarks = [name for name in benchmarks if not name.startswith("mfh")]
+    if args.no_lcbench:
+        benchmarks = [name for name in benchmarks if not name.startswith("lcbench")]
+
     results = [
         BenchmarkResult.from_file(f)
         for f in results_dir.iterdir()
@@ -94,12 +100,6 @@ if __name__ == "__main__":
     ).transpose()
     c = f"sort-by-{args.sort_by}"
     means.insert(0, c, means[args.sort_by])
-
-    if args.no_mfh:
-        other_names = [
-            f"{name}_mean" for name in args.benchmarks if not name.startswith("mfh")
-        ]
-        means = means.loc[other_names]
 
     upper = means[means[c] > args.split_at].sort_values(by=c, ascending=False)
     lower = means[means[c] <= args.split_at].sort_values(by=c, ascending=False)
