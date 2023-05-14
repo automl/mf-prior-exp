@@ -1,4 +1,5 @@
 from __future__ import annotations
+from itertools import product
 
 X_LABEL = {
     "cumulated_fidelity": "Full trainings",
@@ -172,43 +173,33 @@ Y_LIMITS: dict[str, tuple[float | None, float | None]] = {
 Y_LABEL = "Error"
 GOOD_CORR_COLOR = "black"  # "green"
 BAD_CORR_COLOR = "black"  # "red"
+
+PRIORS = ["at25", "bad", "good", "medium", "gpt"]
+GOOD_CORR_BENCHMARKS = [
+    "translatewmt_xformer_64",
+    "lcbench-189906",
+    "cifar100_wideresnet_2048",
+    "imagenet_resnet_512",
+    "lcbench-168330",
+    "lm1b_transformer_2048",
+    "lcbench-168910",
+    "lcbench-167190"
+    "mfh3_good",
+    "mfh6_good",
+]
+BAD_CORR_BENCHMARKS = [
+    "jahs_cifar10",
+    "jahs_colorectal_histology",
+    "lcbench-126026",
+    "jahs_fashion_mnist",
+    "mfh3_terrible",
+    "mfh6_terrible",
+]
 BENCHMARK_COLORS = {
-    # high corr
-    "jahs_colorectal_histology_prior-at25": GOOD_CORR_COLOR,
-    "jahs_colorectal_histology_prior-bad": GOOD_CORR_COLOR,
-    "lcbench-167190_prior-at25": GOOD_CORR_COLOR,
-    "lcbench-167190_prior-bad": GOOD_CORR_COLOR,
-    "lcbench-168330_prior-at25": GOOD_CORR_COLOR,
-    "lcbench-168330_prior-bad": GOOD_CORR_COLOR,
-    "lcbench-168910_prior-at25": GOOD_CORR_COLOR,
-    "lcbench-168910_prior-bad": GOOD_CORR_COLOR,
-    "lcbench-189906_prior-at25": GOOD_CORR_COLOR,
-    "lcbench-189906_prior-bad": GOOD_CORR_COLOR,
-    "lm1b_transformer_2048_prior-at25": GOOD_CORR_COLOR,
-    "lm1b_transformer_2048_prior-bad": GOOD_CORR_COLOR,
-    "mfh3_good_prior-bad": GOOD_CORR_COLOR,
-    "mfh3_good_prior-good": GOOD_CORR_COLOR,
-    "mfh6_good_prior-bad": GOOD_CORR_COLOR,
-    "mfh6_good_prior-good": GOOD_CORR_COLOR,
-    "translatewmt_xformer_64_prior-at25": GOOD_CORR_COLOR,
-    "translatewmt_xformer_64_prior-bad": GOOD_CORR_COLOR,
-    # low corr
-    "cifar100_wideresnet_2048_prior-at25": BAD_CORR_COLOR,
-    "cifar100_wideresnet_2048_prior-bad": BAD_CORR_COLOR,
-    "imagenet_resnet_512_prior-at25": BAD_CORR_COLOR,
-    "imagenet_resnet_512_prior-bad": BAD_CORR_COLOR,
-    "jahs_cifar10_prior-at25": BAD_CORR_COLOR,
-    "jahs_cifar10_prior-bad": BAD_CORR_COLOR,
-    "jahs_fashion_mnist_prior-at25": BAD_CORR_COLOR,
-    "jahs_fashion_mnist_prior-bad": BAD_CORR_COLOR,
-    "lcbench-126026_prior-at25": BAD_CORR_COLOR,
-    "lcbench-126026_prior-bad": BAD_CORR_COLOR,
-    "lcbench-126026_prior-good": BAD_CORR_COLOR,
-    "mfh3_terrible_prior-bad": BAD_CORR_COLOR,
-    "mfh3_terrible_prior-good": BAD_CORR_COLOR,
-    "mfh6_terrible_prior-bad": BAD_CORR_COLOR,
-    "mfh6_terrible_prior-good": BAD_CORR_COLOR,
+    **{f"{b}_prior-{prior}": GOOD_CORR_COLOR for b, prior in product(GOOD_CORR_BENCHMARKS, PRIORS)},
+    **{f"{b}_prior-{prior}": BAD_CORR_COLOR for b, prior in product(BAD_CORR_BENCHMARKS, PRIORS)},
 }
+
 
 DATASETS = {
     # jahs cifar10
@@ -281,21 +272,16 @@ DATASETS = {
     "lm1b_transformer_2048_prior-at25": "[+]PD1-Lm1b (good)",
     "lm1b_transformer_2048_prior-medium": "[+]PD1-Lm1b (~opt)",
     "lm1b_transformer_2048_prior-good": "[+]PD1-Lm1b (ultra)",
-    # uniref
-    "uniref50_transformer_prior-bad": "PD1-Uniref50 (bad)",
-    "uniref50_transformer_prior-at25": "PD1-Uniref50 (good)",
-    "uniref50_transformer_prior-medium": "PD1-Uniref50 (~opt)",
-    "uniref50_transformer_prior-good": "PD1-Uniref50 (ultra)",
     # imagenet
-    "imagenet_resnet_512_prior-bad": "[-]Imagenet (bad)",
-    "imagenet_resnet_512_prior-at25": "[-]Imagenet (good)",
-    "imagenet_resnet_512_prior-medium": "[-]Imagenet (~opt)",
-    "imagenet_resnet_512_prior-good": "[-]Imagenet (ultra)",
+    "imagenet_resnet_512_prior-bad": "[+]Imagenet (bad)",
+    "imagenet_resnet_512_prior-at25": "[+]Imagenet (good)",
+    "imagenet_resnet_512_prior-medium": "[+]Imagenet (~opt)",
+    "imagenet_resnet_512_prior-good": "[+]Imagenet (ultra)",
     # cifar100
-    "cifar100_wideresnet_2048_prior-bad": "[-]CIFAR100 (bad)",
-    "cifar100_wideresnet_2048_prior-at25": "[-]CIFAR100 (good)",
-    "cifar100_wideresnet_2048_prior-medium": "[-]CIFAR100 (~opt)",
-    "cifar100_wideresnet_2048_prior-good": "[-]CIFAR100 (ultra)",
+    "cifar100_wideresnet_2048_prior-bad": "[+]CIFAR100 (bad)",
+    "cifar100_wideresnet_2048_prior-at25": "[+]CIFAR100 (good)",
+    "cifar100_wideresnet_2048_prior-medium": "[+]CIFAR100 (~opt)",
+    "cifar100_wideresnet_2048_prior-good": "[+]CIFAR100 (ultra)",
 }
 
 ALGORITHMS = {
