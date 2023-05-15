@@ -453,8 +453,8 @@ def plot_single_incumbent_trace(
     x_range: tuple[int, int] | None = None,
     with_markers: bool = False,
     dynamic_y_lim: bool = False,
-    # TODO
     y_range: tuple[float, float] | None = None,
+    y_log: bool = False,
     figsize: tuple[float, float] | None = (4, 3)
 ):
     if len(results.benchmarks) > 1:
@@ -589,7 +589,8 @@ def plot_single_incumbent_trace(
             step="post",
         )
 
-    ax.set_yscale("log")
+    if y_log:
+        ax.set_yscale("log")
 
     bbox_y_mapping = {1: -0.20, 2: -0.11, 3: -0.07, 4: -0.05, 5: -0.04}
     legend_ncol = len(algorithms) + (1 if plot_default else 0)
@@ -913,6 +914,7 @@ def parse_args() -> Namespace:
     parser.add_argument("--single_inc_figsize", type=float, nargs=2, default=None)
     parser.add_argument("--single_inc_plot_title", type=str)
     parser.add_argument("--single_inc_benchmark", type=str)
+    parser.add_argument("--single_inc_y_log", action="store_true")
 
     args = parser.parse_args()
 
@@ -1057,6 +1059,7 @@ if __name__ == "__main__":
                 dynamic_y_lim=args.dynamic_y_lim,
                 figsize=args.single_inc_figsize,
                 title=args.single_inc_plot_title,
+                y_log=args.single_inc_y_log,
             )
     else:
         main(

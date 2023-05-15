@@ -320,7 +320,7 @@ ALGORITHMS = {
     "hpbandster": "HpBandSter",
     "hyperband": "HB",
     "hyperband_prior-50": "HB+Prior(50%)",
-    "hyperband_prior-default-at-target": "HB+Prior(mode@target)",
+    "hyperband_prior-default-at-target": "HB+Prior",
     "hyperband_prior_geom": "PriorBand(w/o inc)",
     "hyperband_prior": "HB+Prior",
     "hyperband_prior-no-default": "HB+Prior(No-Mode)",
@@ -508,7 +508,8 @@ CUSTOM_MARKERS = {
     "hyperband_prior": "v",
     "hyperband_prior-50": ".",
     "priorband": "*",
-    "pb_mutation_dynamic_geometric-default-at-target": "*"
+    "pb_mutation_dynamic_geometric-default-at-target": "*",
+    "random_search_prior": "x",
 }
 
 RC_PARAMS = {
