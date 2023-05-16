@@ -436,11 +436,12 @@ def plot_incumbent_traces(
     print(f"Saving incumbent trace to {filepath}")
     fig.savefig(filepath, bbox_inches="tight", dpi=dpi)
 
-
 def plot_single_incumbent_trace(
     results: ExperimentResults,
     filepath: Path,
     title: str,
+    rr_results: ExperimentResults,
+    rr_plot_title: list[str],
     dpi: int = 200,
     plot_default: bool = True,
     yaxis: Literal["loss", "max_fidelity_loss"] = "loss",
@@ -451,6 +452,7 @@ def plot_single_incumbent_trace(
     xaxis_label: str | None = None,
     yaxis_label: str | None = None,
     x_range: tuple[int, int] | None = None,
+    x_together: float | None = None,
     with_markers: bool = False,
     dynamic_y_lim: bool = False,
     y_range: tuple[float, float] | None = None,
@@ -477,9 +479,11 @@ def plot_single_incumbent_trace(
     # We only enable the option if the benchmark has these recorded
     plot_default = plot_default and benchmark_config.prior_error is not None
 
-    fig, ax = plt.subplots(figsize=figsize)
-    assert isinstance(ax, plt.Axes)
+    fig, axes = plt.subplots(nrows=1, ncols=2, figsize=figsize)
 
+    # Plot incumbent first
+    ax = axes[0]
+    assert isinstance(ax, plt.Axes)
 
     xlabel = xaxis_label if xaxis_label else X_LABEL.get(xaxis, xaxis)
     ylabel = yaxis_label if yaxis_label else Y_LABEL
@@ -545,6 +549,9 @@ def plot_single_incumbent_trace(
             label="Mode",
         )
 
+    # Slightly smaller marker than deafult
+    MARKERSIZE = 4
+
     for algorithm in algorithms:
         print("-" * 50)
         print(f"Benchmark: {benchmark} | Algorithm: {algorithm}")
@@ -565,9 +572,6 @@ def plot_single_incumbent_trace(
         x = df.index
         y_mean = df.mean(axis=1).values
         std_error = stats.sem(df.values, axis=1)
-
-        # Slightly smaller marker than deafult
-        MARKERSIZE = 4
 
         ax.step(
             x,
@@ -602,10 +606,84 @@ def plot_single_incumbent_trace(
         ncol=legend_ncol,
     )
 
+    # Plot the relative rankings
+    ax = axes[1]
+
+    _x_range: tuple[int, int]
+    if x_range is None:
+        xmin = min(getattr(r, xaxis) for r in results.iter_results())
+        xmax = max(getattr(r, xaxis) for r in results.iter_results())
+        _x_range = (math.floor(xmin), math.ceil(xmax))
+    else:
+        _x_range = tuple(x_range)  # type: ignore
+
+    left, right = _x_range
+    xticks = get_xticks(_x_range)
+    yticks = range(1, len(algorithms) + 1)
+    center = (len(algorithms) + 1) / 2
+
+    ax.set_title(rr_plot_title, fontsize=18)
+    ax.set_xlabel(X_LABEL.get(xaxis, xaxis), fontsize=18, color=(0, 0, 0, 0.69))
+    ax.set_yticks(yticks)  # type: ignore
+    ax.set_xlim(left=left, right=right)
+    ax.set_xticks(xticks, xticks)  # type: ignore
+    ax.tick_params(axis="both", which="major", labelsize=18, color=(0, 0, 0, 0.69))
+    ax.grid(True, which="both", ls="-", alpha=0.8)
+    ax.set_ylabel("Relative rank", fontsize=18, color=(0, 0, 0, 0.69))
+
+    all_means, all_stds = rr_results.ranks(xaxis=xaxis, yaxis=yaxis)
+
+    for algorithm in algorithms:
+        means: pd.Series = all_means[algorithm]  # type: ignore
+        stds: pd.Series = all_stds[algorithm]  # type: ignore
+
+        # If x_together is specified, we want to shave off
+        # everything in the x-axis before the x_together index
+        # so that it lines up with the above
+        if x_together is not None:
+            means = means.loc[x_together:]  # type: ignore
+            stds = stds.loc[x_together:]  # type: ignore
+        elif x_together is None:
+            # Otherwise, we just use whatever the xaxis cutoff is
+            means = means.loc[left:]
+            stds = stds.loc[left:]
+
+        # Center everything
+        means.loc[0] = center
+        stds.loc[0] = 0
+
+        means = means.sort_index(ascending=True)  # type: ignore
+        stds = stds.sort_index(ascending=True)  # type: ignore
+        assert means is not None
+        assert stds is not None
+
+        x = np.array(means.index.tolist(), dtype=float)
+        y = np.array(means.tolist(), dtype=float)
+        std = np.array(stds.tolist(), dtype=float)
+
+        ax.step(
+            x=x,
+            y=y,
+            color=COLOR_MARKER_DICT.get(algorithm, "black"),
+            linewidth=1,
+            where="post",
+            # label=ALGORITHMS.get(algorithm, algorithm),  # Handled by incumbents
+            marker=CUSTOM_MARKERS.get(algorithm) if with_markers else None,
+            markersize=MARKERSIZE,
+        )
+        ax.fill_between(
+            x,
+            y - std,  # type: ignore
+            y + std,  # type: ignore
+            color=COLOR_MARKER_DICT.get(algorithm, "black"),
+            alpha=0.1,
+            step="post",
+        )
+
     sns.despine(fig)
     fig.tight_layout(pad=0, h_pad=0.5)
 
-    print(f"Saving incumbent trace to {filepath}")
+    print(f"Saving single-inc-rr-trace to {filepath}")
     fig.savefig(filepath, bbox_inches="tight", dpi=dpi)
 
 def tablify(
@@ -915,6 +993,8 @@ def parse_args() -> Namespace:
     parser.add_argument("--single_inc_plot_title", type=str)
     parser.add_argument("--single_inc_benchmark", type=str)
     parser.add_argument("--single_inc_y_log", action="store_true")
+    parser.add_argument("--single_inc_rr_benchmarks", type=str, nargs="*")
+    parser.add_argument("--single_inc_rr_plot_title", type=str, default=None)
 
     args = parser.parse_args()
 
@@ -927,6 +1007,8 @@ def parse_args() -> Namespace:
     if args.single_inc_plot:
         assert args.single_inc_benchmark is not None
         assert args.single_inc_plot_title is not None
+        assert args.single_inc_rr_benchmarks is not None
+        assert args.single_inc_rr_plot_title is not None
 
     return args
 
@@ -1024,7 +1106,7 @@ if __name__ == "__main__":
             raise ValueError("Must specify --algorithms")
 
         assert args.single_inc_benchmark is not None
-        benchmark = args.single_inc_benchmark
+        single_inc_benchmark = args.single_inc_benchmark
 
         plot_dir = base_path / "plots" / args.experiment_group
         xaxis = "cumulated_fidelity"
@@ -1047,7 +1129,7 @@ if __name__ == "__main__":
             filepath.parent.mkdir(parents=True, exist_ok=True)
 
             plot_single_incumbent_trace(
-                results=results.select(benchmarks=[benchmark], algorithms=args.algorithms),
+                results=results.select(benchmarks=[single_inc_benchmark], algorithms=args.algorithms),
                 filepath=filepath,
                 dpi=args.dpi,
                 plot_default=args.plot_default,
@@ -1060,6 +1142,9 @@ if __name__ == "__main__":
                 figsize=args.single_inc_figsize,
                 title=args.single_inc_plot_title,
                 y_log=args.single_inc_y_log,
+                x_together=args.x_together_rr,
+                rr_results=results.select(benchmarks=args.single_inc_rr_benchmarks, algorithms=args.algorithms),
+                rr_plot_title=args.single_inc_rr_plot_title,
             )
     else:
         main(
