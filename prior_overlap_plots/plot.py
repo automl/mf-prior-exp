@@ -163,10 +163,11 @@ def plot(
         cut=0,
         inner="quartile",
     )
+    ax.tick_params(axis="both", which="major", labelsize=18)
     # https://stackoverflow.com/q/60638344
     for line in ax.lines:
         line.set_linestyle("--")
-        line.set_linewidth(1.2)
+        line.set_linewidth(1.8)
         line.set_color("white")
 
     for line in ax.lines[1::3]:
@@ -182,8 +183,9 @@ def plot(
     x_axis = ax.axes.get_xaxis()
     x_label = x_axis.get_label()
     x_label.set_visible(False)
+    ax.set_xlabel("Error", fontsize=18)
 
-    ax.set_title(data.benchmark)
+    ax.set_title(data.benchmark, fontsize=22)
     #for tick in ax.xaxis.get_major_ticks()[1::2]:
     #    tick.set_pad(18)
 

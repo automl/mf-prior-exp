@@ -58,6 +58,7 @@ def reorganize_legend(
     to_front: list[str],
     bbox_to_anchor: tuple[float, float],
     ncol: int,
+    fontsize: int = 22,
 ) -> None:
     import matplotlib.pyplot as plt
 
@@ -80,11 +81,12 @@ def reorganize_legend(
     leg = fig.legend(
         handles_to_plot,
         labels_to_plot,
-        fontsize="large",
+        fontsize=fontsize,
         loc="lower center",
         bbox_to_anchor=bbox_to_anchor,
         ncol=ncol,
         frameon=True,
+        markerscale=2,
     )
 
     for legend_item in leg.legendHandles:
@@ -314,7 +316,7 @@ def plot_incumbent_traces(
 
         ax.set_title(
             DATASETS.get(benchmark, benchmark),
-            fontsize=15,
+            fontsize=18,
             color=BENCHMARK_COLORS.get(benchmark, "black"),
         )
 
@@ -421,7 +423,7 @@ def plot_incumbent_traces(
                 step="post",
             )
 
-    bbox_y_mapping = {1: -0.20, 2: -0.11, 3: -0.07, 4: -0.05, 5: -0.04}
+    bbox_y_mapping = {1: -0.25, 2: -0.11, 3: -0.07, 4: -0.05, 5: -0.04}
     reorganize_legend(
         fig=fig,
         axs=axs,
@@ -456,8 +458,7 @@ def plot_single_incumbent_trace(
     with_markers: bool = False,
     dynamic_y_lim: bool = False,
     y_range: tuple[float, float] | None = None,
-    y_log: bool = False,
-    figsize: tuple[float, float] | None = (4, 3)
+    figsize: tuple[float, float] | None = (6.4, 4.8)
 ):
     if len(results.benchmarks) > 1:
         raise ValueError("Only meant for plotting a single benchmark")
@@ -525,17 +526,18 @@ def plot_single_incumbent_trace(
 
     ax.set_xlim(left=left, right=right)
 
+    FONTSIZE = 22
     xticks = get_xticks(_x_range)
     ax.set_xticks(xticks, xticks) # type: ignore
 
-    ax.set_title(title, fontsize=18)
+    ax.set_title(title, fontsize=FONTSIZE)
 
-    ax.set_xlabel(xlabel, fontsize=18, color=(0, 0, 0, 0.69))
-    ax.set_ylabel(ylabel, fontsize=18, color=(0, 0, 0, 0.69))
+    ax.set_xlabel(xlabel, fontsize=FONTSIZE, color=(0, 0, 0, 0.69))
+    ax.set_ylabel(ylabel, fontsize=FONTSIZE, color=(0, 0, 0, 0.69))
 
     # Black with some alpha
     ax.tick_params(
-        axis="both", which="major", labelsize=18, labelcolor=(0, 0, 0, 0.69)
+        axis="both", which="major", labelsize=FONTSIZE, labelcolor=(0, 0, 0, 0.69)
     )
     ax.grid(True, which="both", ls="-", alpha=0.8)
 
@@ -544,13 +546,13 @@ def plot_single_incumbent_trace(
             benchmark_config.prior_error,  # type: ignore
             color="black",
             linestyle=":",
-            linewidth=1.0,
+            linewidth=2.0,
             dashes=(5, 10),
             label="Mode",
         )
 
     # Slightly smaller marker than deafult
-    MARKERSIZE = 4
+    MARKERSIZE = 6
 
     for algorithm in algorithms:
         print("-" * 50)
@@ -579,7 +581,7 @@ def plot_single_incumbent_trace(
             label=ALGORITHMS.get(algorithm, algorithm),
             color=COLOR_MARKER_DICT.get(algorithm, "black"),
             linestyle="-",
-            linewidth=1,
+            linewidth=2,
             marker=CUSTOM_MARKERS.get(algorithm) if with_markers else None,
             markersize=MARKERSIZE,
             where="post",
@@ -593,9 +595,6 @@ def plot_single_incumbent_trace(
             step="post",
         )
 
-    if y_log:
-        ax.set_yscale("log")
-
     bbox_y_mapping = {1: -0.20, 2: -0.11, 3: -0.07, 4: -0.05, 5: -0.04}
     legend_ncol = len(algorithms) + (1 if plot_default else 0)
     reorganize_legend(
@@ -604,7 +603,11 @@ def plot_single_incumbent_trace(
         to_front=["Mode"],
         bbox_to_anchor=(0.5, bbox_y_mapping[1]),
         ncol=legend_ncol,
+        fontsize=18,
     )
+
+    yticks = ax.get_yticks()
+    ax.set_yticklabels([f"{int(y * 100)}" for y in yticks])
 
     # Plot the relative rankings
     ax = axes[1]
@@ -618,18 +621,22 @@ def plot_single_incumbent_trace(
         _x_range = tuple(x_range)  # type: ignore
 
     left, right = _x_range
+    # HARDCODE:
+    left = 0
+
     xticks = get_xticks(_x_range)
     yticks = range(1, len(algorithms) + 1)
     center = (len(algorithms) + 1) / 2
 
-    ax.set_title(rr_plot_title, fontsize=18)
-    ax.set_xlabel(X_LABEL.get(xaxis, xaxis), fontsize=18, color=(0, 0, 0, 0.69))
+    ax.set_title(rr_plot_title, fontsize=FONTSIZE)
+    ax.set_xlabel(X_LABEL.get(xaxis, xaxis), fontsize=FONTSIZE, color=(0, 0, 0, 0.69))
     ax.set_yticks(yticks)  # type: ignore
     ax.set_xlim(left=left, right=right)
+    ax.set_ylim(1, len(algorithms))
     ax.set_xticks(xticks, xticks)  # type: ignore
-    ax.tick_params(axis="both", which="major", labelsize=18, color=(0, 0, 0, 0.69))
+    ax.tick_params(axis="both", which="major", labelsize=FONTSIZE, color=(0, 0, 0, 0.69))
     ax.grid(True, which="both", ls="-", alpha=0.8)
-    ax.set_ylabel("Relative rank", fontsize=18, color=(0, 0, 0, 0.69))
+    ax.set_ylabel("Relative rank", fontsize=FONTSIZE, color=(0, 0, 0, 0.69))
 
     all_means, all_stds = rr_results.ranks(xaxis=xaxis, yaxis=yaxis)
 
@@ -665,11 +672,11 @@ def plot_single_incumbent_trace(
             x=x,
             y=y,
             color=COLOR_MARKER_DICT.get(algorithm, "black"),
-            linewidth=1,
+            linewidth=2,
             where="post",
             # label=ALGORITHMS.get(algorithm, algorithm),  # Handled by incumbents
-            marker=CUSTOM_MARKERS.get(algorithm) if with_markers else None,
-            markersize=MARKERSIZE,
+            #marker=CUSTOM_MARKERS.get(algorithm) if with_markers else None,
+            #markersize=MARKERSIZE,
         )
         ax.fill_between(
             x,
@@ -1122,30 +1129,30 @@ if __name__ == "__main__":
         with CACHE.open("rb") as f:
             results = pickle.load(f)
 
-        for yaxis in yaxes:
-            _plot_title = args.single_inc_plot_title.lstrip().rstrip().replace(" ", "-")
-            _filename = f"{args.prefix}-{_plot_title}-{yaxis}.{args.ext}"
-            filepath = plot_dir / "single_inc" / yaxis / _filename
-            filepath.parent.mkdir(parents=True, exist_ok=True)
+        yaxis = "max_fidelity_loss"
+        _plot_title = args.single_inc_plot_title.lstrip().rstrip().replace(" ", "-")
+        _filename = f"{args.prefix}-{_plot_title}-{yaxis}.{args.ext}"
+        filepath = plot_dir / "single_inc" / yaxis / _filename
+        filepath.parent.mkdir(parents=True, exist_ok=True)
 
-            plot_single_incumbent_trace(
-                results=results.select(benchmarks=[single_inc_benchmark], algorithms=args.algorithms),
-                filepath=filepath,
-                dpi=args.dpi,
-                plot_default=args.plot_default,
-                yaxis=yaxis,  # type: ignore
-                xaxis=xaxis,
-                y_range=args.single_inc_y_range,
-                x_range=args.x_range_it,
-                with_markers=args.with_markers,
-                dynamic_y_lim=args.dynamic_y_lim,
-                figsize=args.single_inc_figsize,
-                title=args.single_inc_plot_title,
-                y_log=args.single_inc_y_log,
-                x_together=args.x_together_rr,
-                rr_results=results.select(benchmarks=args.single_inc_rr_benchmarks, algorithms=args.algorithms),
-                rr_plot_title=args.single_inc_rr_plot_title,
-            )
+        plot_single_incumbent_trace(
+            results=results.select(benchmarks=[single_inc_benchmark], algorithms=args.algorithms),
+            filepath=filepath,
+            dpi=args.dpi,
+            plot_default=args.plot_default,
+            yaxis=yaxis,  # type: ignore
+            xaxis=xaxis,
+            y_range=args.single_inc_y_range,
+            x_range=args.x_range_it,
+            yaxis_label=args.y_axis_label,
+            with_markers=args.with_markers,
+            dynamic_y_lim=args.dynamic_y_lim,
+            figsize=args.single_inc_figsize,
+            title=args.single_inc_plot_title,
+            x_together=args.x_together_rr,
+            rr_results=results.select(benchmarks=args.single_inc_rr_benchmarks, algorithms=args.algorithms),
+            rr_plot_title=args.single_inc_rr_plot_title,
+        )
     else:
         main(
             experiment_group=args.experiment_group,
