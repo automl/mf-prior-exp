@@ -1,0 +1,13 @@
+name: priorband_bo
+mf: true
+run_function:
+  _target_: mf_prior_experiments.run.run_neps
+searcher:
+  _partial_: true  # To not instantiate the class directly as required by neps
+  _target_: neps.optimizers.multi_fidelity_prior.priorband.PriorBand
+  prior_weight_type: linear
+  inc_sample_type: crossover
+  inc_style: dynamic
+  model_based: True
+  modelling_type: "joint"
+  initial_design_size: 10

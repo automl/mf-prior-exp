@@ -1,0 +1,15 @@
+name: mfh6_terrible_prior-at25
+api:
+  name: mfh6_terrible
+  prior: at25
+  _target_: mfpbench.get
+  seed: ${seed}
+  preload: true
+prior_highest_fidelity_error: -1.3398344842753394
+prior_lowest_error: -1.3398344842753394
+best_10_error: -0.7304685066015468
+best_25_error: -1.3398344842753394
+best_50_error: -1.5438319278946235
+best_90_error: -1.9321242657301259
+best_100_error: -1.8919833038007152
+optimum: -3.322368011391339

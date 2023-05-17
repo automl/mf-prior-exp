@@ -1,0 +1,15 @@
+name: translatewmt_xformer_64_prior-at25
+api:
+  name: translatewmt_xformer_64
+  prior: at25
+  datadir: ${hydra:runtime.cwd}/data/pd1-data
+  _target_: mfpbench.get
+  seed: ${seed}
+  preload: true
+prior_highest_fidelity_error: 0.37249112129211426
+prior_lowest_error: 0.37249112129211426
+best_10_error: 0.41452741622924805
+best_25_error: 0.37249112129211426
+best_50_error: 0.38614675402641296
+best_90_error: 0.3826866149902344
+best_100_error: 0.38855329155921936

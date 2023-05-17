@@ -1,0 +1,11 @@
+name: pibo-no-default  # same as pibo-default-first
+mf: false
+run_function:
+  _target_: mf_prior_experiments.run.run_neps
+searcher:
+  _partial_: true  # To not instantiate the class directly as required by neps
+  _target_: neps.optimizers.BayesianOptimization
+  disable_priors: False
+  prior_confidence: medium  # crucial parameter as defaults don't account for it
+  sample_default_first: False
+  initial_design_size: 10  # specific to the 10x setting

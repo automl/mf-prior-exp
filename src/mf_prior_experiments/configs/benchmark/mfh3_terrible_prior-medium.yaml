@@ -1,0 +1,16 @@
+name: mfh3_terrible_prior-medium
+epsilon: 0.25
+api:
+  name: mfh3_terrible
+  prior: medium
+  _target_: mfpbench.get
+  seed: ${seed}
+  preload: true
+prior_highest_fidelity_error: -3.8035574574672832
+prior_lowest_error: -3.8035574574672832
+best_10_error: -2.387332793243451
+best_25_error: -3.5329301584153674
+best_50_error: -3.606943119653449
+best_90_error: -3.606943119653449
+best_100_error: -3.606943119653449
+optimum: -3.8627797869493365

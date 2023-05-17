@@ -1,0 +1,16 @@
+name: jahs_cifar10_prior-medium
+api:
+  name: jahs_cifar10
+  datadir: ${hydra:runtime.cwd}/data/jahs-bench-data
+  prior: medium
+  perturb_prior: 0.25
+  _target_: mfpbench.get
+  seed: ${seed}
+  preload: true
+prior_highest_fidelity_error: 8.10791015625
+prior_lowest_error: 8.107284545898438
+best_10_error: 10.808868408203125
+best_25_error: 10.194099426269531
+best_50_error: 10.337493896484375
+best_90_error: 9.544174194335938
+best_100_error: 9.080703735351562

@@ -1,0 +1,16 @@
+name: mfh6_good_prior-medium
+epsilon: 0.25
+api:
+  name: mfh6_good
+  prior: medium
+  _target_: mfpbench.get
+  seed: ${seed}
+  preload: true
+prior_highest_fidelity_error: -3.25824210009809
+prior_lowest_error: -3.25824210009809
+best_10_error: -1.5781012647569632
+best_25_error: -1.5781012647569632
+best_50_error: -1.8919833038007152
+best_90_error: -1.8919833038007152
+best_100_error: -1.8919833038007152
+optimum: -3.322368011391339

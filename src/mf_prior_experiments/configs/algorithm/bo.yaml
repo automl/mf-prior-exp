@@ -1,0 +1,9 @@
+name: bo
+mf: false
+run_function:
+  _target_: mf_prior_experiments.run.run_neps
+searcher:
+  _partial_: true  # To not instantiate the class directly as required by neps
+  _target_: neps.optimizers.BayesianOptimization
+  disable_priors: True
+  initial_design_size: 5  # specific to the 10x setting

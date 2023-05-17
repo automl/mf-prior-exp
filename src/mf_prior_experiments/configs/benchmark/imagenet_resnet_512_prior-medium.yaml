@@ -1,0 +1,16 @@
+name: imagenet_resnet_512_prior-medium
+api:
+  name: imagenet_resnet_512
+  prior: medium
+  datadir: ${hydra:runtime.cwd}/data/pd1-data
+  perturb_prior: 0.25
+  _target_: mfpbench.get
+  seed: ${seed}
+  preload: true
+prior_highest_fidelity_error: 0.18578995764255524
+prior_lowest_error: 0.18578548729419708
+best_10_error: 0.27225184440612793
+best_25_error: 0.22395853698253632
+best_50_error: 0.2654663026332855
+best_90_error: 0.22049149870872498
+best_100_error: 0.2554378807544708
