@@ -1,8 +1,5 @@
 # MF + Priors
 
-NOTE: For anonymity reasons, we can not release the link to download the surrogates for
-the PD1 benchmarks.
-
 ## Installation
 
 ### 1. Clone the repository
@@ -43,31 +40,64 @@ to your `.zshrc` / `.bashrc` or alternatively simply run the export manually.
 python -m mfpbench download
 ```
 
+You will get an error when downloading the PD1 surrogates. To obtain these,
+you will need to download the surrogates at an anonymized link:
+
+* https://figshare.com/articles/dataset/surrogates_zip/22902542
+
+To do so, download the `surrogates.zip` and unzip it in the `data` folder
+as so that you have the following file structure:
+
+```
+data/pd1-data/
+└── surrogates
+    ├── cifar100-wide_resnet-2048-train_cost.json
+    ├── cifar100-wide_resnet-2048-valid_error_rate.json
+    ├── imagenet-resnet-512-train_cost.json
+    ├── imagenet-resnet-512-valid_error_rate.json
+    ├── lm1b-transformer-2048-train_cost.json
+    ├── lm1b-transformer-2048-valid_error_rate.json
+    ├── translate_wmt-xformer_translate-64-train_cost.json
+    └── translate_wmt-xformer_translate-64-valid_error_rate.json
+```
+
+Once you have done so, you should be able to load the surrogates.
+
 ## Usage
 
 ### Running a singular local experiment
 
 ```bash
 # We need at least two seeds for the plotting to work
-just run random_search lcbench-189906_prior-at25 test 0
-just run random_search lcbench-189906_prior-at25 test 1
-just run priorband lcbench-189906_prior-at25 test 0
-just run priorband lcbench-189906_prior-at25 test 1
+just run random_search lm1b_transformer_2048_prior-at25 test 0
+just run random_search lm1b_transformer_2048_prior-at25 test 1
+just run priorband lm1b_transformer_2048_prior-at25 test 0
+just run priorband lm1b_transformer_2048_prior-at25 test 1
 
 # For more options see which can be run directly
 python -m mf_prior_experiments.run -h
-python -m mf_prior_experiments.run algorithm=random_search benchmark=lcbench189906_prior-at25 experiment_group=test
+python -m mf_prior_experiments.run algorithm=random_search benchmark=lm1b_transformer_2048_prior-at25 experiment_group=test
 ```
 
 ### Running a grid of experiments on slurm
 
-To run 10 seeds for two algorithms and benchmarks, e.g.,
+To run 5 seeds for two algorithms and benchmarks, e.g.,
 
 ```bash
 just submit random_search,priorband lcbench189906_prior-at25 "range(0, 5)" test
 # note the whitespace in `"range(0, 5)"`.
 
 # Use `just submit` to see the arguments
+```
+
+### To get a list of benchmarks
+```bash
+just benchmarks
+```
+
+### To get a list of algorithms
+```bash
+just algorithms
 ```
 
 ### Analysing experiments
@@ -90,7 +120,7 @@ To do the relative ranking plots:
 # JSON in bash ... yup
 incumbent_traces="
 {
-  \"Good prior\": [\"lcbench-189906_prior-at25\"]
+  \"Good prior\": [\"lm1b_transformer_2048_prior-at25\"]
 }
 "
 
