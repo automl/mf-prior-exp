@@ -52,13 +52,7 @@ to your `.zshrc` / `.bashrc` or alternatively simply run the export manually.
 python -m mfpbench download
 ```
 
-You will get an error when downloading the PD1 surrogates. To obtain these,
-you will need to download the surrogates at an anonymized link:
-
-* https://figshare.com/articles/dataset/surrogates_zip/22902542
-
-To do so, download the `surrogates.zip` and unzip it in the `data` folder
-as so that you have the following file structure:
+You should get a layout that looks like so:
 
 ```
 data/pd1-data/
@@ -146,5 +140,5 @@ python -m src.mf_prior_experiments.plot \
     --dynamic_y_lim \
 	--n_workers 1 \
 	--incumbent_traces "${incumbent_traces}" \
-	--x_range_it 1 12 \
+	--x_range_it 1 12
 ```
