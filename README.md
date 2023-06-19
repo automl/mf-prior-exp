@@ -1,6 +1,4 @@
 # MF + Priors
-Experiments for the paper (TODO: link).
-
 
 ## Installation
 
@@ -10,7 +8,7 @@ Experiments for the paper (TODO: link).
 git clone --recursive https://github.com/automl/mf-prior-exp.git
 
 # To use the version used for the paper
-git clone --branch "vPaper-priorband" --recursive https://github.com/automl/mf-prior-exp.git
+git clone --branch "vPaper-arxiv" --recursive https://github.com/automl/mf-prior-exp.git
 
 # If you forgot to use the --recursive flag or checkout the branches, you can do the following
 # to manuall perform the steps
@@ -24,14 +22,13 @@ git submodule update --init
 
 ### 2. Conda, Poetry, Package, Pre-Commit
 
-To setup tooling and install the package, follow [this documentation](https://automl.github.io/neps/0.5.1/contributing/installation/) using the environment name of your choice.
+To setup tooling and install the package, follow this documentation (**removed**) using the environment name of your choice.
+
+**NOTE: Requires Python 3.7**
 
 ```bash
 poetry install
 ```
-
-
-**NOTE**: The version used for the paper `vPaper-PriorBand` requires an older version of `NePS` which requires Python version \<3.8 so consider creating an environment with `conda create -n mf-prior python=3.7.12`
 
 ### 3. Just
 
@@ -52,94 +49,102 @@ to your `.zshrc` / `.bashrc` or alternatively simply run the export manually.
 ### 4. Data
 
 ```bash
-python -m mfpbench.download --data-dir data
+python -m mfpbench download
 ```
+
+You will get an error when downloading the PD1 surrogates. To obtain these,
+you will need to download the surrogates at an anonymized link:
+
+* https://figshare.com/articles/dataset/surrogates_zip/22902542
+
+To do so, download the `surrogates.zip` and unzip it in the `data` folder
+as so that you have the following file structure:
+
+```
+data/pd1-data/
+└── surrogates
+    ├── cifar100-wide_resnet-2048-train_cost.json
+    ├── cifar100-wide_resnet-2048-valid_error_rate.json
+    ├── imagenet-resnet-512-train_cost.json
+    ├── imagenet-resnet-512-valid_error_rate.json
+    ├── lm1b-transformer-2048-train_cost.json
+    ├── lm1b-transformer-2048-valid_error_rate.json
+    ├── translate_wmt-xformer_translate-64-train_cost.json
+    └── translate_wmt-xformer_translate-64-valid_error_rate.json
+```
+
+Once you have done so, you should be able to load the surrogates.
 
 ## Usage
 
 ### Running a singular local experiment
 
 ```bash
-just run random_search jahs_cifar10
-```
+# We need at least two seeds for the plotting to work
+just run random_search lm1b_transformer_2048_prior-at25 test 0
+just run random_search lm1b_transformer_2048_prior-at25 test 1
+just run priorband lm1b_transformer_2048_prior-at25 test 0
+just run priorband lm1b_transformer_2048_prior-at25 test 1
 
-For more options see
-
-```bash
+# For more options see which can be run directly
 python -m mf_prior_experiments.run -h
-```
-
-and run the python command directly, e.g.,
-
-```bash
-python -m mf_prior_experiments.run algorithm=random_search benchmark=jahs_cifar10 experiment_group=debug
+python -m mf_prior_experiments.run algorithm=random_search benchmark=lm1b_transformer_2048_prior-at25 experiment_group=test
 ```
 
 ### Running a grid of experiments on slurm
 
-To run 10 seeds for two algorithms and benchmarks, e.g.,
+To run 5 seeds for two algorithms and benchmarks, e.g.,
 
+```bash
+just submit random_search,priorband lcbench189906_prior-at25 "range(0, 5)" test
+# note the whitespace in `"range(0, 5)"`.
+
+# Use `just submit` to see the arguments
 ```
-just submit alg_a,alg_b bench_a,bench_b "range(0, 10)" 22-08-18_updated-priors
+
+### To get a list of benchmarks
+```bash
+just benchmarks
 ```
 
-note the whitespace in `"range(0, 10)"`.
-
-For more options see
-
-```
-just
+### To get a list of algorithms
+```bash
+just algorithms
 ```
 
 ### Analysing experiments
 
-## Contributing
-
-### Working with git submodules
-
-See [the git-scm documentation](https://git-scm.com/book/en/v2/Git-Tools-Submodules). In short:
-
-To pull in changes for `mf-prior-exp` and all submodules (`neps` and `mf-prior-bench`) run
+All plots included are provided by `src/mf_prior_experiments/plot.py`. The plots
+rely on the results being collected and cached first, before being plotted, you can
+do so with.
 
 ```bash
-git pull --recurse-submodules
+python -m src.mf_prior_experiments.plot \
+    --collect \
+    --collect-ignore-missing \
+    --experiment_group "test" \
+    --n_workers 1  # If collecting results for parallel runs, specify the number of workers
+    # --parallel  # To speed up collection of many results
 ```
 
-To pull in changes from one submodule, change to its directory and run
-
+To do the relative ranking plots:
 ```bash
-git fetch
-git merge origin/main
+# JSON in bash ... yup
+incumbent_traces="
+{
+  \"Good prior\": [\"lm1b_transformer_2048_prior-at25\"]
+}
+"
+
+python -m src.mf_prior_experiments.plot \
+	--algorithms random_search priorband \
+	--experiment_group "test" \
+	--prefix "test_plot" \
+	--dpi 200 \
+	--ext "png" \
+	--plot_default \
+    --dynamic_y_lim \
+	--n_workers 1 \
+	--incumbent_traces "${incumbent_traces}" \
+	--x_range_it 1 12 \
 ```
-
-To code in the submodule first change to its directory, then checkout the branch you want to work on, e.g.,
-
-```bash
-cd src/neps
-git checkout master
-```
-
-then perform, commit, and push your changes to the submodule's repository
-
-```bash
-pre-commit install
-git commit -m "awesome changes"
-git push
-```
-
-next, you also need to commit the changed submodule, e.g.,
-
-```bash
-cd ../..
-git add src/neps
-git commit -m "update neps submodule"
-git push
-```
-
-### Managing dependencies
-
-For how to manage dependencies see [the overview on poetry](https://automl.github.io/neps/0.5.1/contributing/dependencies/).
-
-### Tooling
-
-There is also some [documentation for the tools](https://automl.github.io/neps/0.5.1/contributing/tests/#disabling-and-skipping-checks-etc) in this repo.
