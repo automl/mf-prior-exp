@@ -1,4 +1,4 @@
-# MF + Priors
+# PriorBand: Practical Hyperparameter Optimization in the Age of Deep Learning
 
 ## Installation
 
