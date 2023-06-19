@@ -55,16 +55,44 @@ python -m mfpbench download
 You should get a layout that looks like so:
 
 ```
-data/pd1-data/
-└── surrogates
-    ├── cifar100-wide_resnet-2048-train_cost.json
-    ├── cifar100-wide_resnet-2048-valid_error_rate.json
-    ├── imagenet-resnet-512-train_cost.json
-    ├── imagenet-resnet-512-valid_error_rate.json
-    ├── lm1b-transformer-2048-train_cost.json
-    ├── lm1b-transformer-2048-valid_error_rate.json
-    ├── translate_wmt-xformer_translate-64-train_cost.json
-    └── translate_wmt-xformer_translate-64-valid_error_rate.json
+data
+├── jahs-bench-data
+│   ├── assembled_surrogates
+│   │   ├── cifar10
+│   │   ├── colorectal_histology
+│   │   └── fashion_mnist
+│   ├── assembled_surrogates.tar
+│   └── LICENSE
+├── pd1-data
+│   ├── data.tar.gz
+│   └── surrogates
+│       ├── cifar100-wide_resnet-2048-train_cost.json
+│       ├── cifar100-wide_resnet-2048-valid_error_rate.json
+│       ├── imagenet-resnet-512-train_cost.json
+│       ├── imagenet-resnet-512-valid_error_rate.json
+│       ├── lm1b-transformer-2048-train_cost.json
+│       ├── lm1b-transformer-2048-valid_error_rate.json
+│       ├── surrogates.zip
+│       ├── translate_wmt-xformer_translate-64-train_cost.json
+│       └── translate_wmt-xformer_translate-64-valid_error_rate.json
+└── yahpo-gym-data
+    ├── benchmark_suites
+    │   └── v1.0
+    ├── fcnet
+    ├── iaml_glmnet
+    ├── iaml_ranger
+    ├── iaml_rpart
+    ├── iaml_super
+    ├── iaml_xgboost
+    ├── lcbench
+    ├── nb301
+    ├── rbv2_aknn
+    ├── rbv2_glmnet
+    ├── rbv2_ranger
+    ├── rbv2_rpart
+    ├── rbv2_super
+    ├── rbv2_svm
+    └── rbv2_xgboost
 ```
 
 Once you have done so, you should be able to load the surrogates.
