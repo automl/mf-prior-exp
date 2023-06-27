@@ -35,6 +35,96 @@ def _set_seeds(seed):
     # tf.random.set_seed(seed)
 
 
+def run_dyhpo(args):
+    from mfpbench import Benchmark
+    from mfpbench.result import Result
+
+    # TODO
+    class Dyhpo:
+        def __init__(self, *args, **kwargs):
+            pass
+
+
+    benchmark: Benchmark = hydra.utils.instantiate(args.benchmark.api)  # type: ignore
+
+    # TODO
+    # assert all hps are purely numerical
+    # Convert all to purely numerical array
+    space = benchmark.space()
+    grid_of_configuration_arrays = to_grid(space)
+
+    TOTAL_BUDGET = -1
+
+    dhypo = Dyhpo(
+        hp_candidates=np.asarray(grid_of_configurations),
+        log_indicator=["TODO"],
+        seed="TODO",
+        max_benchmark_epochs=benchmark.end,
+        fantasize_step=1,
+        minimization=True,  # TODO: verify
+        total_budget=TOTAL_BUDGET,
+        device="cpu", # Maybe GPU?
+        dataset_name="TODO",
+        output_path="TODO",
+        surrogate_config=None,  # Default
+        verbose=True,
+    )
+
+    # NOTE (eddiebergman,heri): Seems Dhypo's benchmarks
+    #    actually start at epoch 1 instead of 0. This means
+    #    that they have signal initially. A bit cheaty.
+    for _ in range(TOTAL_BUDGET):
+
+        start = time.time()
+
+        hp_index, budget = dhypo.suggest()
+
+        config_array = grid_of_configuration_arrays[hp_index]
+
+        results: list[Result] = benchmark.trajectory(config, to=budget)
+        max_fidelity_result = benchmark.query(config, at=benchmark.end)
+
+        result = results[-1]
+
+        if len(results) > 1:
+            previous_result = results[-2]
+            continuation_fidelity = result.fidelity - previous_result.fidelity
+        else:
+            continuation_fidelity = None
+
+        # score = performance_curve[-1]
+        learning_curve = np.asarray([r.error for r in results])
+
+        dhypo.observe(hp_index=hp_index, b=budget, learning_curve=learning_curve)
+
+        end = time.time()
+
+        result_for_disk = {
+            "loss": result.error,
+            "cost": result.cost,
+            "info_dict": {
+                "cost": result.cost,
+                "fidelity": result.fidelity,
+                "val_score": result.val_score,
+                "test_score": result.test_score,
+                "continuation_fidelity": continuation_fidelity,
+                "start_time": start,
+                "end_time": end,  # + fidelity,
+                "max_fidelity_loss": float(max_fidelity_result.error),
+                "max_fidelity_cost": float(max_fidelity_result.cost),
+                "process_id": os.getpid(),
+                # val_error: result.val_error
+                # test_error: result.test_error
+            },
+        }
+
+        # TODO: Save to disk
+
+
+
+
+
+
 def run_hpbandster(args):
     import uuid
 
@@ -281,6 +371,7 @@ def run_neps(args):
 @hydra.main(config_path="configs", config_name="run", version_base="1.2")
 def run(args):
     # Print arguments to stderr (useful on cluster)
+    print("run()")
     sys.stderr.write(f"{' '.join(sys.argv)}\n")
     sys.stderr.write(f"args = {args}\n\n")
     sys.stderr.flush()

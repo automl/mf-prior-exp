@@ -324,6 +324,11 @@ class Trace(Sequence[Result]):
         results = sorted(results, key=lambda r: r.end_time)
         return cls(results=results)
 
+    @classmethod
+    def load_dhypo(cls, path: Path) -> Trace:
+        # Load from filesystem
+        ...
+
     @overload
     def __getitem__(self, key: int) -> Result:
         ...

@@ -1,0 +1,5 @@
+name: dhypo
+run_function:
+  _target_: mf_prior_experiments.run.run_dyhpo
+dyhpo_args:
+  hello: "world"
