@@ -3,7 +3,7 @@
   just --list
 # Run local experiment:
 @run algorithm="random_search" benchmark="mfh3_bad" experiment_group="debug" seed="200" n_workers="1" :
-  HYDRA_FULL_ERROR=1 python -m mf_prior_experiments.run \
+  PYTHONPATH=${PWD}/DyHPO HYDRA_FULL_ERROR=1 python -m mf_prior_experiments.run \
     algorithm={{algorithm}} \
     benchmark={{benchmark}} \
     experiment_group={{experiment_group}} \
@@ -12,7 +12,7 @@
 
 # Submit job
 @submit algorithms benchmarks seeds="range(1)" experiment_group="test" job_name="default" partition="mldlc_gpu-rtx2080" max_tasks="1000" time="0-23:59" memory="0" n_worker="1":
-  python -m mf_prior_experiments.submit \
+  PYTHONPATH=${PWD}/DyHPO python -m mf_prior_experiments.submit \
     --experiment_group {{experiment_group}} \
     --max_tasks {{max_tasks}} \
     --time {{time}} \

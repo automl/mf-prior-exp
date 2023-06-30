@@ -1,0 +1,10 @@
+name: dhypo
+run_function:
+  _target_: mf_prior_experiments.run.run_dyhpo
+dyhpo_args:
+  fantasize_step: 1
+  minimization: true
+  device: cpu
+  verbose: true
+  surrogate_config: null
+

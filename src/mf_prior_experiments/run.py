@@ -36,38 +36,43 @@ def _set_seeds(seed):
 
 
 def run_dyhpo(args):
+    import ConfigSpace as cs
     from mfpbench import Benchmark
     from mfpbench.result import Result
 
-    # TODO
-    class Dyhpo:
-        def __init__(self, *args, **kwargs):
-            pass
+    # messy import of DyHPO
+    from DyHPO.hpo_method import DyHPOAlgorithm
 
+#   # TODO
+#   class Dyhpo:
+#       def __init__(self, *args, **kwargs):
+#           pass
 
     benchmark: Benchmark = hydra.utils.instantiate(args.benchmark.api)  # type: ignore
 
     # TODO
     # assert all hps are purely numerical
     # Convert all to purely numerical array
-    space = benchmark.space()
-    grid_of_configuration_arrays = to_grid(space)
+    space = benchmark.space
+    # grid_of_configuration_arrays = to_grid(space)
+    grid_of_configurations = space.sample_configuration(8000)
+    grid_of_configuration_arrays = [c.get_array() for c in grid_of_configurations]
 
-    TOTAL_BUDGET = -1
+    TOTAL_BUDGET = 10 # TODO
 
-    dhypo = Dyhpo(
-        hp_candidates=np.asarray(grid_of_configurations),
-        log_indicator=["TODO"],
-        seed="TODO",
+    dhypo = DyHPOAlgorithm(
+        hp_candidates=np.asarray(grid_of_configuration_arrays),
+        log_indicator=[hp.log for hp in space.get_hyperparameters()],
+        seed=args.seed,
         max_benchmark_epochs=benchmark.end,
-        fantasize_step=1,
-        minimization=True,  # TODO: verify
+        fantasize_step=args.algorithm.dyhpo_args.fantasize_step,
+        minimization=args.algorithm.dyhpo_args.minimization,  # TODO: verify
         total_budget=TOTAL_BUDGET,
-        device="cpu", # Maybe GPU?
-        dataset_name="TODO",
+        device=args.algorithm.dyhpo_args.device, # Maybe GPU?
+        dataset_name=args.benchmark.name,
         output_path="TODO",
-        surrogate_config=None,  # Default
-        verbose=True,
+        surrogate_config=args.algorithm.dyhpo_args.surrogate_config,
+        verbose=args.algorithm.dyhpo_args.verbose,
     )
 
     # NOTE (eddiebergman,heri): Seems Dhypo's benchmarks
@@ -79,7 +84,7 @@ def run_dyhpo(args):
 
         hp_index, budget = dhypo.suggest()
 
-        config_array = grid_of_configuration_arrays[hp_index]
+        config = grid_of_configurations[hp_index]
 
         results: list[Result] = benchmark.trajectory(config, to=budget)
         max_fidelity_result = benchmark.query(config, at=benchmark.end)
@@ -92,8 +97,7 @@ def run_dyhpo(args):
         else:
             continuation_fidelity = None
 
-        # score = performance_curve[-1]
-        learning_curve = np.asarray([r.error for r in results])
+        learning_curve = [r.error for r in results]
 
         dhypo.observe(hp_index=hp_index, b=budget, learning_curve=learning_curve)
 
