@@ -64,8 +64,8 @@ def construct_script(args, cluster_oe_dir):
     if args.gpus and not is_gpu_partition(args):
         raise ValueError("Cannot request GPUs on non-gpu partition!")
 
+    c = min(20, args.gpus * args.n_worker * 4)  # 20 is the maximum number of CPUs per node
     if args.n_worker == 1:
-        c = min(8, args.memory // (1000 * 6))
         # Explicitly state the cpu and gpus and it's total memory
         if args.gpus > 0:
             script.append(f"#SBATCH --gres=gpu:{args.gpus}")
@@ -78,13 +78,13 @@ def construct_script(args, cluster_oe_dir):
         # load the benchmark individually
         if args.gpus > 0:
             script.append(f"#SBATCH --gres=gpu:{args.n_worker * args.gpus}")
-            script.append(f"#SBATCH -c {c * args.n_worker * args.gpus}")
+            script.append(f"#SBATCH -c {c}")
         else:
             script.append(f"#SBATCH -c {args.n_worker}")
         script.append(f"#SBATCH --mem-per-cpu {args.memory}")
 
         # Pre-prend the cmd with srun to enable it to run multiple times
-        cpus_per_task = c if args.gpus > 0 else 1
+        cpus_per_task = c // args.n_worker if args.gpus > 0 else 1
         gpus_per_task = args.gpus
         cmd = f"srun --ntasks {args.n_worker} --cpus-per-task {cpus_per_task} --gres=gpu:{gpus_per_task} {cmd}"
         # cmd = f"srun --ntasks {args.n_worker} --cpus-per-task 1 {cmd}"
@@ -111,7 +111,10 @@ if __name__ == "__main__":
         "--exclude", default=None, type=str, help="example: kisexe24,kisexe34"
     )
     parser.add_argument(
-        "--gpus", default=0, type=int, help="if GPUs to be used by worker (0 if CPU only)"
+        "--gpus", 
+        default=0, 
+        type=int, 
+        help="if GPUs to be used by worker (0 if CPU only and assumes single node)"
     )
     args = parser.parse_args()
 
