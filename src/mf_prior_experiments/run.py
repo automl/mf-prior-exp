@@ -152,6 +152,11 @@ def run_hpbandster(args):
 
 
 def run_neps(args):
+
+    if "charLM" in args.benchmark.name:
+        run_neps_on_gptbench(args)
+        return
+
     from mfpbench import Benchmark
 
     import neps
@@ -205,12 +210,11 @@ def run_neps(args):
                 previous_fidelity = previous_results["info_dict"]["fidelity"]
                 continuation_fidelity = current_fidelity - previous_fidelity
 
-                logger.info("-"*30)
+                logger.info("-" * 30)
                 logger.info(f"Continuing from: {previous_pipeline_directory}")
                 logger.info(f"`continuation_fidelity`={continuation_fidelity}`")
                 logger.info(f"{previous_results}")
-                logger.info("-"*30)
-
+                logger.info("-" * 30)
 
                 fidelity_sleep_time = continuation_fidelity
 
@@ -262,6 +266,88 @@ def run_neps(args):
 
     if "mf" in args.algorithm and args.algorithm.mf:
         max_evaluations_total = 130
+    else:
+        max_evaluations_total = 25
+
+    neps.run(
+        run_pipeline=run_pipeline,
+        pipeline_space=pipeline_space,
+        root_directory="neps_root_directory",
+        # TODO: figure out how to pass runtime budget and if metahyper internally
+        #  calculates continuation costs to subtract from optimization budget
+        # **budget_args,
+        max_evaluations_total=max_evaluations_total,
+        searcher=hydra.utils.instantiate(args.algorithm.searcher, _partial_=True),
+        overwrite_working_directory=OVERWRITE,
+    )
+
+
+def run_neps_on_gptbench(args):
+    sys.path.append(
+        # normpath was crucial in resolving the path correctly for some reason
+        # thanks Bing AI
+        os.path.normpath(Path(__file__).resolve().parent / ".." / "lm_hpo/")
+    )
+    from lmhpo.src.gpt_bench import CharLMBench
+
+    import neps
+
+    # benchmark: CharLMBench = hydra.utils.instantiate(args.benchmark.api)
+    benchmark = hydra.utils.instantiate(args.benchmark.api)
+    # benchmark = CharLMBench(**args.benchmark.api)
+    fidelity_name = "training_steps"  # strict name match with training loop
+
+    def run_pipeline(
+        pipeline_directory: Path, previous_pipeline_directory: Path, **config: Any
+    ) -> dict:
+        start = time.time()
+        _setting = benchmark.setting.copy()
+
+        # appending checkpoint info
+        if previous_pipeline_directory is not None:
+            previous_pipeline_directory = previous_pipeline_directory / "checkpoints.pt"
+            _setting.update({"load_path": previous_pipeline_directory})
+        _setting.update({"save_path": pipeline_directory / "checkpoints.pt"})
+
+        logger.info(f"Previous pipeline directory: {previous_pipeline_directory}")
+        logger.info(f"Pipeline directory: {pipeline_directory}")
+
+        if fidelity_name in config:
+            fidelity = config.pop(fidelity_name)
+        else:
+            fidelity = benchmark.setting.max_steps
+
+        # appending fidelity to config for evaluation
+        _setting.update({fidelity_name: fidelity})
+
+        # running evaluation
+        result = benchmark.query(config, setting=_setting)
+
+        logger.info("Finished query")
+        time_elapsed = time.time() - start
+        result.update({"query_time": time_elapsed})
+
+        return result
+
+    # setup pipeline space
+    pipeline_space = {"search_space": benchmark.search_space}
+    upper = benchmark.setting["max_steps"]
+    lower = benchmark.setting["verbosity_len"]  # using the freq. of eval as min budget
+    if args.algorithm.mf:
+        if isinstance(lower, float):
+            fidelity_param = neps.FloatParameter(
+                lower=lower, upper=upper, is_fidelity=True
+            )
+        else:
+            fidelity_param = neps.IntegerParameter(
+                lower=lower, upper=upper, is_fidelity=True
+            )
+        pipeline_space = {**pipeline_space, **{fidelity_name: fidelity_param}}
+        logger.info(f"Using fidelity space: \n {fidelity_param}")
+    logger.info(f"Using search space: \n {pipeline_space}")
+
+    if "mf" in args.algorithm and args.algorithm.mf:
+        max_evaluations_total = 75
     else:
         max_evaluations_total = 25
 
