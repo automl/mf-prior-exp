@@ -1,0 +1,7 @@
+name: charLM-large_large_shakespeare
+api:
+  bench_name: charLM-large
+  bench_size: small
+  _target_: lmhpo.src.gpt_bench.CharLMBench
+  seed: ${seed}
+  set_defaults: true

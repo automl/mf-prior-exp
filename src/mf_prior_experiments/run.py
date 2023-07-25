@@ -13,6 +13,7 @@ import yaml
 from gitinfo import gitinfo
 from omegaconf import OmegaConf
 
+
 logger = logging.getLogger("mf_prior_experiments.run")
 
 # NOTE: If editing this, please look for MIN_SLEEP_TIME
@@ -153,6 +154,7 @@ def run_hpbandster(args):
 
 def run_neps(args):
 
+    # NOTE THIS HERE: this bypasses this function and runs the gptbench version
     if "charLM" in args.benchmark.name:
         run_neps_on_gptbench(args)
         return
@@ -210,11 +212,12 @@ def run_neps(args):
                 previous_fidelity = previous_results["info_dict"]["fidelity"]
                 continuation_fidelity = current_fidelity - previous_fidelity
 
-                logger.info("-" * 30)
+                logger.info("-"*30)
                 logger.info(f"Continuing from: {previous_pipeline_directory}")
                 logger.info(f"`continuation_fidelity`={continuation_fidelity}`")
                 logger.info(f"{previous_results}")
-                logger.info("-" * 30)
+                logger.info("-"*30)
+
 
                 fidelity_sleep_time = continuation_fidelity
 
@@ -288,30 +291,24 @@ def run_neps_on_gptbench(args):
         # thanks Bing AI
         os.path.normpath(Path(__file__).resolve().parent / ".." / "lm_hpo/")
     )
-    from lmhpo.src.gpt_bench import CharLMBench
-
     import neps
 
-    # benchmark: CharLMBench = hydra.utils.instantiate(args.benchmark.api)
-    benchmark = hydra.utils.instantiate(args.benchmark.api)
-    # benchmark = CharLMBench(**args.benchmark.api)
+    benchmark: Any = hydra.utils.instantiate(args.benchmark.api)
     fidelity_name = "training_steps"  # strict name match with training loop
-
-    def run_pipeline(
-        pipeline_directory: Path, previous_pipeline_directory: Path, **config: Any
-    ) -> dict:
+    
+    def run_pipeline(pipeline_directory: Path, previous_pipeline_directory: Path, **config: Any) -> dict:
         start = time.time()
         _setting = benchmark.setting.copy()
 
         # appending checkpoint info
         if previous_pipeline_directory is not None:
-            previous_pipeline_directory = previous_pipeline_directory / "checkpoints.pt"
+            previous_pipeline_directory = previous_pipeline_directory / "checkpoints.pt"  
             _setting.update({"load_path": previous_pipeline_directory})
-        _setting.update({"save_path": pipeline_directory / "checkpoints.pt"})
+        _setting.update({"save_path": pipeline_directory / "checkpoints.pt" })
 
         logger.info(f"Previous pipeline directory: {previous_pipeline_directory}")
         logger.info(f"Pipeline directory: {pipeline_directory}")
-
+        
         if fidelity_name in config:
             fidelity = config.pop(fidelity_name)
         else:
@@ -347,7 +344,7 @@ def run_neps_on_gptbench(args):
     logger.info(f"Using search space: \n {pipeline_space}")
 
     if "mf" in args.algorithm and args.algorithm.mf:
-        max_evaluations_total = 75
+        max_evaluations_total = 130
     else:
         max_evaluations_total = 25
 
@@ -362,6 +359,7 @@ def run_neps_on_gptbench(args):
         searcher=hydra.utils.instantiate(args.algorithm.searcher, _partial_=True),
         overwrite_working_directory=OVERWRITE,
     )
+# end of run_neps_on_gptbench()
 
 
 @hydra.main(config_path="configs", config_name="run", version_base="1.2")
