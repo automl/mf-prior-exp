@@ -1,4 +1,4 @@
-name: charLM-large_large_shakespeare
+name: charLM-large_small_shakespeare
 api:
   bench_name: charLM-large
   bench_size: small
