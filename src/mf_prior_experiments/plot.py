@@ -361,6 +361,7 @@ def plot_normalized_regret_incumbent_traces(
             prior_error = regret_normalize(prior_error, benchmark_regret_bounds)
 
             ax.step(
+                benchmark_indices,
                 prior_error.values,
                 color="black",
                 linestyle=":",
@@ -375,6 +376,7 @@ def plot_normalized_regret_incumbent_traces(
             optimum = pd.Series(benchmark_config.optimum, index=benchmark_indices)
             optimum = regret_normalize(optimum, benchmark_regret_bounds)
             ax.step(
+                benchmark_indices,
                 optimum.values,
                 color="black",
                 linestyle="-.",
