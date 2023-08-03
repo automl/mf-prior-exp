@@ -303,6 +303,8 @@ def plot_normalized_regret_incumbent_traces(
         else:
             _x_range = tuple(x_range)  # type: ignore
 
+        ax.set_ylim(bottom=0 - 0.1, top=1 + 0.1)
+
         left, right = _x_range
 
         ax.set_xlim(left=left, right=right)
