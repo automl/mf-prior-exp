@@ -61,7 +61,7 @@ def regret_normalize(values: pd.Series, bounds: pd.DataFrame) -> pd.Series:
     """
     _min = bounds["min"]
     _max = bounds["max"]
-    return (values - min) / (_max - _min)  # type: ignore
+    return (values - _min) / (_max - _min)  # type: ignore
 
 
 def reorganize_legend(
