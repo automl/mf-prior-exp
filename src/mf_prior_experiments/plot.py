@@ -425,9 +425,6 @@ def plot_normalized_regret_incumbent_traces(
             y_mean = df.mean(axis=1)
             std_dev = df.std(axis=1)
 
-            print(y_mean.head())
-            print(std_dev.head())
-
             y_mean = y_mean.values
             std_dev = std_dev.values
 
@@ -447,8 +444,10 @@ def plot_normalized_regret_incumbent_traces(
             )
             ax.fill_between(
                 x,
-                y_mean - std_dev,
-                y_mean + std_dev,
+                #y_mean - std_dev,
+                #y_mean + std_dev,
+                df.min(axis=1),
+                df.max(axis=1),
                 color=COLOR_MARKER_DICT.get(algorithm, "black"),
                 alpha=0.1,
                 step="post",
