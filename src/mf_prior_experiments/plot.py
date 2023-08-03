@@ -413,11 +413,14 @@ def plot_normalized_regret_incumbent_traces(
             df = df.apply(regret_normalize, args=(benchmark_regret_bounds,))
 
             x = df.index
-            y_mean = df.mean(axis=1).values
-            std_dev = df.std(axis=1).values
+            y_mean = df.mean(axis=1)
+            std_dev = df.std(axis=1)
 
             print(y_mean.head())
             print(std_dev.head())
+
+            y_mean = y_mean.values
+            std_dev = std_dev.values
 
             # Slightly smaller marker than deafult
             MARKERSIZE = 4
