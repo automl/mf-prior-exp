@@ -414,7 +414,10 @@ def plot_normalized_regret_incumbent_traces(
 
             x = df.index
             y_mean = df.mean(axis=1).values
-            std_error = stats.sem(df.values, axis=1)
+            std_dev = df.std(axis=1).values
+
+            print(y_mean.head())
+            print(std_dev.head())
 
             # Slightly smaller marker than deafult
             MARKERSIZE = 4
@@ -432,8 +435,8 @@ def plot_normalized_regret_incumbent_traces(
             )
             ax.fill_between(
                 x,
-                y_mean - std_error,
-                y_mean + std_error,
+                y_mean - std_dev,
+                y_mean + std_dev,
                 color=COLOR_MARKER_DICT.get(algorithm, "black"),
                 alpha=0.1,
                 step="post",
