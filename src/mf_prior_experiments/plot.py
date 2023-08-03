@@ -66,7 +66,7 @@ def regret_normalize(values: pd.Series, bounds: pd.DataFrame, stationary: bool =
         if _min.isna().any() or _max.isna().any():
             raise ValueError("Bounds cannot be null.")
 
-        if (values.index != _min.index).all():
+        if not (values.index == _min.index).all():
             raise ValueError("Index of values and bounds must match.")
 
         divisor = _max - _min
@@ -78,6 +78,7 @@ def regret_normalize(values: pd.Series, bounds: pd.DataFrame, stationary: bool =
     else:
         _min = _min.min()
         _max = _max.max()
+        print(_min, _max)
 
     return (values - _min) / (_max - _min)  # type: ignore
 
@@ -427,8 +428,6 @@ def plot_normalized_regret_incumbent_traces(
                 .sort_index(ascending=True)
             )
 
-            assert set(df.index) == set(benchmark_indices)
-
             # Here we normalize between the regret bounds as defined by all results
             # for this benchmark.
             df = df.apply(regret_normalize, args=(benchmark_regret_bounds, stationary_regret))
@@ -469,7 +468,7 @@ def plot_normalized_regret_incumbent_traces(
                 alpha=0.1,
                 step="post",
             )
-            ax.set_yscale("log")
+            #ax.set_yscale("log")
 
     bbox_y_mapping = {1: -0.25, 2: -0.11, 3: -0.07, 4: -0.05, 5: -0.04}
     reorganize_legend(
