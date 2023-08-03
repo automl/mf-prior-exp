@@ -61,6 +61,15 @@ def regret_normalize(values: pd.Series, bounds: pd.DataFrame) -> pd.Series:
     """
     _min = bounds["min"]
     _max = bounds["max"]
+    print(f"Min\n{_min.head()}")  # type: ignore
+    print(f"Max\n{_max.head()}")  # type: ignore
+    if _min.isna().any() or _max.isna().any():
+        raise ValueError("Bounds cannot be null.")
+
+    if _min.equals(_max).any():
+        print(_min)
+        print(_max)
+        raise ValueError("Bounds somewhere are equal.")
     return (values - _min) / (_max - _min)  # type: ignore
 
 
