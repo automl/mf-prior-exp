@@ -419,9 +419,16 @@ def plot_normalized_regret_incumbent_traces(
                 .sort_index(ascending=True)
             )
 
+            assert set(df.index) == set(benchmark_indices)
+
             # Here we normalize between the regret bounds as defined by all results
             # for this benchmark.
             df = df.apply(regret_normalize, args=(benchmark_regret_bounds,))
+
+            # Next, since we may not have evaluations at every xaxis value, i.e. because
+            # we evalaute the default at max fidelity, and dont have an evaluation at
+            # 0.5, we fill with the worst value (1)
+            df = df.fillna(1)
 
             x = df.index
             y_mean = df.mean(axis=1)

@@ -725,7 +725,7 @@ class AlgorithmResults(Mapping[int, Trace]):
             trace.series(index=index, values=values, name=f"seed-{seed}")
             for seed, trace in traces.items()
         ]
-        df = pd.concat(columns, axis=1).sort_index(ascending=True)
+        df = pd.concat(columns, sort=True, axis=1, join="outer").fillna(method="ffill")
 
         if len(traces) == 1:
             assert isinstance(df, pd.DataFrame)
@@ -953,32 +953,23 @@ class BenchmarkResults(Mapping[str, AlgorithmResults]):
         # First we collect all results for all algorithms, seeds
         # We expand this out to flatten the dict
         # {
-        #  (seed_1, A1): [trace...]
-        #  (seed_1, A2): [trace...]
-        #  (seed_1, A3): [trace...]
-        #  (seed_2, A1): [trace...]
-        #  (seed_2, A2): [trace...]
-        #  (seed_2, A3): [trace...]
-        #  ...
+        #  (A1): df - A1_seed_0 | A1_seed_1 | ...
+        #  (A2): df - A2_seed_0 | A2_seed_1 | ...
+        #  (A3): df - A3_seed_0 | A3_seed_1 | ...
         # }
-        algo_seed_traces = {
-            (seed, algo): inc_trace.series(
-                index=xaxis,
-                values=yaxis,
-                name=f"{seed}_{algo}"
-            )
-            for algo, algo_results in self.results.items()
-            for seed, inc_trace in algo_results.items()
+        algo_results = {
+            algo: results.df(index=xaxis, values=yaxis).rename(lambda cname: f"{algo}_{cname}")
+            for algo, results in self.results.items()
         }
 
         # Now we convert it to a dataframe that looks like this. The na's are if there
         # is no value at that time point.
-        # xaxis  |  seed_1_A1, seed_1_A2, seed_1_A3, seed_2_A1, seed_2_A2, seed_2_A3
+        # xaxis  |  A1_seed_1, seed_1_A2, seed_1_A3, seed_2_A1, seed_2_A2, seed_2_A3
         #  1     |   .          .           .           .           .      .
         #  2     |   na         .           .           na          .      .
         #  3     |   .          .           .           na          .      na
         df = pd.concat(
-            algo_seed_traces.values(),
+            list(algo_results.values()),
             join="outer",
             sort=True,
             axis=1,
@@ -988,13 +979,19 @@ class BenchmarkResults(Mapping[str, AlgorithmResults]):
         # Next we ffil the na's
         df = df.fillna(method="ffill")
 
-        print(df.head())
+        # Any starting values that are still na, i.e. because they don't
+        # have any evaluations yet, we just fill them with 1, the worst score
+        df = df.fillna(1)
+
 
         # Now for each xaxis point, we compute the min and max
         # xaxis  |  min, max
         # 1      |   .    .
         # 2      |   .    .
         df = df.agg(["min", "max"], axis=1)
+
+        print("min/max tail")
+        print(df.tail(30))
 
         if df.isna().any().any():
             raise ValueError(
