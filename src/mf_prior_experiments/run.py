@@ -328,8 +328,10 @@ def run_neps_on_gptbench(args):
 
     # setup pipeline space
     pipeline_space = {"search_space": benchmark.search_space}
-    upper = benchmark.setting["max_steps"]
-    lower = benchmark.setting["verbosity_len"]  # using the freq. of eval as min budget
+    upper = args.benchmark.budget.max
+    lower = args.benchmark.budget.min
+    # upper = benchmark.setting["max_steps"]
+    # lower = benchmark.setting["verbosity_len"]  # using the freq. of eval as min budget
     if args.algorithm.mf:
         if isinstance(lower, float):
             fidelity_param = neps.FloatParameter(

@@ -5,3 +5,6 @@ api:
   _target_: lmhpo.src.gpt_bench.CharLMBench
   seed: ${seed}
   set_defaults: true
+budget:
+  max: 5000
+  min: 500
