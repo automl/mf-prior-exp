@@ -323,8 +323,6 @@ def plot_normalized_regret_incumbent_traces(
         else:
             _x_range = tuple(x_range)  # type: ignore
 
-        ax.set_ylim(bottom=0 - 0.1, top=1 + 0.1)
-
         left, right = _x_range
 
         ax.set_xlim(left=left, right=right)
@@ -439,10 +437,10 @@ def plot_normalized_regret_incumbent_traces(
 
             x = df.index
             y_mean = df.mean(axis=1)
-            std_dev = df.std(axis=1)
+            sem = df.sem(axis=1)
 
             y_mean = y_mean.values
-            std_dev = std_dev.values
+            sem = sem.values
 
             # Slightly smaller marker than deafult
             MARKERSIZE = 4
@@ -460,15 +458,13 @@ def plot_normalized_regret_incumbent_traces(
             )
             ax.fill_between(
                 x,
-                #y_mean - std_dev,
-                #y_mean + std_dev,
-                df.min(axis=1),
-                df.max(axis=1),
+                y_mean - sem,
+                y_mean + sem,
                 color=COLOR_MARKER_DICT.get(algorithm, "black"),
                 alpha=0.1,
                 step="post",
             )
-            #ax.set_yscale("log")
+            ax.set_yscale("log")
 
     bbox_y_mapping = {1: -0.25, 2: -0.11, 3: -0.07, 4: -0.05, 5: -0.04}
     reorganize_legend(
