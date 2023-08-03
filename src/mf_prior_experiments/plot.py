@@ -52,7 +52,7 @@ class with_traceback:
 def now() -> str:
     return time.strftime("%H:%M:%S", time.localtime())
 
-def regret_normalize(values: pd.Series, bounds: pd.DataFrame) -> pd.Series:
+def regret_normalize(values: pd.Series, bounds: pd.DataFrame, stationary: bool = True) -> pd.Series:
     """Normalize values by the bounds.
 
     Args:
@@ -61,17 +61,24 @@ def regret_normalize(values: pd.Series, bounds: pd.DataFrame) -> pd.Series:
     """
     _min = bounds["min"]
     _max = bounds["max"]
-    if _min.isna().any() or _max.isna().any():
-        raise ValueError("Bounds cannot be null.")
 
-    if (values.index != _min.index).all():
-        raise ValueError("Index of values and bounds must match.")
+    if not stationary:
+        if _min.isna().any() or _max.isna().any():
+            raise ValueError("Bounds cannot be null.")
 
-    divisor = _max - _min
-    if (divisor == 0).any():
-        print(_min)
-        print(_max)
-        raise ValueError("Bounds somewhere are equal.")
+        if (values.index != _min.index).all():
+            raise ValueError("Index of values and bounds must match.")
+
+        divisor = _max - _min
+        if (divisor == 0).any():
+            print(_min)
+            print(_max)
+            raise ValueError("Bounds somewhere are equal.")
+
+    else:
+        _min = _min.min()
+        _max = _max.max()
+
     return (values - _min) / (_max - _min)  # type: ignore
 
 
@@ -254,6 +261,7 @@ def plot_normalized_regret_incumbent_traces(
     yaxis_label: str | None = None,
     x_range: tuple[int, int] | None = None,
     with_markers: bool = False,
+    stationary_regret: bool = True,
 ):
     import matplotlib.pyplot as plt
     import pandas as pd
@@ -371,7 +379,7 @@ def plot_normalized_regret_incumbent_traces(
 
             # We normalize this between the regret bounds
             prior_error = pd.Series(prior_error, index=benchmark_indices)
-            prior_error = regret_normalize(prior_error, benchmark_regret_bounds)
+            prior_error = regret_normalize(prior_error, benchmark_regret_bounds, stationary_regret)
 
             ax.step(
                 benchmark_indices,
@@ -387,7 +395,7 @@ def plot_normalized_regret_incumbent_traces(
         if plot_optimum and benchmark_config.optimum is not None:
             # plot only if the optimum score is better than the first incumbent plotted
             optimum = pd.Series(benchmark_config.optimum, index=benchmark_indices)
-            optimum = regret_normalize(optimum, benchmark_regret_bounds)
+            optimum = regret_normalize(optimum, benchmark_regret_bounds, stationary_regret)
             ax.step(
                 benchmark_indices,
                 optimum.values,
@@ -423,7 +431,7 @@ def plot_normalized_regret_incumbent_traces(
 
             # Here we normalize between the regret bounds as defined by all results
             # for this benchmark.
-            df = df.apply(regret_normalize, args=(benchmark_regret_bounds,))
+            df = df.apply(regret_normalize, args=(benchmark_regret_bounds, stationary_regret))
 
             # Next, since we may not have evaluations at every xaxis value, i.e. because
             # we evalaute the default at max fidelity, and dont have an evaluation at
@@ -461,6 +469,7 @@ def plot_normalized_regret_incumbent_traces(
                 alpha=0.1,
                 step="post",
             )
+            ax.set_yscale("log")
 
     bbox_y_mapping = {1: -0.25, 2: -0.11, 3: -0.07, 4: -0.05, 5: -0.04}
     reorganize_legend(
@@ -1044,6 +1053,7 @@ def main(
     algorithms: list[str] | None = None,
     incumbent_trace_benchmarks: dict[str, list[str]] | None = None,
     regret_normalized_benchmarks: dict[str, list[str]] | None = None,
+    stationary_regret: bool = True,
     base_path: Path | None = DEFAULT_BASE_PATH,
     relative_rankings: dict[str, dict[str, list[str]]] | None = None,
     table_xs: list[int] | None = None,
@@ -1141,6 +1151,7 @@ def main(
                         "xaxis_label": x_axis_label,
                         "yaxis_label": y_axis_label,
                         "with_markers": with_markers,
+                        "stationary_regret": stationary_regret,
                     }
                     func = with_traceback(plot_normalized_regret_incumbent_traces)
                     future = executor.submit(func, **kwargs)
@@ -1257,6 +1268,11 @@ def parse_args() -> Namespace:
             "   ...,\n"
             "}"
         ),
+    )
+    parser.add_argument(
+        "--non_stationary_regret",
+        action="store_true",
+        help="Plot non-stationary regret instead",
     )
     parser.add_argument(
         "--relative_rankings",
@@ -1468,6 +1484,7 @@ if __name__ == "__main__":
             algorithms=args.algorithms,
             incumbent_trace_benchmarks=args.incumbent_traces,
             regret_normalized_benchmarks=args.regret_normalized_incumbent,
+            stationary_regret=not args.non_stationary_regret,  # Sorry for double negation
             prefix=args.prefix,
             base_path=args.base_path,
             relative_rankings=args.relative_rankings,
