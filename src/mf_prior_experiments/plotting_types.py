@@ -984,8 +984,10 @@ class BenchmarkResults(Mapping[str, AlgorithmResults]):
             axis=1,
         )
 
+        print(df.head())
+
         # Next we ffil the na's
-        df = df.fillna(method="ffill", axis=0)
+        df = df.fillna(method="ffill")
 
         # Now for each xaxis point, we compute the min and max
         # xaxis  |  min, max
