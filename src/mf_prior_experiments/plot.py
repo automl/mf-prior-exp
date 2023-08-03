@@ -360,25 +360,27 @@ def plot_normalized_regret_incumbent_traces(
             prior_error = pd.Series(prior_error, index=benchmark_indices)
             prior_error = regret_normalize(prior_error, benchmark_regret_bounds)
 
-            ax.axhline(
+            ax.step(
                 prior_error.values,
                 color="black",
                 linestyle=":",
                 linewidth=1.0,
                 dashes=(5, 10),
                 label="Mode",
+                where="post",
             )
 
         if plot_optimum and benchmark_config.optimum is not None:
             # plot only if the optimum score is better than the first incumbent plotted
             optimum = pd.Series(benchmark_config.optimum, index=benchmark_indices)
             optimum = regret_normalize(optimum, benchmark_regret_bounds)
-            ax.axhline(
+            ax.step(
                 optimum.values,
                 color="black",
                 linestyle="-.",
                 linewidth=1.2,
                 label="Optimum",
+                where="post",
             )
 
         for algorithm in algorithms:
