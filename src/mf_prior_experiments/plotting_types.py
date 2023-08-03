@@ -1,10 +1,9 @@
 from __future__ import annotations
 
 import json
-import operator
+import pandas as pd
 import time
 from dataclasses import dataclass, replace
-from functools import reduce
 from itertools import accumulate, chain, groupby, product, starmap
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, Iterator, Iterable, Mapping, Sequence, overload
