@@ -361,7 +361,7 @@ def plot_normalized_regret_incumbent_traces(
             prior_error = regret_normalize(prior_error, benchmark_regret_bounds)
 
             ax.axhline(
-                prior_error,
+                prior_error.values,
                 color="black",
                 linestyle=":",
                 linewidth=1.0,
@@ -374,7 +374,7 @@ def plot_normalized_regret_incumbent_traces(
             optimum = pd.Series(benchmark_config.optimum, index=benchmark_indices)
             optimum = regret_normalize(optimum, benchmark_regret_bounds)
             ax.axhline(
-                optimum,
+                optimum.values,
                 color="black",
                 linestyle="-.",
                 linewidth=1.2,
