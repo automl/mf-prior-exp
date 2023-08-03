@@ -958,7 +958,7 @@ class BenchmarkResults(Mapping[str, AlgorithmResults]):
         #  (A3): df - A3_seed_0 | A3_seed_1 | ...
         # }
         algo_results = {
-            algo: results.df(index=xaxis, values=yaxis).rename(lambda cname: f"{algo}_{cname}")
+            algo: results.df(index=xaxis, values=yaxis).rename(lambda cname: f"{algo}_{cname}", axis=1)
             for algo, results in self.results.items()
         }
 

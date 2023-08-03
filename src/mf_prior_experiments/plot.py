@@ -413,7 +413,6 @@ def plot_normalized_regret_incumbent_traces(
             #  1     |   .          .           .
             #  2     |  <ffilled>  <ffilled>    .
             #  3     |   .          .       <ffilled>
-            print(benchmark_indices)
             df = (
                 df
                 .reindex(benchmark_indices, method="ffill")
