@@ -3,6 +3,7 @@ from __future__ import annotations
 import json
 import math
 import pickle
+import pandas as pd
 import time
 import traceback
 from argparse import ArgumentParser, Namespace
@@ -50,6 +51,17 @@ class with_traceback:
 
 def now() -> str:
     return time.strftime("%H:%M:%S", time.localtime())
+
+def regret_normalize(values: pd.Series, bounds: pd.DataFrame) -> pd.Series:
+    """Normalize values by the bounds.
+
+    Args:
+        values: The values to normalize.
+        bounds: The bounds to normalize by, with columns "min" and "max".
+    """
+    _min = bounds["min"]
+    _max = bounds["max"]
+    return (values - min) / (_max - _min)  # type: ignore
 
 
 def reorganize_legend(
@@ -216,8 +228,7 @@ def plot_relative_ranks(
     print(f"Saving relative-rank to {filepath}")
     fig.savefig(filepath, bbox_inches="tight", dpi=dpi)
 
-
-def plot_incumbent_traces(
+def plot_normalized_regret_incumbent_traces(
     results: ExperimentResults,
     filepath: Path,
     dpi: int = 200,
@@ -232,7 +243,6 @@ def plot_incumbent_traces(
     yaxis_label: str | None = None,
     x_range: tuple[int, int] | None = None,
     with_markers: bool = False,
-    dynamic_y_lim: bool = False,
 ):
     import matplotlib.pyplot as plt
     import pandas as pd
@@ -242,7 +252,6 @@ def plot_incumbent_traces(
     benchmarks = results.benchmarks
     algorithms = results.algorithms
     bench_configs = results.benchmark_configs
-    all_indices = pd.Index(results.indices(xaxis=xaxis, sort=False))
 
     # We only enable the option if the benchmark has these recorded
     plot_default = plot_default and any(
@@ -270,6 +279,13 @@ def plot_incumbent_traces(
         benchmark_config = results.benchmark_configs[benchmark]
         benchmark_results = results[benchmark]
 
+        # This holds the min and max for each index
+        benchmark_regret_bounds = benchmark_results.regret_bounds(
+            xaxis=xaxis,
+            yaxis=yaxis,
+        )
+        benchmark_indices = benchmark_regret_bounds.index
+
         ax = axs[i]
         xlabel = xaxis_label if xaxis_label else X_LABEL.get(xaxis, xaxis)
         xlabel = xlabel if is_last_row(i, nrows, ncols) else None
@@ -280,8 +296,228 @@ def plot_incumbent_traces(
 
         _x_range: tuple[int, int]
         if x_range is None:
-            xmin = min(getattr(r, xaxis) for r in benchmark_results.iter_results())
-            xmax = max(getattr(r, xaxis) for r in benchmark_results.iter_results())
+            _xs = [getattr(r, xaxis) for r in benchmark_results.iter_results()]
+            xmin = min(_xs)
+            xmax = max(_xs)
+            _x_range = (math.floor(xmin), math.ceil(xmax))
+        else:
+            _x_range = tuple(x_range)  # type: ignore
+
+        left, right = _x_range
+
+        ax.set_xlim(left=left, right=right)
+
+        xticks = get_xticks(_x_range)
+        ax.set_xticks(xticks, xticks)
+
+        ax.set_title(
+            DATASETS.get(benchmark, benchmark),
+            fontsize=18,
+            color=BENCHMARK_COLORS.get(benchmark, "black"),
+        )
+
+        ax.set_xlabel(xlabel, fontsize=18, color=(0, 0, 0, 0.69))
+        ax.set_ylabel(ylabel, fontsize=18, color=(0, 0, 0, 0.69))
+
+        # Black with some alpha
+        ax.tick_params(
+            axis="both", which="major", labelsize=18, labelcolor=(0, 0, 0, 0.69)
+        )
+        ax.grid(True, which="both", ls="-", alpha=0.8)
+
+        if plot_default and benchmark_config.prior_error is not None:
+            # NOTE: In the case of MFH good where we have taken a prior close
+            # to the optimum, and additionally add 0.25 noise at every iteration,
+            # there is no predefined prior line we can meaningfully plot. Each
+            # run will see a different prior. For consistency in the plots, we
+            # have chosen to take the mean line of RS+Prior as a proxy to the
+            # averaged prior, as RS+Prior will always sample the prior first.
+            mfh_good_prior_benchmarks = [
+                "mfh3_good_prior-good",
+                "mfh3_terrible_prior-good",
+                "mfh6_good_prior-good",
+                "mfh6_terrible_prior-good",
+            ]
+            if (
+                "random_search_prior" in algorithms
+                and benchmark in mfh_good_prior_benchmarks
+            ):
+                random_search_results = benchmark_results["random_search_prior"]
+                values = random_search_results.df(index=xaxis, values=yaxis)
+                prior_error = values.iloc[0].mean(axis=0)
+            elif (
+                "hyperband_prior" in algorithms
+                and benchmark in mfh_good_prior_benchmarks
+            ):
+                hyperband_prior_results = benchmark_results["hyperband_prior"]
+                values = hyperband_prior_results.df(index=xaxis, values=yaxis)
+                prior_error = values.iloc[0].mean(axis=0)
+
+            else:
+                prior_error = benchmark_config.prior_error
+
+            # We normalize this between the regret bounds
+            prior_error = pd.Series(prior_error, index=benchmark_indices)
+            prior_error = regret_normalize(prior_error, benchmark_regret_bounds)
+
+            ax.axhline(
+                prior_error,
+                color="black",
+                linestyle=":",
+                linewidth=1.0,
+                dashes=(5, 10),
+                label="Mode",
+            )
+
+        if plot_optimum and benchmark_config.optimum is not None:
+            # plot only if the optimum score is better than the first incumbent plotted
+            optimum = pd.Series(benchmark_config.optimum, index=benchmark_indices)
+            optimum = regret_normalize(optimum, benchmark_regret_bounds)
+            ax.axhline(
+                optimum,
+                color="black",
+                linestyle="-.",
+                linewidth=1.2,
+                label="Optimum",
+            )
+
+        for algorithm in algorithms:
+            print("-" * 50)
+            print(f"Benchmark: {benchmark} | Algorithm: {algorithm}")
+            print("-" * 50)
+
+            df = benchmark_results[algorithm].df(index=xaxis, values=yaxis)
+            assert isinstance(df, pd.DataFrame)
+
+            # Here we reindex to be the indices that represent every xaxis value
+            # and then forward fill.
+
+            # xaxis  |  seed_1, seed_2, seed_3, ...
+            #  1     |   .          .           .
+            #  2     |  <ffilled>  <ffilled>    .
+            #  3     |   .          .       <ffilled>
+            df = (
+                df
+                .reindex(benchmark_indices, method="ffill")
+                .sort_index(ascending=True)
+            )
+
+            # Here we normalize between the regret bounds as defined by all results
+            # for this benchmark.
+            df = df.apply(regret_normalize, args=(benchmark_regret_bounds,))
+
+            x = df.index
+            y_mean = df.mean(axis=1).values
+            std_error = stats.sem(df.values, axis=1)
+
+            # Slightly smaller marker than deafult
+            MARKERSIZE = 4
+
+            ax.step(
+                x,
+                y_mean,
+                label=ALGORITHMS.get(algorithm, algorithm),
+                color=COLOR_MARKER_DICT.get(algorithm, "black"),
+                linestyle="-",
+                linewidth=1,
+                marker=CUSTOM_MARKERS.get(algorithm) if with_markers else None,
+                markersize=MARKERSIZE,
+                where="post",
+            )
+            ax.fill_between(
+                x,
+                y_mean - std_error,
+                y_mean + std_error,
+                color=COLOR_MARKER_DICT.get(algorithm, "black"),
+                alpha=0.1,
+                step="post",
+            )
+
+    bbox_y_mapping = {1: -0.25, 2: -0.11, 3: -0.07, 4: -0.05, 5: -0.04}
+    reorganize_legend(
+        fig=fig,
+        axs=axs,
+        to_front=["Mode", "Optimum"],
+        bbox_to_anchor=(0.5, bbox_y_mapping[nrows]),
+        ncol=legend_ncol,
+    )
+
+    sns.despine(fig)
+    fig.tight_layout(pad=0, h_pad=0.5)
+
+    print(f"Saving normalized regret incumbent traces to {filepath}")
+    fig.savefig(filepath, bbox_inches="tight", dpi=dpi)
+
+
+def plot_incumbent_traces(
+    results: ExperimentResults,
+    filepath: Path,
+    dpi: int = 200,
+    plot_default: bool = True,
+    plot_optimum: bool = True,
+    yaxis: Literal["loss", "max_fidelity_loss"] = "loss",
+    xaxis: Literal[
+        "cumulated_fidelity",
+        "end_time_since_global_start",
+    ] = "cumulated_fidelity",
+    xaxis_label: str | None = None,
+    yaxis_label: str | None = None,
+    x_range: tuple[int, int] | None = None,
+    with_markers: bool = False,
+    dynamic_y_lim: bool = False,
+):
+    import matplotlib.pyplot as plt
+    import pandas as pd
+    import seaborn as sns
+    from scipy import stats
+
+    benchmarks = results.benchmarks
+    algorithms = results.algorithms
+    bench_configs = results.benchmark_configs
+
+    # We only enable the option if the benchmark has these recorded
+    plot_default = plot_default and any(
+        c.prior_error is not None for c in bench_configs.values()
+    )
+
+    plot_optimum = plot_optimum and any(
+        c.optimum is not None for c in bench_configs.values()
+    )
+
+    if len(benchmarks) == 6:
+        nrows = 2
+        ncols = 3
+    else:
+        nrows = np.ceil(len(benchmarks) / 4).astype(int)
+        ncols = min(len(benchmarks), 4)
+
+    legend_ncol = len(algorithms) + sum([plot_default, plot_optimum])
+    figsize = (4 * ncols, 3 * nrows)
+
+    fig, axs = plt.subplots(nrows=nrows, ncols=ncols, figsize=figsize)
+    axs = list(axs.flatten()) if isinstance(axs, np.ndarray) else [axs]
+
+    for i, benchmark in enumerate(benchmarks):
+        benchmark_config = results.benchmark_configs[benchmark]
+        benchmark_results = results[benchmark]
+
+        benchmark_indices = pd.Index(
+            benchmark_results.indices(xaxis=xaxis, sort=False)
+        )
+
+        ax = axs[i]
+        xlabel = xaxis_label if xaxis_label else X_LABEL.get(xaxis, xaxis)
+        xlabel = xlabel if is_last_row(i, nrows, ncols) else None
+
+        ylabel = yaxis_label if yaxis_label else Y_LABEL
+        ylabel = ylabel if is_first_column(i, ncols) else None
+
+
+        _x_range: tuple[int, int]
+        if x_range is None:
+            _xs = [getattr(r, xaxis) for r in benchmark_results.iter_results()]
+            xmin = min(_xs)
+            xmax = max(_xs)
             _x_range = (math.floor(xmin), math.ceil(xmax))
         else:
             _x_range = tuple(x_range)  # type: ignore
@@ -386,7 +622,8 @@ def plot_incumbent_traces(
             df = benchmark_results[algorithm].df(index=xaxis, values=yaxis)
             assert isinstance(df, pd.DataFrame)
 
-            missing_indices = all_indices.difference(df.index)
+            missing_indices = benchmark_indices.difference(df.index)
+
             if missing_indices is not None:
                 for missing_i in missing_indices:
                     df.loc[missing_i] = np.nan
@@ -430,7 +667,7 @@ def plot_incumbent_traces(
         to_front=["Mode", "Optimum"],
         bbox_to_anchor=(0.5, bbox_y_mapping[nrows]),
         ncol=legend_ncol,
-    )
+   )
 
     sns.despine(fig)
     fig.tight_layout(pad=0, h_pad=0.5)
@@ -777,6 +1014,7 @@ def main(
     prefix: str,
     algorithms: list[str] | None = None,
     incumbent_trace_benchmarks: dict[str, list[str]] | None = None,
+    regret_normalized_benchmarks: dict[str, list[str]] | None = None,
     base_path: Path | None = DEFAULT_BASE_PATH,
     relative_rankings: dict[str, dict[str, list[str]]] | None = None,
     table_xs: list[int] | None = None,
@@ -851,6 +1089,35 @@ def main(
                     future = executor.submit(func, **kwargs)
                     futures.append(future)
                     path_lookup[future] = filepath
+
+        if regret_normalized_benchmarks is not None:
+            for yaxis in yaxes:
+                for plot_title, _benches in regret_normalized_benchmarks.items():
+                    _plot_title = plot_title.lstrip().rstrip().replace(" ", "-")
+                    _filename = f"{prefix}-{_plot_title}-{yaxis}.{extension}"
+                    filepath = plot_dir / "regret_normalized_inc_traces" / yaxis / _filename
+                    filepath.parent.mkdir(parents=True, exist_ok=True)
+
+                    kwargs = {
+                        "results": results.select(
+                            benchmarks=_benches, algorithms=algorithms
+                        ),
+                        "filepath": filepath,
+                        "dpi": dpi,
+                        "plot_default": plot_default,
+                        "plot_optimum": plot_optimum,
+                        "yaxis": yaxis,  # type: ignore
+                        "xaxis": xaxis,  # type: ignore
+                        "x_range": x_range_it,
+                        "xaxis_label": x_axis_label,
+                        "yaxis_label": y_axis_label,
+                        "with_markers": with_markers,
+                    }
+                    func = with_traceback(plot_normalized_regret_incumbent_traces)
+                    future = executor.submit(func, **kwargs)
+                    futures.append(future)
+                    path_lookup[future] = filepath
+
 
         # Relative ranking plots
         if relative_rankings is not None:
@@ -936,6 +1203,20 @@ def parse_args() -> Namespace:
 
     parser.add_argument(
         "--incumbent_traces",
+        type=json.loads,
+        default=None,
+        required=False,
+        help=(
+            "Expects a json dict like:\n"
+            "{\n"
+            "   'plot_title1': ['benchmark1', 'benchmark2', ...] },\n"
+            "   'plot_title2': ['benchmark3', 'benchmark4', ...] },\n"
+            "   ...,\n"
+            "}"
+        ),
+    )
+    parser.add_argument(
+        "--regret_normalized_incumbent",
         type=json.loads,
         default=None,
         required=False,
@@ -1100,7 +1381,6 @@ if __name__ == "__main__":
             ignore_seeds=ignore_seeds,
         )
     elif args.single_inc_plot:
-        # TODO
         import matplotlib.pyplot as plt
 
         plt.rcParams.update(RC_PARAMS)
@@ -1158,6 +1438,7 @@ if __name__ == "__main__":
             experiment_group=args.experiment_group,
             algorithms=args.algorithms,
             incumbent_trace_benchmarks=args.incumbent_traces,
+            regret_normalized_benchmarks=args.regret_normalized_incumbent,
             prefix=args.prefix,
             base_path=args.base_path,
             relative_rankings=args.relative_rankings,

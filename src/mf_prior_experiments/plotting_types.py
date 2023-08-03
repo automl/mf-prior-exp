@@ -946,6 +946,63 @@ class BenchmarkResults(Mapping[str, AlgorithmResults]):
             algo_results.iter_results() for algo_results in self.results.values()
         )
 
+    def regret_bounds(
+        self,
+        xaxis: str,
+        yaxis: str,
+    ) -> pd.DataFrame:
+        # First we collect all results for all algorithms, seeds
+        # We expand this out to flatten the dict
+        # {
+        #  (seed_1, A1): [trace...]
+        #  (seed_1, A2): [trace...]
+        #  (seed_1, A3): [trace...]
+        #  (seed_2, A1): [trace...]
+        #  (seed_2, A2): [trace...]
+        #  (seed_2, A3): [trace...]
+        #  ...
+        # }
+        algo_seed_traces = {
+            (seed, algo): inc_trace.series(
+                index=xaxis,
+                values=yaxis,
+                name=f"{seed}_{algo}"
+            )
+            for algo, algo_results in self.results.items()
+            for seed, inc_trace in algo_results.items()
+        }
+
+        # Now we convert it to a dataframe that looks like this. The na's are if there
+        # is no value at that time point.
+        # xaxis  |  seed_1_A1, seed_1_A2, seed_1_A3, seed_2_A1, seed_2_A2, seed_2_A3
+        #  1     |   .          .           .           .           .      .
+        #  2     |   na         .           .           na          .      .
+        #  3     |   .          .           .           na          .      na
+        df = pd.concat(
+            algo_seed_traces.values(),
+            join="outer",
+            sort=True,
+            axis=1,
+        )
+
+        # Next we ffil the na's
+        df = df.fillna(method="ffill", axis=0)
+
+        # Now for each xaxis point, we compute the min and max
+        # xaxis  |  min, max
+        # 1      |   .    .
+        # 2      |   .    .
+        df = df.agg(["min", "max"], axis=1)
+
+        if df.isna().any().any():
+            raise ValueError(
+                "There are still NaNs in the dataframe?"
+                f"\n{df}"
+            )
+
+        return df  # type: ignore
+
+
     def __getitem__(self, algo: str) -> AlgorithmResults:
         return self.results.__getitem__(algo)
 
