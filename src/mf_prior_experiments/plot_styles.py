@@ -393,6 +393,18 @@ ALGORITHMS = {
     "successive_halving_prior-50": "SH+Prior(50%)",
     "successive_halving_prior": "SH+Prior",
     "successive_halving": "SH",
+    # ablation for rebuttal
+    "priorband_wo_inc": "PriorBand(w/o inc)",
+    "priorband_wo_prior": "PriorBand(w/o prior)",
+    "pb_abl_mut_125_25": "Mutation(0.25, 0.125)",
+    "pb_abl_mut_125_50": "Mutation(0.5, 0.125)",
+    "pb_abl_mut_125_75": "Mutation(0.75, 0.125)",
+    "pb_abl_mut_250_25": "Mutation(0.25, 0.25)",
+    "pb_abl_mut_250_50": "PriorBand",
+    "pb_abl_mut_250_75": "Mutation(0.75, 0.25)",
+    "pb_abl_mut_500_25": "Mutation(0.25, 0.5)",
+    "pb_abl_mut_500_50": "Mutation(0.5, 0.5)",
+    "pb_abl_mut_500_75": "Mutation(0.75, 0.5)",
 }
 
 
@@ -480,6 +492,18 @@ COLOR_MARKER_DICT = {
     "asha_hb_pb_mut_geom_decay_bo_rung": "tomato",
     "asha_hb_pb_mut_geom_dyna_bo_joint": "greenyellow",
     "asha_hb_pb_mut_geom_decay_bo_joint": "greenyellow",
+    # ablation for rebuttal
+    "priorband_wo_inc": "crimson",
+    "priorband_wo_prior": "greenyellow",
+    "pb_abl_mut_125_25": "seagreen",
+    "pb_abl_mut_125_50": "purple",
+    "pb_abl_mut_125_75": "mediumturquoise",
+    "pb_abl_mut_250_25": "orangered",
+    "pb_abl_mut_250_50": "blue",
+    "pb_abl_mut_250_75": "peru",
+    "pb_abl_mut_500_25": "darkkhaki",
+    "pb_abl_mut_500_50": "olive",
+    "pb_abl_mut_500_75": "tomato",
 }
 
 
