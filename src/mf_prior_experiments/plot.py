@@ -1607,7 +1607,7 @@ if __name__ == "__main__":
             regret_normalized_benchmarks=args.regret_normalized_incumbent,
             aggregated_regret_normalized=args.aggregated_regret_normalized,
             stationary_regret=not args.dynamic_regret,
-            stationary_regret_for_aggregated=not args.dynamic_regret_for_aggregated,
+            stationary_regret_for_aggregated=not args.dynamic_regret_aggregated,
             prefix=args.prefix,
             base_path=args.base_path,
             relative_rankings=args.relative_rankings,
