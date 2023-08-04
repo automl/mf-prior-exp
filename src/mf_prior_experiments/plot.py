@@ -1153,7 +1153,7 @@ def main(
 
     plot_dir = base_path / "plots" / experiment_group
     xaxis = "cumulated_fidelity"
-    yaxes = ["loss", "max_fidelity_loss"]
+    yaxes = ["max_fidelity_loss"]  # loss
 
     CACHE = base_path / "results" / experiment_group / ".plot_cache.pkl"
     if not CACHE.exists():
@@ -1372,12 +1372,12 @@ def parse_args() -> Namespace:
         ),
     )
     parser.add_argument(
-        "--non_stationary_regret",
+        "--dynamic_regret",
         action="store_true",
         help="Plot non-stationary regret instead",
     )
     parser.add_argument(
-        "non_stationary_regret_for_aggregated",
+        "--dynamic_regret_aggregated",
         action="store_true",
         help="Plot non-stationary regret instead (for aggregated plots)",
     )
@@ -1606,8 +1606,8 @@ if __name__ == "__main__":
             incumbent_trace_benchmarks=args.incumbent_traces,
             regret_normalized_benchmarks=args.regret_normalized_incumbent,
             aggregated_regret_normalized=args.aggregated_regret_normalized,
-            stationary_regret=not args.non_stationary_regret,  # Sorry for double negation
-            stationary_regret_for_aggregated=not args.non_stationary_regret_for_aggregated,
+            stationary_regret=not args.dynamic_regret,
+            stationary_regret_for_aggregated=not args.dynamic_regret_for_aggregated,
             prefix=args.prefix,
             base_path=args.base_path,
             relative_rankings=args.relative_rankings,

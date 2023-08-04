@@ -28,7 +28,10 @@ def regret_normalize(values: pd.Series, bounds: pd.DataFrame, stationary: bool =
     _min = bounds["min"]
     _max = bounds["max"]
 
-    if not stationary:
+    if stationary:
+        _min = _min.min()
+        _max = _max.max()
+    else:
         if _min.isna().any() or _max.isna().any():
             raise ValueError("Bounds cannot be null.")
 
@@ -40,11 +43,6 @@ def regret_normalize(values: pd.Series, bounds: pd.DataFrame, stationary: bool =
             print(_min)
             print(_max)
             raise ValueError("Bounds somewhere are equal.")
-
-    else:
-        _min = _min.min()
-        _max = _max.max()
-        print(_min, _max)
 
     return (values - _min) / (_max - _min)  # type: ignore
 
