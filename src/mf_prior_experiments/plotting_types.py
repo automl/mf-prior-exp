@@ -18,6 +18,36 @@ if TYPE_CHECKING:
     import mfpbench
     import pandas as pd
 
+def regret_normalize(values: pd.Series, bounds: pd.DataFrame, stationary: bool = True) -> pd.Series:
+    """Normalize values by the bounds.
+
+    Args:
+        values: The values to normalize.
+        bounds: The bounds to normalize by, with columns "min" and "max".
+    """
+    _min = bounds["min"]
+    _max = bounds["max"]
+
+    if not stationary:
+        if _min.isna().any() or _max.isna().any():
+            raise ValueError("Bounds cannot be null.")
+
+        if not (values.index == _min.index).all():
+            raise ValueError("Index of values and bounds must match.")
+
+        divisor = _max - _min
+        if (divisor == 0).any():
+            print(_min)
+            print(_max)
+            raise ValueError("Bounds somewhere are equal.")
+
+    else:
+        _min = _min.min()
+        _max = _max.max()
+        print(_min, _max)
+
+    return (values - _min) / (_max - _min)  # type: ignore
+
 
 def now() -> str:
     return time.strftime("%H:%M:%S", time.localtime())
@@ -711,7 +741,15 @@ class AlgorithmResults(Mapping[int, Trace]):
         *,
         seeds: int | list[int] | None = None,
     ) -> pd.DataFrame | pd.Series:
-        """Return a dataframe with the traces."""
+        """Return a dataframe with the traces.
+
+        # xaxis  |  seed-0, seed-1, seed-2
+        #  1     |   .        .        .
+        #  3     |   .        .        .
+        #  6     |   .        .        .
+        #  9     |   .        .        .
+        #  12    |   .        .        .
+        """
         import pandas as pd
 
         if seeds is None:
@@ -879,9 +917,102 @@ class BenchmarkResults(Mapping[str, AlgorithmResults]):
 
             df = df.sort_index(ascending=True)
 
-        df = df.fillna(method="ffill", axis=0)
+        df = df.fillna(method="ffill")
         df = df.rank(method="average", axis=1)
         return df
+
+    def regret_bounds(
+        self,
+        xaxis: str,
+        yaxis: str,
+    ) -> pd.DataFrame:
+        # First we collect all results for all algorithms, seeds
+        # We expand this out to flatten the dict
+        # {
+        #  (A1): df - A1_seed_0 | A1_seed_1 | ...
+        #  (A2): df - A2_seed_0 | A2_seed_1 | ...
+        #  (A3): df - A3_seed_0 | A3_seed_1 | ...
+        # }
+        algo_results = {
+            algo: results.df(index=xaxis, values=yaxis).rename(lambda cname: f"{algo}_{cname}", axis=1)
+            for algo, results in self.results.items()
+        }
+
+        # Now we convert it to a dataframe that looks like this. The na's are if there
+        # is no value at that time point.
+        # xaxis  |  A1_seed_1, seed_1_A2, seed_1_A3, seed_2_A1, seed_2_A2, seed_2_A3
+        #  1     |   .          .           .           .           .      .
+        #  2     |   na         .           .           na          .      .
+        #  3     |   .          .           .           na          .      na
+        df = pd.concat(
+            list(algo_results.values()),
+            join="outer",
+            sort=True,
+            axis=1,
+        )
+
+        # NOTE: We do not need to take care of NA here as `.agg` will ignore NaNs.
+        # This does not seem to be mentioned in the docs but was verified manually
+
+        # Now for each xaxis point, we compute the min and max
+        # xaxis  |  min, max
+        # 1      |   .    .
+        # 2      |   .    .
+        df = df.agg(["min", "max"], axis=1)
+
+        if df.isna().any().any():
+            raise ValueError(
+                "There are still NaNs in the dataframe?"
+                f"\n{df}"
+            )
+
+        return df  # type: ignore
+
+    def regret_normalized_results(
+        self,
+        xaxis: str,
+        yaxis: str,
+        *,
+        bounds: tuple[float, float] | pd.DataFrame | None = None,
+        stationary: bool = True,
+    ) -> dict[str, pd.DataFrame]:
+        """Return all algorithm results for this benchmark, normalized
+        between the min and max for *all* results, across all algorithms and all seeds.
+
+        Dictionary from algorithm name to DataFrame:
+        # xaxis  |  seed_0, seed_1, seed_2
+        #  1     |   0        1       0.6
+        #  3     |   .        .        .
+        #  6     |   .        .        .
+        #  9     |   .        .        .
+        #  12    |   .        .        .
+        """
+        if isinstance(bounds, tuple):
+            raise NotImplementedError(
+                "Only support DataFrame gotten from `regret_bounds(...)"
+                " for now."
+            )
+
+        if bounds is None:
+            bounds = self.regret_bounds(xaxis=xaxis, yaxis=yaxis)
+
+
+        # Unnormalized dataframes
+        dataframes = {
+            algo: algo_results.df(index=xaxis, values=yaxis)
+            for algo, algo_results in self.results.items()
+        }
+        if any(isinstance(d, pd.Series) for d in dataframes.values()):
+            msg = "\n".join([f"{a}: shape {d.shape}" for a, d in dataframes.items()])
+            raise RuntimeError(f"Got only a single series for an algorithm\n{msg}")
+
+        # Normalize by applying regret normalization across all columns
+        # to all algorithm dataframes
+        return {
+            algo: df.apply(regret_normalize, args=(bounds, stationary))  # type: ignore
+            for algo, df in dataframes.items()
+        }
+
 
     @classmethod
     def load(
@@ -945,61 +1076,6 @@ class BenchmarkResults(Mapping[str, AlgorithmResults]):
             algo_results.iter_results() for algo_results in self.results.values()
         )
 
-    def regret_bounds(
-        self,
-        xaxis: str,
-        yaxis: str,
-    ) -> pd.DataFrame:
-        # First we collect all results for all algorithms, seeds
-        # We expand this out to flatten the dict
-        # {
-        #  (A1): df - A1_seed_0 | A1_seed_1 | ...
-        #  (A2): df - A2_seed_0 | A2_seed_1 | ...
-        #  (A3): df - A3_seed_0 | A3_seed_1 | ...
-        # }
-        algo_results = {
-            algo: results.df(index=xaxis, values=yaxis).rename(lambda cname: f"{algo}_{cname}", axis=1)
-            for algo, results in self.results.items()
-        }
-
-        # Now we convert it to a dataframe that looks like this. The na's are if there
-        # is no value at that time point.
-        # xaxis  |  A1_seed_1, seed_1_A2, seed_1_A3, seed_2_A1, seed_2_A2, seed_2_A3
-        #  1     |   .          .           .           .           .      .
-        #  2     |   na         .           .           na          .      .
-        #  3     |   .          .           .           na          .      na
-        df = pd.concat(
-            list(algo_results.values()),
-            join="outer",
-            sort=True,
-            axis=1,
-        )
-
-
-        # Next we ffil the na's
-        df = df.fillna(method="ffill")
-
-        # Any starting values that are still na, i.e. because they don't
-        # have any evaluations yet, we just fill them with 1, the worst score
-        df = df.fillna(1)
-
-
-        # Now for each xaxis point, we compute the min and max
-        # xaxis  |  min, max
-        # 1      |   .    .
-        # 2      |   .    .
-        df = df.agg(["min", "max"], axis=1)
-
-        print("min/max tail")
-        print(df.tail(30))
-
-        if df.isna().any().any():
-            raise ValueError(
-                "There are still NaNs in the dataframe?"
-                f"\n{df}"
-            )
-
-        return df  # type: ignore
 
 
     def __getitem__(self, algo: str) -> AlgorithmResults:
@@ -1210,6 +1286,65 @@ class ExperimentResults(Mapping[str, BenchmarkResults]):
         bench_seeds = [bench.seeds() for bench in self.results.values()]
         return set().union(*bench_seeds)
 
+    def normalized_regrets(self, *, xaxis: str, yaxis: str) -> tuple[pd.DataFrame, pd.DataFrame]:
+        import pandas as pd
+
+        indices = self.indices(xaxis=xaxis, sort=False)
+        seeds = self.seeds()
+        benchmarks = self.benchmarks
+
+        # Get the ranks for each seed, benchmark possible
+        ranks = {
+            seed: {
+                benchmark: self.results[benchmark].ranks(
+                    xaxis, yaxis, seed=seed, indices=indices
+                )
+                for benchmark in benchmarks
+            }
+            for seed in seeds
+        }
+
+        # Utility to calculate the mean and the sem
+        # Done by stacking all dataframes such that their index (i.e. cumulated fidelity)
+        # are duplicated.
+        #
+        #       Dataframe 1
+        # index | A1  A2  A3
+        #  1
+        #  2
+        #  3
+        #  1
+        #  2
+        #  3
+        #
+        # Then we move the index to be a column that we can then groupby
+        # which collects all dataframes with the same index together
+        #
+        # Groupby over multiple Dataframes [1, 2, 3]
+        # ---  index   dfs...
+        #  0       1   [A1 A2 A3], [A1 A2 A3]
+        #  1       2   [A1 A2 A3], [A1 A2 A3]
+        #  2       3   ...
+        #
+        # We can then just call mean and sem on them
+        def _mean(_dfs: Iterable[pd.DataFrame]) -> pd.DataFrame:
+            return pd.concat(_dfs).reset_index().groupby("index").mean()
+
+        def _sem(_dfs: Iterable[pd.DataFrame]) -> pd.DataFrame:
+            return pd.concat(_dfs).reset_index().groupby("index").sem()
+
+        # Get mean across all benchmarks, for each seed
+        ranks_per_seed_averaged_over_benchmarks = {
+            seed: _mean(ranks[seed].values()) for seed in seeds
+        }
+
+        # Average over all seeds
+        mean_ranks = _mean(ranks_per_seed_averaged_over_benchmarks.values())
+        sem_ranks = _sem(ranks_per_seed_averaged_over_benchmarks.values())
+
+        return mean_ranks, sem_ranks
+
+
     def ranks(self, *, xaxis: str, yaxis: str) -> tuple[pd.DataFrame, pd.DataFrame]:
         import pandas as pd
 
@@ -1268,6 +1403,129 @@ class ExperimentResults(Mapping[str, BenchmarkResults]):
 
         return mean_ranks, sem_ranks
 
+    def regret_normalized_results(
+        self,
+        *,
+        xaxis: str,
+        yaxis: str,
+        stationary: bool = True,
+    ) -> dict[str, pd.DataFrame]:
+        """Return mean/std of normalized regret
+
+        Each Benchmark has it's normalized regret calculated, i.e. we normalize
+        all results available to a benchmark, taking the min and max over all
+        possible seed/algo pairs as the bounds to scale between.
+
+        Then, per seed, take the mean across all benchmarks for each algorithm to get
+        a "performance line" for the algorithm on that set of benchmarks.
+
+        Finally, we use the N seeds of this to get an estimate of the mean performance
+        line and std err per algorithm.
+
+        Returns a dict[algorithm_name, pd.DataFrame with "mean" and "sem" columns]
+        """
+        bounds = {
+            benchmark: benchmark_results.regret_bounds(xaxis=xaxis, yaxis=yaxis)
+            for benchmark, benchmark_results in self.results.items()
+        }
+        seeds = self.seeds()
+        benchmarks = self.benchmarks
+        algorithms = self.algorithms
+
+        # Each series here has been regret normalized with respect to the min and max
+        # of all Algorithm-Seed pairs available for that benchmark.
+        # {
+        #    B1: {
+        #       A1: {
+        #           seed-0: pd.Series
+        #           seed-1: pd.Series
+        #           seed-2: pd.Series
+        #           ...
+        #       },
+        #       A2: { ... }
+        #   },
+        #   B2: { A1: { ... }, A2: { ... } }
+        #   B3: { A1: { ... }, A2: { ... } }
+        # }
+        benchmark_algo_seeds = {
+            benchmark: {
+                algo: {
+                    seed: algo_results[f"seed-{seed}"]
+                    for seed in seeds
+                }
+                for algo, algo_results in (
+                    self
+                    .results[benchmark]
+                    .regret_normalized_results(xaxis, yaxis, bounds=bounds[benchmark], stationary=stationary)
+                    .items()
+                )
+            }
+            for benchmark in benchmarks
+        }
+
+        # These Series are traces over time axis
+        # {
+        #   A1: {
+        #       seed-0: [B1: pd.Series, B2: pd.Series, B3: pd.Series],
+        #       seed-1: {...}
+        #       seed-2: {...}
+        #   },
+        #   A2: { seed-0: {...}, seed-1: {...} seed-2: {...} }
+        #   ...
+        # }
+        algo_seed_results = {
+            algo: {
+                seed: [
+                    benchmark_algo_seeds[benchmark][algo][seed]
+                    for benchmark in benchmarks
+                ]
+                for seed in seeds
+            }
+            for algo in algorithms
+        }
+
+        # We reduce the inner most level, for each seed, we take the mean normalized
+        # regret performance for each algorithm across all benchmarks
+        # {
+        #   A1: {
+        #       seed-0: pd.Series (mean normalized regret across benchmarks),
+        #       seed-1: ...
+        #       seed-2: ...
+        #   },
+        #   A2: { seed-0: ..., seed-1: ..., seed-2: ... }
+        #   ...
+        # }
+        algo_seed_means = {
+            algo : {
+                seed: (
+                    pd.concat(algo_seed_results[algo][seed], axis=1, sort=True, join="outer")
+                    .fillna(method="ffill")
+                    .mean(axis=1)
+                )
+                for seed in seeds
+            }
+            for algo in algorithms
+        }
+
+        # Now we join all the seed results together for an algorithm and take the mean/sem
+        # {
+        #   A1: df (mean/sem)
+        #   A2: ...
+        #   A3: ...
+        # }
+        algo_results = {
+            algo: (
+                pd.concat(algo_seed_means[algo].values(), axis=1, sort=True, join="outer")
+                .fillna(method="ffill")
+                .agg(["mean", "sem"], axis=1)
+            )
+            for algo in algorithms
+        }
+
+        return algo_results
+
+
+
     def table_results(
         self,
         *,
@@ -1315,3 +1573,4 @@ class ExperimentResults(Mapping[str, BenchmarkResults]):
         means.sort_index(inplace=True, key=prior_order)
         stds.sort_index(inplace=True, key=prior_order)
         return means, stds  # type: ignore
+

@@ -27,7 +27,7 @@ from .plot_styles import (
     Y_LIMITS,
     get_xticks,
 )
-from .plotting_types import ExperimentResults, all_possibilities, fetch_results
+from .plotting_types import ExperimentResults, all_possibilities, fetch_results, regret_normalize
 
 HERE = Path(__file__).parent.absolute()
 DEFAULT_BASE_PATH = HERE.parent.parent
@@ -51,37 +51,6 @@ class with_traceback:
 
 def now() -> str:
     return time.strftime("%H:%M:%S", time.localtime())
-
-def regret_normalize(values: pd.Series, bounds: pd.DataFrame, stationary: bool = True) -> pd.Series:
-    """Normalize values by the bounds.
-
-    Args:
-        values: The values to normalize.
-        bounds: The bounds to normalize by, with columns "min" and "max".
-    """
-    _min = bounds["min"]
-    _max = bounds["max"]
-
-    if not stationary:
-        if _min.isna().any() or _max.isna().any():
-            raise ValueError("Bounds cannot be null.")
-
-        if not (values.index == _min.index).all():
-            raise ValueError("Index of values and bounds must match.")
-
-        divisor = _max - _min
-        if (divisor == 0).any():
-            print(_min)
-            print(_max)
-            raise ValueError("Bounds somewhere are equal.")
-
-    else:
-        _min = _min.min()
-        _max = _max.max()
-        print(_min, _max)
-
-    return (values - _min) / (_max - _min)  # type: ignore
-
 
 def reorganize_legend(
     fig,
@@ -123,6 +92,116 @@ def reorganize_legend(
     for legend_item in leg.legendHandles:
         legend_item.set_linewidth(2.0)
 
+def plot_normalized_regret_aggregated(
+    algorithms: list[str],
+    filepath: Path,
+    yaxis: str,
+    xaxis: str,
+    subtitle_results: dict[str, ExperimentResults],
+    dpi: int = 200,
+    plot_title: str | None = None,
+    x_range: tuple[int, int] | None = None,
+    yaxis_label: str = "Regret",
+    stationary_regret: bool = True,
+):
+    """Plot relative ranks of the incumbent over time."""
+    import matplotlib.pyplot as plt
+    import seaborn as sns
+
+    # For now we always want it flat...
+    row_length = 100
+
+    ncols = len(subtitle_results)
+    nrows = math.ceil(ncols / row_length)
+    figsize = (ncols * 4, nrows * 3)
+    legend_ncol = len(algorithms)
+
+    fig, _axs = plt.subplots(nrows, ncols, figsize=figsize)
+    axs: list[plt.Axes] = list(_axs.flatten())
+
+    for col, ((subtitle, results), ax) in enumerate(zip(subtitle_results.items(), axs)):
+        _x_range: tuple[int, int]
+        if x_range is None:
+            _xs = [getattr(r, xaxis) for r in results.iter_results()]
+            _x_range = (math.floor(min(_xs)), math.ceil(max(_xs)))
+        else:
+            _x_range = tuple(x_range)  # type: ignore
+
+        left, right = _x_range
+        xticks = get_xticks(_x_range)
+
+        ax.set_title(subtitle, fontsize=18)
+        ax.set_xlabel(X_LABEL.get(xaxis, xaxis), fontsize=18, color=(0, 0, 0, 0.69))
+        ax.set_xlim(left=left, right=right)
+        ax.set_xticks(xticks, xticks)  # type: ignore
+        ax.tick_params(axis="both", which="major", labelsize=18, color=(0, 0, 0, 0.69))
+        ax.grid(True, which="both", ls="-", alpha=0.8)
+
+        if col == 0:
+            ax.set_ylabel(yaxis_label, fontsize=18, color=(0, 0, 0, 0.69))
+
+        mean_sem_dfs: dict[str, pd.DataFrame]
+        mean_sem_dfs = results.regret_normalized_results(
+            xaxis=xaxis,
+            yaxis=yaxis,
+            stationary=stationary_regret,
+        )
+
+        for algorithm in algorithms:
+            algo_df = mean_sem_dfs[algorithm]
+            means: pd.Series = algo_df["mean"]  # type: ignore
+            stds: pd.Series = algo_df["sem"]  # type: ignore
+
+            means = means.sort_index(ascending=True)  # type: ignore
+            stds = stds.sort_index(ascending=True)  # type: ignore
+            assert means is not None
+            assert stds is not None
+
+            x = np.array(means.index.tolist(), dtype=float)
+            y = np.array(means.tolist(), dtype=float)
+            std = np.array(stds.tolist(), dtype=float)
+
+            ax.step(
+                x=x,
+                y=y,
+                color=COLOR_MARKER_DICT.get(algorithm, "black"),
+                linewidth=1,
+                where="post",
+                label=ALGORITHMS.get(algorithm, algorithm),
+            )
+            ax.fill_between(
+                x,
+                y - std,  # type: ignore
+                y + std,  # type: ignore
+                color=COLOR_MARKER_DICT.get(algorithm, "black"),
+                alpha=0.1,
+                step="post",
+            )
+
+        ax.set_yscale("log")
+
+
+    sns.despine(fig)
+    handles, labels = axs[0].get_legend_handles_labels()
+    legend = fig.legend(
+        handles,
+        labels,
+        fontsize="xx-large",
+        loc="lower center",
+        bbox_to_anchor=(0.5, -0.20),
+        ncol=legend_ncol,
+        frameon=True,
+    )
+
+    for item in legend.legendHandles:
+        item.set_linewidth(2)
+
+    if plot_title:
+        fig.suptitle(plot_title)
+
+    fig.tight_layout(pad=0, h_pad=0.5)
+    print(f"Saving aggregated normalized regret to {filepath}")
+    fig.savefig(filepath, bbox_inches="tight", dpi=dpi)
 
 def plot_relative_ranks(
     algorithms: list[str],
@@ -137,7 +216,6 @@ def plot_relative_ranks(
 ):
     """Plot relative ranks of the incumbent over time."""
     import matplotlib.pyplot as plt
-    import pandas as pd
     import seaborn as sns
 
     # For now we always want it flat...
@@ -259,15 +337,13 @@ def plot_normalized_regret_incumbent_traces(
         "end_time_since_global_start",
     ] = "cumulated_fidelity",
     xaxis_label: str | None = None,
-    yaxis_label: str | None = None,
+    yaxis_label: str = "Normalized Regret",
     x_range: tuple[int, int] | None = None,
     with_markers: bool = False,
     stationary_regret: bool = True,
 ):
     import matplotlib.pyplot as plt
-    import pandas as pd
     import seaborn as sns
-    from scipy import stats
 
     benchmarks = results.benchmarks
     algorithms = results.algorithms
@@ -431,8 +507,10 @@ def plot_normalized_regret_incumbent_traces(
             df = df.apply(regret_normalize, args=(benchmark_regret_bounds, stationary_regret))
 
             # Next, since we may not have evaluations at every xaxis value, i.e. because
-            # we evalaute the default at max fidelity, and dont have an evaluation at
-            # 0.5, we fill with the worst value (1)
+            # we evalaute the default at max fidelity, meaning a result for an
+            # algo is only available at `x-axis > 1`
+            # We fill these with the worst value (1) as there is no result for the
+            # algorithm otherwise
             df = df.fillna(1)
 
             x = df.index
@@ -500,7 +578,6 @@ def plot_incumbent_traces(
     dynamic_y_lim: bool = False,
 ):
     import matplotlib.pyplot as plt
-    import pandas as pd
     import seaborn as sns
     from scipy import stats
 
@@ -664,7 +741,7 @@ def plot_incumbent_traces(
             df = df.sort_index(ascending=True)
             assert df is not None
 
-            df = df.fillna(method="ffill", axis=0)
+            df = df.fillna(method="ffill")
 
             x = df.index
             y_mean = df.mean(axis=1).values
@@ -737,7 +814,6 @@ def plot_single_incumbent_trace(
         raise ValueError("Only one of `y_range` and `dynamic_y_lim`")
 
     import matplotlib.pyplot as plt
-    import pandas as pd
     import seaborn as sns
     from scipy import stats
 
@@ -839,7 +915,7 @@ def plot_single_incumbent_trace(
         df = df.sort_index(ascending=True)
         assert df is not None
 
-        df = df.fillna(method="ffill", axis=0)
+        df = df.fillna(method="ffill")
 
         x = df.index
         y_mean = df.mean(axis=1).values
@@ -971,8 +1047,6 @@ def tablify(
     *,
     yaxis: Literal["loss", "max_fidelity_loss"] = "loss",
 ) -> None:
-    import pandas as pd
-
     n_algorithms = len(results.algorithms)
     n_budgets = len(xs)
 
@@ -1048,7 +1122,9 @@ def main(
     algorithms: list[str] | None = None,
     incumbent_trace_benchmarks: dict[str, list[str]] | None = None,
     regret_normalized_benchmarks: dict[str, list[str]] | None = None,
+    aggregated_regret_normalized: dict[str, dict[str, list[str]]] | None = None,
     stationary_regret: bool = True,
+    stationary_regret_for_aggregated: bool = True,
     base_path: Path | None = DEFAULT_BASE_PATH,
     relative_rankings: dict[str, dict[str, list[str]]] | None = None,
     table_xs: list[int] | None = None,
@@ -1144,7 +1220,7 @@ def main(
                         "xaxis": xaxis,  # type: ignore
                         "x_range": x_range_it,
                         "xaxis_label": x_axis_label,
-                        "yaxis_label": y_axis_label,
+                        "yaxis_label": "Mean Regret",
                         "with_markers": with_markers,
                         "stationary_regret": stationary_regret,
                     }
@@ -1182,6 +1258,37 @@ def main(
                     future = executor.submit(func, **kwargs)
                     futures.append(future)
                     path_lookup[future] = filepath
+
+        # Aggregated normalized rankings
+        if aggregated_regret_normalized is not None:
+            for yaxis in yaxes:
+                for plot_title, plot_benchmarks in aggregated_regret_normalized.items():
+                    _plot_title = plot_title.lstrip().rstrip().replace(" ", "-")
+                    _filename = f"{prefix}-{_plot_title}-{yaxis}.{extension}"
+                    filepath = plot_dir / "aggregated-regret" / yaxis / _filename
+                    filepath.parent.mkdir(parents=True, exist_ok=True)
+
+                    kwargs = {
+                        "algorithms": algorithms,
+                        "filepath": filepath,
+                        "dpi": dpi,
+                        "subtitle_results": {
+                            sub_title: results.select(
+                                benchmarks=_benches, algorithms=algorithms
+                            )
+                            for sub_title, _benches in plot_benchmarks.items()
+                        },
+                        "yaxis": yaxis,
+                        "xaxis": xaxis,
+                        "x_range": x_range_rr,
+                        "yaxis_label": "Mean Regret (Over Benchmarks)",
+                        "stationary_regret": stationary_regret_for_aggregated,
+                    }
+                    func = with_traceback(plot_normalized_regret_aggregated)
+                    future = executor.submit(func, **kwargs)
+                    futures.append(future)
+                    path_lookup[future] = filepath
+
 
         if table_benchmarks is not None:
             assert table_xs is not None
@@ -1270,7 +1377,26 @@ def parse_args() -> Namespace:
         help="Plot non-stationary regret instead",
     )
     parser.add_argument(
+        "non_stationary_regret_for_aggregated",
+        action="store_true",
+        help="Plot non-stationary regret instead (for aggregated plots)",
+    )
+    parser.add_argument(
         "--relative_rankings",
+        type=json.loads,
+        default=None,
+        required=False,
+        help=(
+            "Expects a json dict like:\n"
+            "{\n"
+            "   'plot_title1': {'subtitle1': ['benchmark', ...], 'subtitle2': ['benchmark', ...]} },\n"
+            "   'plot_title2': {'subtitle1': ['benchmark', ...], 'subtitle2': ['benchmark', ...]} },\n"
+            "   ...,\n"
+            "}"
+        ),
+    )
+    parser.add_argument(
+        "--aggregated_regret_normalized",
         type=json.loads,
         default=None,
         required=False,
@@ -1479,7 +1605,9 @@ if __name__ == "__main__":
             algorithms=args.algorithms,
             incumbent_trace_benchmarks=args.incumbent_traces,
             regret_normalized_benchmarks=args.regret_normalized_incumbent,
+            aggregated_regret_normalized=args.aggregated_regret_normalized,
             stationary_regret=not args.non_stationary_regret,  # Sorry for double negation
+            stationary_regret_for_aggregated=not args.non_stationary_regret_for_aggregated,
             prefix=args.prefix,
             base_path=args.base_path,
             relative_rankings=args.relative_rankings,
