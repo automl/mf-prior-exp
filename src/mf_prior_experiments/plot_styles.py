@@ -397,13 +397,13 @@ ALGORITHMS = {
     "priorband_wo_inc": "PriorBand(w/o inc)",
     "priorband_wo_prior": "PriorBand(w/o prior)",
     "pb_abl_mut_125_25": "Mutation(0.25, 0.125)",
-    "pb_abl_mut_125_50": "Mutation(0.5, 0.125)",
+    "pb_abl_mut_125_50": "LS std=0.125",  # "Mutation (0.5, 0.125)",
     "pb_abl_mut_125_75": "Mutation(0.75, 0.125)",
-    "pb_abl_mut_250_25": "Mutation(0.25, 0.25)",
-    "pb_abl_mut_250_50": "PriorBand",
-    "pb_abl_mut_250_75": "Mutation(0.75, 0.25)",
+    "pb_abl_mut_250_25": "LS rate=25%",  # "Mutation(0.25, 0.25)",
+    "pb_abl_mut_250_50": "PriorBand",  # "LS std=0.25",  "LS rate=50%"
+    "pb_abl_mut_250_75": "LS rate=75%",  # "Mutation(0.75, 0.25)",
     "pb_abl_mut_500_25": "Mutation(0.25, 0.5)",
-    "pb_abl_mut_500_50": "Mutation(0.5, 0.5)",
+    "pb_abl_mut_500_50": "LS std=0.5",  # "Mutation(0.5, 0.5)",
     "pb_abl_mut_500_75": "Mutation(0.75, 0.5)",
 }
 
