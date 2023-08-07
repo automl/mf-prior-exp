@@ -1220,7 +1220,7 @@ def main(
                         "xaxis": xaxis,  # type: ignore
                         "x_range": x_range_it,
                         "xaxis_label": x_axis_label,
-                        "yaxis_label": "Mean Regret",
+                        "yaxis_label": "Normalized Regret",
                         "with_markers": with_markers,
                         "stationary_regret": stationary_regret,
                     }
@@ -1281,7 +1281,7 @@ def main(
                         "yaxis": yaxis,
                         "xaxis": xaxis,
                         "x_range": x_range_rr,
-                        "yaxis_label": "Mean Regret (Over Benchmarks)",
+                        "yaxis_label": "Normalized Mean Regret",
                         "stationary_regret": stationary_regret_for_aggregated,
                     }
                     func = with_traceback(plot_normalized_regret_aggregated)
