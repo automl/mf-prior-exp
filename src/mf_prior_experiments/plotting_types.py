@@ -923,6 +923,7 @@ class BenchmarkResults(Mapping[str, AlgorithmResults]):
         self,
         xaxis: str,
         yaxis: str,
+        xlim: float | None = None,
     ) -> pd.DataFrame:
         # First we collect all results for all algorithms, seeds
         # We expand this out to flatten the dict
@@ -948,6 +949,9 @@ class BenchmarkResults(Mapping[str, AlgorithmResults]):
             sort=True,
             axis=1,
         )
+
+        if xlim is not None:
+            df = df.loc[:xlim]
 
         # NOTE: We do not need to take care of NA here as `.agg` will ignore NaNs.
         # This does not seem to be mentioned in the docs but was verified manually
@@ -1406,6 +1410,7 @@ class ExperimentResults(Mapping[str, BenchmarkResults]):
         *,
         xaxis: str,
         yaxis: str,
+        xlim: float | None = None,
         stationary: bool = True,
     ) -> dict[str, pd.DataFrame]:
         """Return mean/std of normalized regret
@@ -1423,7 +1428,7 @@ class ExperimentResults(Mapping[str, BenchmarkResults]):
         Returns a dict[algorithm_name, pd.DataFrame with "mean" and "sem" columns]
         """
         bounds = {
-            benchmark: benchmark_results.regret_bounds(xaxis=xaxis, yaxis=yaxis)
+            benchmark: benchmark_results.regret_bounds(xaxis=xaxis, yaxis=yaxis, xlim=xlim,)
             for benchmark, benchmark_results in self.results.items()
         }
         seeds = self.seeds()

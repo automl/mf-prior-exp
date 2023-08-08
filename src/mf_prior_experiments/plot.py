@@ -373,23 +373,9 @@ def plot_normalized_regret_incumbent_traces(
     axs = list(axs.flatten()) if isinstance(axs, np.ndarray) else [axs]
 
     for i, benchmark in enumerate(benchmarks):
+        ax = axs[i]
         benchmark_config = results.benchmark_configs[benchmark]
         benchmark_results = results[benchmark]
-
-        # This holds the min and max for each index
-        benchmark_regret_bounds = benchmark_results.regret_bounds(
-            xaxis=xaxis,
-            yaxis=yaxis,
-        )
-        benchmark_indices = benchmark_regret_bounds.index
-
-        ax = axs[i]
-        xlabel = xaxis_label if xaxis_label else X_LABEL.get(xaxis, xaxis)
-        xlabel = xlabel if is_last_row(i, nrows, ncols) else None
-
-        ylabel = yaxis_label if yaxis_label else Y_LABEL
-        ylabel = ylabel if is_first_column(i, ncols) else None
-
 
         _x_range: tuple[int, int]
         if x_range is None:
@@ -401,8 +387,21 @@ def plot_normalized_regret_incumbent_traces(
             _x_range = tuple(x_range)  # type: ignore
 
         left, right = _x_range
-
         ax.set_xlim(left=left, right=right)
+
+        # This holds the min and max for each index
+        benchmark_regret_bounds = benchmark_results.regret_bounds(
+            xaxis=xaxis,
+            yaxis=yaxis,
+            xlim=right,
+        )
+        benchmark_indices = benchmark_regret_bounds.index
+
+        xlabel = xaxis_label if xaxis_label else X_LABEL.get(xaxis, xaxis)
+        xlabel = xlabel if is_last_row(i, nrows, ncols) else None
+
+        ylabel = yaxis_label if yaxis_label else Y_LABEL
+        ylabel = ylabel if is_first_column(i, ncols) else None
 
         xticks = get_xticks(_x_range)
         ax.set_xticks(xticks, xticks)
@@ -544,7 +543,9 @@ def plot_normalized_regret_incumbent_traces(
                 step="post",
             )
             ax.set_yscale("log")
-            ax.set_ylim(1e-2, 1)
+            # Sometimes everything is in (1e-2, 1) sometimes we need (1e-3, 1)
+            # just letting this auto scale for now
+            #ax.set_ylim(1e-2, 1)
 
     bbox_y_mapping = {1: -0.25, 2: -0.11, 3: -0.07, 4: -0.05, 5: -0.04}
     reorganize_legend(
