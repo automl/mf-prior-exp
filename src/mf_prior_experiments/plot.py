@@ -145,6 +145,7 @@ def plot_normalized_regret_aggregated(
             xaxis=xaxis,
             yaxis=yaxis,
             stationary=stationary_regret,
+            xlim=right,
         )
 
         for algorithm in algorithms:
@@ -486,7 +487,7 @@ def plot_normalized_regret_incumbent_traces(
             print(f"Benchmark: {benchmark} | Algorithm: {algorithm}")
             print("-" * 50)
 
-            df = benchmark_results[algorithm].df(index=xaxis, values=yaxis)
+            df = benchmark_results[algorithm].df(index=xaxis, values=yaxis, xlim=right)
             assert isinstance(df, pd.DataFrame)
 
             # Here we reindex to be the indices that represent every xaxis value

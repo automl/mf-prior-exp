@@ -6,6 +6,7 @@ import time
 from dataclasses import dataclass, replace
 from itertools import accumulate, chain, groupby, product, starmap
 from pathlib import Path
+import numpy as np
 from typing import TYPE_CHECKING, Any, Iterator, Iterable, Mapping, Sequence, overload
 
 import yaml  # type: ignore
@@ -738,6 +739,7 @@ class AlgorithmResults(Mapping[int, Trace]):
         values: str,
         *,
         seeds: int | list[int] | None = None,
+        xlim: float | None = None,
     ) -> pd.DataFrame | pd.Series:
         """Return a dataframe with the traces.
 
@@ -770,6 +772,12 @@ class AlgorithmResults(Mapping[int, Trace]):
             assert isinstance(df, pd.Series), f"{type(df)},\n{df}"
         else:
             assert isinstance(df, pd.DataFrame)
+
+        if xlim is not None:
+            # Insert a point at xlim to make sure we have a point
+            # at the end of the plot, using ffill
+            df.loc[xlim] = np.nan
+            df = df.sort_index().fillna(method="ffill")[:xlim]
 
         return df
 
@@ -933,7 +941,7 @@ class BenchmarkResults(Mapping[str, AlgorithmResults]):
         #  (A3): df - A3_seed_0 | A3_seed_1 | ...
         # }
         algo_results = {
-            algo: results.df(index=xaxis, values=yaxis).rename(lambda cname: f"{algo}_{cname}", axis=1)
+            algo: results.df(index=xaxis, values=yaxis, xlim=xlim).rename(lambda cname: f"{algo}_{cname}", axis=1)
             for algo, results in self.results.items()
         }
 
@@ -949,9 +957,6 @@ class BenchmarkResults(Mapping[str, AlgorithmResults]):
             sort=True,
             axis=1,
         )
-
-        if xlim is not None:
-            df = df.loc[:xlim]
 
         # NOTE: We do not need to take care of NA here as `.agg` will ignore NaNs.
         # This does not seem to be mentioned in the docs but was verified manually
@@ -974,6 +979,7 @@ class BenchmarkResults(Mapping[str, AlgorithmResults]):
         self,
         xaxis: str,
         yaxis: str,
+        xlim: float | None = None,
         *,
         bounds: tuple[float, float] | pd.DataFrame | None = None,
         stationary: bool = True,
@@ -996,14 +1002,16 @@ class BenchmarkResults(Mapping[str, AlgorithmResults]):
             )
 
         if bounds is None:
-            bounds = self.regret_bounds(xaxis=xaxis, yaxis=yaxis)
+            bounds = self.regret_bounds(xaxis=xaxis, yaxis=yaxis, xlim=xlim)
 
 
         # Unnormalized dataframes
         dataframes = {
-            algo: algo_results.df(index=xaxis, values=yaxis)
+            algo: algo_results.df(index=xaxis, values=yaxis, xlim=xlim)
             for algo, algo_results in self.results.items()
         }
+
+
         if any(isinstance(d, pd.Series) for d in dataframes.values()):
             msg = "\n".join([f"{a}: shape {d.shape}" for a, d in dataframes.items()])
             raise RuntimeError(f"Got only a single series for an algorithm\n{msg}")
