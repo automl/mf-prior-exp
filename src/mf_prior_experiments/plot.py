@@ -179,6 +179,7 @@ def plot_normalized_regret_aggregated(
             )
 
         ax.set_yscale("log")
+        ax.set_ylim(bottom=1e-2, top=1)
 
 
     sns.despine(fig)
@@ -543,6 +544,7 @@ def plot_normalized_regret_incumbent_traces(
                 step="post",
             )
             ax.set_yscale("log")
+            ax.set_ylim(1e-2, 1)
 
     bbox_y_mapping = {1: -0.25, 2: -0.11, 3: -0.07, 4: -0.05, 5: -0.04}
     reorganize_legend(
