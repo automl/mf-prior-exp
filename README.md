@@ -1,5 +1,9 @@
 # PriorBand: Practical Hyperparameter Optimization in the Age of Deep Learning
 
+This repo is purely for reproducing the experiments of the paper. To use `PriorBand`, we have
+an up to date implementation in [`NePs`][https://github.com/automl/neps] that should be the preffered
+way to use the optimizer.
+
 ## Installation
 
 ### 1. Clone the repository
