@@ -38,9 +38,22 @@ def parse_argument_string(args):
     return argument_final_string, len(argument_strings)
 
 
+def is_gpu_partition(args):
+    return True if "gpu" in args.partition else False
+
+
+def get_gpu_srun_command(cmd, nworkers=1):
+    script = list()
+    script.append(f"for i in $(seq 1 {nworkers}); do")
+    script.append(f"    {cmd} &")  # the & is important
+    script.append("done")
+    script.append("wait")  # important to wait for all jobs to finish
+    return script
+
+
 def construct_script(args, cluster_oe_dir):
     argument_string, num_tasks = parse_argument_string(args)
-    cmd =  (
+    cmd = (
         f"python -m mf_prior_experiments.run experiment_group={args.experiment_group} "
         f"${{ARGS[@]:{len(args.arguments)}*$SLURM_ARRAY_TASK_ID:{len(args.arguments)}}}"
     )
@@ -57,23 +70,47 @@ def construct_script(args, cluster_oe_dir):
     if args.exclude:
         script.append(f"#SBATCH --exclude {args.exclude}")
 
+    if args.gpus and not is_gpu_partition(args):
+        raise ValueError("Cannot request GPUs on non-gpu partition!")
+
+    # TODO: remove limitation where this check restricts each job to be on one node
+    min_cpus_per_gpu = 2
+    c = min(20, args.gpus * args.n_worker * min_cpus_per_gpu)  # 20 is the maximum number of CPUs per node
     if args.n_worker == 1:
-        # Explicitly state 1 cpu and it's total memory
-        script.append(f"#SBATCH -c {1}")
+        # Explicitly state the cpu and gpus and it's total memory
+        if args.gpus > 0:
+            script.append(f"#SBATCH --gres=gpu:{args.gpus}")
+            script.append(f"#SBATCH -c {min_cpus_per_gpu}")
+        else:
+            script.append(f"#SBATCH -c 1")
         script.append(f"#SBATCH --mem {args.memory}")
     else:
         # Each worker will need this much memory as they each
         # load the benchmark individually
-        script.append(f"#SBATCH -c {args.n_worker}")
+        if args.gpus > 0:
+            script.append(f"#SBATCH --gres=gpu:{args.n_worker * args.gpus}")
+            script.append(f"#SBATCH -c {c}")  # requests the maximal CPU for all workers
+        else:
+            script.append(f"#SBATCH -c {args.n_worker}")
         script.append(f"#SBATCH --mem-per-cpu {args.memory}")
 
-        # Pre-prend the cmd with srun to enable it to run multiple times
-        cmd = f"srun --ntasks {args.n_worker} --cpus-per-task 1 {cmd}"
+        # Prepend the cmd with srun to enable it to run multiple times
+        cpus_per_task = c // args.n_worker if args.gpus > 0 else 1
+        gpus_per_task = args.gpus
+        cmd = f"srun --ntasks 1 --cpus-per-task {cpus_per_task} --gres=gpu:{gpus_per_task} --exclusive {cmd}"  # --gpu-bind=closest
 
+        if args.n_worker > 1 and args.gpus > 0:
+            # adjusts script to launch all the srun jobs sequentially as background processes
+            new_cmd = get_gpu_srun_command(cmd, args.n_worker)
+
+    # TODO: verify 1 worker 1 GPU run and runs where each worker uses multiple GPUs
     script.append("")
     script.append(argument_string)
     script.append("")
-    script.append(cmd)
+    if args.n_worker > 1 and args.gpus > 0:
+        script.extend(new_cmd)
+    else:
+        script.append(cmd)
 
     return "\n".join(script) + "\n"  # type: ignore[assignment]
 
@@ -90,6 +127,12 @@ if __name__ == "__main__":
     parser.add_argument("--arguments", nargs="+")
     parser.add_argument(
         "--exclude", default=None, type=str, help="example: kisexe24,kisexe34"
+    )
+    parser.add_argument(
+        "--gpus", 
+        default=0, 
+        type=int, 
+        help="if GPUs to be used by worker (0 if CPU only and assumes single node)"
     )
     args = parser.parse_args()
 

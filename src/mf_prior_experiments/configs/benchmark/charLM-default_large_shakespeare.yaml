@@ -1,0 +1,10 @@
+name: charLM-default_large_shakespeare
+api:
+  bench_name: charLM-default
+  bench_size: large
+  _target_: lmhpo.src.gpt_bench.CharLMBench
+  seed: ${seed}
+  set_defaults: true
+budget:
+  max: 3000
+  min: 300
