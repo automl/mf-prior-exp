@@ -1,7 +1,7 @@
 # PriorBand: Practical Hyperparameter Optimization in the Age of Deep Learning
 
-This repo is purely for reproducing the experiments of the paper. To use `PriorBand`, we have
-an up to date implementation in [`NePs`](https://github.com/automl/neps) that should be the preffered
+This repo is purely for reproducing the experiments of the [paper](https://arxiv.org/abs/2306.12370). To use `PriorBand`, we have
+an up-to-date implementation in [`NePs`](https://github.com/automl/neps) that should be the preferred
 way to use the optimizer.
 
 ## Installation
@@ -173,4 +173,14 @@ python -m src.mf_prior_experiments.plot \
 	--n_workers 1 \
 	--incumbent_traces "${incumbent_traces}" \
 	--x_range_it 1 12
+```
+## To cite the work:
+```bibtex
+@inproceedings{mallik-neurips23a,
+  title={PriorBand: Practical Hyperparameter Optimization in the Age of Deep Learning},
+  author={N. Mallik, E. Bergman, C. Hvarfner, D. Stoll, M. Janowski, M. Lindauer, L. Nardi, F. Hutter},
+  booktitle={Thirty-seventh Conference on Neural Information Processing Systems},
+  year={2023},
+  url={https://openreview.net/forum?id=uoiwugtpCH}
+}
 ```
