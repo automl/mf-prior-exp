@@ -1,3 +1,5 @@
+## NOTE: This repo will not be updated or maintained after November 1, 2023.
+
 # PriorBand: Practical Hyperparameter Optimization in the Age of Deep Learning
 
 This repo is purely for reproducing the experiments of the [paper](https://arxiv.org/abs/2306.12370). To use `PriorBand`, we have
